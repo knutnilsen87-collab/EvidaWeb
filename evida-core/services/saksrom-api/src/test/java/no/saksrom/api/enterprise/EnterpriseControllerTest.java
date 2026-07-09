@@ -11,9 +11,10 @@ class EnterpriseControllerTest {
     @Test
     void readinessBlocksProductionWhenLocalDevModeIsEnabled() {
         var controller = new EnterpriseController(new EvidaProperties(
-                new EvidaProperties.Security(true),
-                new EvidaProperties.Ai(false),
-                new EvidaProperties.Documents(false)
+                EvidaProperties.Security.of(true),
+                EvidaProperties.Ai.of(false),
+                EvidaProperties.Documents.of(false),
+                null
         ));
 
         var readiness = controller.readiness(UUID.randomUUID());
@@ -27,9 +28,10 @@ class EnterpriseControllerTest {
     @Test
     void deviceActivationRequiresStrongFingerprintHash() {
         var controller = new EnterpriseController(new EvidaProperties(
-                new EvidaProperties.Security(true),
-                new EvidaProperties.Ai(false),
-                new EvidaProperties.Documents(false)
+                EvidaProperties.Security.of(true),
+                EvidaProperties.Ai.of(false),
+                EvidaProperties.Documents.of(false),
+                null
         ));
 
         var denied = controller.evaluateDevice(new EnterpriseController.DeviceActivationRequest(
@@ -54,9 +56,10 @@ class EnterpriseControllerTest {
     @Test
     void licenseEvaluationReportsCapacity() {
         var controller = new EnterpriseController(new EvidaProperties(
-                new EvidaProperties.Security(true),
-                new EvidaProperties.Ai(false),
-                new EvidaProperties.Documents(false)
+                EvidaProperties.Security.of(true),
+                EvidaProperties.Ai.of(false),
+                EvidaProperties.Documents.of(false),
+                null
         ));
 
         var decision = controller.evaluateLicense(new EnterpriseController.LicenseEvaluationRequest(

@@ -1,0 +1,288 @@
+.saksrom-canvas {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  width: 100%;
+  max-width: 1600px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 0;
+  transition: grid-template-columns 0.24s ease;
+}
+
+.saksrom-canvas.chat-collapsed {
+  grid-template-columns: 1fr;
+}
+
+/* On very wide screens only, allow a balanced split */
+@media (min-width: 1700px) {
+  .saksrom-canvas.saksrom-canvas--preview-open {
+    grid-template-columns: minmax(620px, 1fr) minmax(720px, 1.2fr);
+  }
+  .saksrom-canvas.saksrom-canvas--preview-open.chat-collapsed {
+    grid-template-columns: minmax(0, 1fr) 76px;
+  }
+}
+
+/* If available width is insufficient, use drawer/overlay instead of split */
+@media (max-width: 1699px) {
+  .saksrom-canvas.saksrom-canvas--preview-open {
+    display: block;
+    position: relative;
+  }
+  .saksrom-canvas.saksrom-canvas--preview-open.chat-collapsed {
+    display: block;
+    position: relative;
+  }
+  .saksrom-canvas.saksrom-canvas--preview-open .doc-pane {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: min(680px, 100%);
+    height: 100%;
+    z-index: 100;
+    background: #ffffff;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+  }
+  .saksrom-canvas.saksrom-canvas--preview-open .analysis-pane {
+    width: 100%;
+    min-width: min(720px, 100%);
+  }
+}
+
+.pane-close-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid rgba(17, 24, 39, 0.15);
+  border-radius: 6px;
+  background: rgba(17, 24, 39, 0.05);
+  color: #111827;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.pane-close-btn:hover {
+  background: rgba(17, 24, 39, 0.1);
+  border-color: rgba(17, 24, 39, 0.35);
+}
+
+.doc-pane,
+.analysis-pane {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.doc-pane {
+  gap: 2rem;
+  padding: clamp(2rem, 3vw, 3.5rem);
+  border-radius: 20px;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+}
+
+.analysis-pane {
+  gap: 2rem;
+  padding: clamp(1.35rem, 2.4vw, 2rem);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 212, 163, 0.08), transparent 50%),
+    var(--evida-bg-glass);
+  backdrop-filter: blur(var(--glass-blur)) saturate(165%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(165%);
+  border: var(--glass-border);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+}
+
+.chat-collapsed .analysis-pane {
+  align-items: center;
+  padding: 1rem 0.7rem;
+}
+
+.pane-header {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.analysis-pane__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.chat-collapsed .analysis-pane__header {
+  align-items: center;
+  flex-direction: column;
+}
+
+.chat-collapsed .analysis-pane__header div {
+  display: none;
+}
+
+.pane-header h1,
+.pane-header h2,
+.pane-header p {
+  margin: 0;
+}
+
+.pane-header h1 {
+  color: #111827;
+  font-size: clamp(2rem, 4vw, 3.35rem);
+  font-weight: 320;
+  letter-spacing: 0;
+}
+
+.pane-header h2 {
+  color: var(--evida-text-primary);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 300;
+  letter-spacing: 0;
+}
+
+.pane-header p {
+  color: #4b5563;
+}
+
+.analysis-pane .pane-header p {
+  color: var(--evida-text-secondary);
+}
+
+.pane-kicker {
+  color: #6b7280;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.analysis-pane .pane-kicker {
+  color: var(--evida-text-muted);
+}
+
+.analysis-collapse-btn {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--evida-text-secondary);
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.analysis-collapse-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 212, 163, 0.12);
+  color: var(--evida-status-active);
+}
+
+@media (max-width: 1080px) {
+  .saksrom-canvas,
+  .saksrom-canvas.chat-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-collapsed .analysis-pane {
+    align-items: stretch;
+  }
+
+  .chat-collapsed .analysis-pane__header div {
+    display: block;
+  }
+}
+
+.saksrom-preliminary-banner {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--evida-space-2);
+  padding: var(--evida-space-3) var(--evida-space-4);
+  background: rgba(217, 119, 6, 0.1);
+  border: 1px solid rgba(217, 119, 6, 0.22);
+  border-radius: var(--evida-radius-lg);
+  color: var(--evida-status-warning);
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.saksrom-preliminary-banner p {
+  margin: 0;
+  color: var(--evida-status-warning);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.saksrom-preliminary-banner__title {
+  display: flex;
+  align-items: center;
+  gap: var(--evida-space-2);
+}
+
+.saksrom-preliminary-banner .banner-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--evida-status-warning);
+  box-shadow: 0 0 8px var(--evida-status-warning);
+  animation: banner-pulse-anim 2s infinite ease-in-out;
+}
+
+.banner-status-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--evida-space-3);
+  color: var(--evida-status-warning);
+  font-size: 0.8rem;
+  opacity: 0.88;
+}
+
+.saksrom-notification {
+  position: fixed;
+  top: 5.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: var(--evida-space-2);
+  padding: var(--evida-space-2) var(--evida-space-3);
+  border: 1px solid var(--primary);
+  border-radius: var(--evida-radius-sm);
+  background: var(--evida-space-card);
+  color: var(--evida-text-primary);
+  box-shadow: 0 0 12px var(--primary-glow);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.saksrom-notification .banner-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}
+
+@keyframes banner-pulse-anim {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+
+
+

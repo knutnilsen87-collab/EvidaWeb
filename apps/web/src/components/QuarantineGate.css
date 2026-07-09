@@ -1,0 +1,207 @@
+.quarantine-workspace {
+  min-height: 100vh;
+  padding: 2rem;
+  color: var(--evida-text-primary);
+  background:
+    var(--evida-bg-grain),
+    radial-gradient(circle at top right, rgba(4, 120, 87, 0.08), transparent 60%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.018), transparent 42%);
+}
+
+.workspace-header {
+  max-width: 920px;
+}
+
+.workspace-header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2.5rem;
+  letter-spacing: 0;
+}
+
+.workspace-header p {
+  margin: 0;
+  color: var(--evida-text-secondary);
+  line-height: 1.55;
+}
+
+.stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.upload-dropzone {
+  display: grid;
+  width: min(420px, 100%);
+  gap: var(--evida-space-2);
+  margin: 0 0 var(--evida-space-5);
+  padding: var(--evida-space-4);
+  border: 1px dashed rgba(4, 120, 87, 0.54);
+  border-radius: var(--evida-radius-md);
+  background: rgba(4, 120, 87, 0.1);
+  color: var(--evida-text-primary);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.upload-dropzone input {
+  color: var(--evida-text-secondary);
+}
+
+.stat-card {
+  display: grid;
+  min-width: 150px;
+  gap: 0.25rem;
+  padding: 1rem 1.5rem;
+  border: 1px solid var(--evida-glass-border);
+  border-radius: var(--evida-radius-md);
+  background: var(--evida-bg-panel);
+}
+
+.stat-card.active {
+  border-color: rgba(4, 120, 87, 0.38);
+  background:
+    linear-gradient(135deg, rgba(4, 120, 87, 0.13), transparent),
+    var(--evida-bg-panel);
+}
+
+.stat-value {
+  color: #fff;
+  font-size: 1.75rem;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.stat-label {
+  color: var(--evida-text-secondary);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.quarantine-notice,
+.quarantine-empty {
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+}
+
+.quarantine-notice {
+  border: 1px solid var(--evida-glass-border);
+  border-radius: var(--evida-radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--evida-text-secondary);
+}
+
+.quarantine-notice--error {
+  border-color: rgba(220, 38, 38, 0.45);
+  color: #fecaca;
+}
+
+.quarantine-empty {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.quarantine-empty span {
+  color: var(--evida-text-secondary);
+}
+
+.document-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.doc-card {
+  position: relative;
+  display: flex;
+  min-height: 210px;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--evida-glass-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.doc-card:hover {
+  border-color: rgba(4, 120, 87, 0.55);
+  transform: translateY(-4px);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--evida-status-quarantine);
+  box-shadow: 0 0 8px var(--evida-status-quarantine);
+}
+
+.status-indicator.processing {
+  background: var(--evida-status-processing);
+  box-shadow: 0 0 8px var(--evida-status-processing);
+}
+
+.status-indicator.rejected {
+  background: var(--evida-status-critical);
+  box-shadow: 0 0 8px var(--evida-status-critical);
+}
+
+.doc-content {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.doc-title {
+  margin: 0;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.doc-meta {
+  margin: 0;
+  color: var(--evida-text-secondary);
+  font-size: 0.8rem;
+}
+
+.btn-approve {
+  margin-top: auto;
+  border: 1px solid var(--evida-status-active);
+  border-radius: var(--evida-radius-sm);
+  padding: 0.75rem;
+  background: transparent;
+  color: var(--evida-status-active);
+  cursor: pointer;
+  font-weight: 600;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.2s,
+    opacity 0.2s;
+}
+
+.btn-approve:hover:not(:disabled) {
+  background: var(--evida-status-active);
+  color: white;
+}
+
+.btn-approve:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-approve:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 720px) {
+  .quarantine-workspace {
+    padding: 1.25rem;
+  }
+
+  .document-grid {
+    grid-template-columns: 1fr;
+  }
+}

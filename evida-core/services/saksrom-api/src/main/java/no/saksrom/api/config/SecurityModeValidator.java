@@ -27,6 +27,12 @@ public class SecurityModeValidator {
         if (!properties.security().localDevMode() && isProductionProfile() && !hasJwtTrustConfiguration()) {
             throw new IllegalStateException("production profile requires JWT issuer-uri or jwk-set-uri");
         }
+        if (isProductionProfile() && !hasSafeAllowedOrigins()) {
+            throw new IllegalStateException("production profile requires explicit non-wildcard allowed origins");
+        }
+        if (isProductionProfile() && !properties.security().malwareScannerConfigured()) {
+            throw new IllegalStateException("production profile requires configured malware scanner");
+        }
     }
 
     private boolean isProductionProfile() {
@@ -37,6 +43,16 @@ public class SecurityModeValidator {
     private boolean hasJwtTrustConfiguration() {
         return hasText(environment.getProperty("spring.security.oauth2.resourceserver.jwt.issuer-uri"))
                 || hasText(environment.getProperty("spring.security.oauth2.resourceserver.jwt.jwk-set-uri"));
+    }
+
+    private boolean hasSafeAllowedOrigins() {
+        if (properties.security().allowedOrigins() == null || properties.security().allowedOrigins().isEmpty()) {
+            return false;
+        }
+        return properties.security().allowedOrigins().stream()
+                .map(String::trim)
+                .filter(this::hasText)
+                .noneMatch(origin -> "*".equals(origin));
     }
 
     private boolean hasText(String value) {

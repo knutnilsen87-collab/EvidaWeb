@@ -5,6 +5,14 @@ spring:
   application:
     name: evida-api
 
+  servlet:
+    multipart:
+      # Aligned with evida.documents.max-file-size-bytes (100MB default). Without this,
+      # Tomcat's 1MB default rejects normal legal PDFs with HTTP 413 before EVIDA's own
+      # streaming size validation ever runs (DEFECT-P5-1).
+      max-file-size: ${EVIDA_MULTIPART_MAX_FILE_SIZE:100MB}
+      max-request-size: ${EVIDA_MULTIPART_MAX_REQUEST_SIZE:100MB}
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/evida}
     username: ${DATABASE_USER:evida}
@@ -30,11 +38,29 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+      probes:
+        enabled: true
 
 evida:
   security:
-    local-dev-mode: ${EVIDA_LOCAL_DEV_MODE:false}
+    local-dev-mode: ${EVIDA_LOCAL_DEV_MODE:true}
+    allowed-origins: ${EVIDA_ALLOWED_ORIGINS:}
+    malware-scanner-configured: ${EVIDA_MALWARE_SCANNER_CONFIGURED:false}
   ai:
     provider-calls-enabled: ${EVIDA_AI_PROVIDER_CALLS_ENABLED:false}
   documents:
     raw-upload-allowed: ${EVIDA_RAW_DOCUMENT_UPLOAD_ALLOWED:false}
+    max-file-size-bytes: ${EVIDA_MAX_DOCUMENT_UPLOAD_BYTES:104857600}
+  ingestion:
+    worker-fixed-delay-ms: ${EVIDA_INGESTION_WORKER_DELAY_MS:5000}
+    # Stale RUNNING recovery (DEFECT-P5-2): jobs whose heartbeat (locked_at, refreshed on
+    # every page-progress update) is older than this are reset RUNNING -> PENDING so the
+    # worker can reclaim and resume from the first missing page after a hard crash.
+    stale-running-timeout-seconds: ${EVIDA_INGESTION_STALE_RUNNING_TIMEOUT_SECONDS:900}
+    stale-recovery-fixed-delay-ms: ${EVIDA_INGESTION_STALE_RECOVERY_DELAY_MS:60000}
+  parser:
+    ocr-text-threshold-chars: ${EVIDA_PARSER_OCR_TEXT_THRESHOLD_CHARS:40}
+    ocr-dpi: ${EVIDA_PARSER_OCR_DPI:300}
+    ocr-timeout-seconds: ${EVIDA_PARSER_OCR_TIMEOUT_SECONDS:60}
+    tessdata-path: ${EVIDA_TESSDATA_PATH:./data/tessdata}
+    max-pages-per-document: ${EVIDA_PARSER_MAX_PAGES:20000}

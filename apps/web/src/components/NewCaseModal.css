@@ -1,0 +1,7 @@
+.new-case-modal {
+  transform-origin: center;
+}
+
+.new-case-backdrop {
+  overscroll-behavior: contain;
+}

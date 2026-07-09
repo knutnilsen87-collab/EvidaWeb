@@ -4,6 +4,8 @@ This repository is not allowed to be considered ready for a first real user unti
 
 This file is intended for Codex, AI coding agents, and human developers. It is a binding working contract for changes related to first-user readiness.
 
+All EVIDA product work must also follow `EVIDA_DEVELOPER_DIRECTIVE.md`, the North Star for Legal Dark Shell, Editorial Authority, guided juridical workflow, tenant isolation, quarantine-first ingestion, source units, and source-bound AI.
+
 ## Non-negotiable rules
 
 1. No feature is `done` without verification evidence.
@@ -22,6 +24,7 @@ This file is intended for Codex, AI coding agents, and human developers. It is a
 For every change touching first-user readiness:
 
 ```text
+0. Read EVIDA_DEVELOPER_DIRECTIVE.md
 1. Read docs/first-user/FIRST_USER_SCOPE.md
 2. Read docs/first-user/FIRST_USER_DOD.md
 3. Read docs/first-user/PRODUCT_INVARIANTS.md

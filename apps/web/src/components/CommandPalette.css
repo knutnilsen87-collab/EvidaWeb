@@ -1,0 +1,106 @@
+.command-palette__trigger {
+  white-space: nowrap;
+}
+
+.command-palette__trigger span {
+  color: var(--evida-text-secondary);
+  font-size: 0.78rem;
+}
+
+.command-palette__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: 12vh var(--evida-space-4) var(--evida-space-4);
+  background: rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+}
+
+.command-palette {
+  width: min(720px, 100%);
+  display: grid;
+  gap: var(--evida-space-4);
+  padding: var(--evida-space-4);
+  box-shadow:
+    var(--evida-panel-shadow),
+    0 0 54px rgba(13, 148, 136, 0.12);
+}
+
+.command-palette__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--evida-space-3);
+}
+
+.command-palette h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.command-palette input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--evida-glass-border);
+  border-radius: var(--evida-radius-md);
+  padding: 0 var(--evida-space-4);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--evida-text-primary);
+}
+
+.command-palette input::placeholder {
+  color: var(--evida-text-muted);
+}
+
+.command-palette__list {
+  display: grid;
+  gap: var(--evida-space-2);
+}
+
+.command-palette__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--evida-space-3);
+  align-items: center;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--evida-radius-md);
+  padding: var(--evida-space-3);
+  background: transparent;
+  color: var(--evida-text-primary);
+  text-align: left;
+}
+
+.command-palette__item.is-active,
+.command-palette__item:hover {
+  border-color: rgba(13, 148, 136, 0.4);
+  background: rgba(13, 148, 136, 0.12);
+}
+
+.command-palette__item span {
+  display: grid;
+  gap: var(--evida-space-1);
+  min-width: 0;
+}
+
+.command-palette__item small {
+  color: var(--evida-text-secondary);
+}
+
+.command-palette kbd {
+  border: 1px solid var(--evida-glass-border);
+  border-radius: var(--evida-radius-sm);
+  padding: 3px 7px;
+  color: var(--evida-text-secondary);
+  font-size: 0.75rem;
+}
+
+.command-palette__empty {
+  margin: 0;
+  padding: var(--evida-space-3);
+  color: var(--evida-text-secondary);
+}

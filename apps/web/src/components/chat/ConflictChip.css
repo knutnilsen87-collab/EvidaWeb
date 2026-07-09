@@ -1,0 +1,68 @@
+.conflict-chip-container {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 60ch;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 16px;
+  padding: 1rem;
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(16, 18, 24, 0.32)),
+    var(--evida-bg-glass);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.conflict-header {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.conflict-header span {
+  color: var(--status-amber);
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.conflict-header small {
+  color: var(--evida-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.conflict-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.vs-text {
+  color: rgba(255, 255, 255, 0.36);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.compare-btn {
+  justify-self: start;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 999px;
+  padding: 0.55rem 0.78rem;
+  background: rgba(245, 158, 11, 0.1);
+  color: #ffd99a;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 850;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.compare-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245, 158, 11, 0.46);
+  background: rgba(245, 158, 11, 0.16);
+}

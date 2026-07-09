@@ -1,3 +1,30 @@
 evida:
   security:
     local-dev-mode: true
+    allowed-origins:
+      - http://127.0.0.1:5173
+      - http://localhost:5173
+    malware-scanner-configured: false
+  documents:
+    raw-upload-allowed: true
+    max-file-size-bytes: ${EVIDA_MAX_DOCUMENT_UPLOAD_BYTES:104857600}
+  storage:
+    quarantine-root: ${EVIDA_QUARANTINE_ROOT:./data/quarantine}
+  parser:
+    ocr-text-threshold-chars: ${EVIDA_PARSER_OCR_TEXT_THRESHOLD_CHARS:40}
+    ocr-dpi: ${EVIDA_PARSER_OCR_DPI:300}
+    ocr-timeout-seconds: ${EVIDA_PARSER_OCR_TIMEOUT_SECONDS:60}
+    tessdata-path: ${EVIDA_TESSDATA_PATH:./data/tessdata}
+    max-pages-per-document: ${EVIDA_PARSER_MAX_PAGES:20000}
+
+spring:
+  datasource:
+    url: ${EVIDA_DEV_DATABASE_URL:jdbc:h2:file:./data/evida-dev;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
+    username: ${EVIDA_DEV_DATABASE_USER:sa}
+    password: ${EVIDA_DEV_DATABASE_PASSWORD:}
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: update

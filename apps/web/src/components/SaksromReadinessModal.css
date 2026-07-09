@@ -1,0 +1,97 @@
+.readiness-backdrop .modal-container {
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr);
+  width: min(95vw, 950px);
+}
+
+.readiness-metrics-card {
+  background: var(--evida-bg-workspace);
+  border: 1px solid var(--evida-glass-border);
+  border-radius: var(--evida-radius-lg);
+  padding: var(--evida-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--evida-space-3);
+}
+
+.metrics-card-title {
+  font-size: 0.95rem;
+  color: var(--evida-text-primary);
+  margin: 0;
+  font-weight: 600;
+}
+
+.readiness-metrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--evida-space-2);
+  margin: 0;
+}
+
+.readiness-metrics-list .metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  padding: var(--evida-space-1) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.readiness-metrics-list .metric-row:last-child {
+  border-bottom: none;
+}
+
+.readiness-metrics-list dt {
+  color: var(--evida-text-secondary);
+}
+
+.readiness-metrics-list dd {
+  font-weight: 700;
+  color: var(--evida-text-primary);
+  margin: 0;
+}
+
+.readiness-metrics-list dd.coverage-high {
+  color: var(--evida-status-verified);
+}
+
+.readiness-metrics-list dd.coverage-low {
+  color: var(--evida-status-warning);
+}
+
+.readiness-metrics-list dd.warning-value {
+  color: var(--evida-status-warning);
+}
+
+.readiness-metrics-list dd.danger-value {
+  color: var(--evida-status-critical);
+}
+
+.readiness-confirm-btn {
+  background: #ffffff;
+  color: #09090b;
+}
+
+.readiness-confirm-btn:hover {
+  background: #f4f4f5;
+}
+
+.readiness-confirm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.readiness-acknowledgement {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--evida-space-2);
+  padding: var(--evida-space-3);
+  border: 1px solid var(--evida-glass-border);
+  border-radius: var(--evida-radius-md);
+  color: var(--evida-text-primary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.readiness-acknowledgement input {
+  margin-top: 0.18rem;
+}

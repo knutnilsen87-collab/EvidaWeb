@@ -1,0 +1,220 @@
+.kronologi-workspace {
+  display: grid;
+  gap: var(--evida-space-5);
+}
+
+.kronologi-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--evida-space-4);
+}
+
+.kronologi-header h2 {
+  margin: 0;
+  color: var(--evida-text-primary);
+  font-size: 2rem;
+}
+
+.kronologi-header p {
+  max-width: 650px;
+  margin: var(--evida-space-2) 0 0;
+  color: var(--evida-text-secondary);
+}
+
+.kronologi-eyebrow {
+  color: var(--evida-status-active);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kronologi-summary {
+  display: grid;
+  min-width: 120px;
+  gap: var(--evida-space-1);
+  padding: var(--evida-space-4);
+  text-align: right;
+}
+
+.kronologi-summary strong {
+  color: var(--evida-text-primary);
+  font-size: 1.8rem;
+}
+
+.kronologi-summary span {
+  color: var(--evida-text-secondary);
+  font-size: 0.85rem;
+}
+
+.kronologi-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: var(--evida-space-5);
+  align-items: start;
+}
+
+.timeline {
+  position: relative;
+  display: grid;
+  gap: var(--evida-space-4);
+}
+
+.timeline::before {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 118px;
+  width: 1px;
+  content: "";
+  background: rgba(13, 148, 136, 0.34);
+}
+
+.timeline-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) auto;
+  gap: var(--evida-space-4);
+  align-items: center;
+  padding: var(--evida-space-4);
+}
+
+.timeline-item::before {
+  position: absolute;
+  left: 112px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--evida-status-active);
+  border-radius: 999px;
+  content: "";
+  background: var(--evida-bg-workspace);
+  box-shadow: 0 0 14px rgba(13, 148, 136, 0.42);
+}
+
+.timeline-date {
+  color: var(--evida-status-active);
+  font-weight: 800;
+}
+
+.timeline-content {
+  display: grid;
+  gap: var(--evida-space-2);
+  min-width: 0;
+}
+
+.timeline-content h3,
+.timeline-content p {
+  margin: 0;
+}
+
+.timeline-content h3 {
+  color: var(--evida-text-primary);
+  font-size: 1rem;
+}
+
+.timeline-content p {
+  color: var(--evida-text-secondary);
+  font-size: 0.92rem;
+}
+
+.source-link {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--evida-status-active);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.source-link:hover {
+  color: #2dd4bf;
+}
+
+.timeline-status {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 98px;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.timeline-status.faktum {
+  color: var(--evida-status-verified);
+}
+
+.timeline-status.usikkert {
+  color: var(--evida-status-quarantine);
+}
+
+.timeline-status.mangler-kilde {
+  color: var(--evida-status-critical);
+}
+
+.source-preview {
+  position: sticky;
+  top: var(--evida-space-5);
+  display: grid;
+  gap: var(--evida-space-3);
+  padding: var(--evida-space-5);
+}
+
+.source-preview span,
+.source-preview small {
+  color: var(--evida-text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.source-preview h3,
+.source-preview p {
+  margin: 0;
+}
+
+.source-preview h3 {
+  color: var(--evida-text-primary);
+}
+
+.source-preview p {
+  color: var(--evida-text-secondary);
+  line-height: 1.55;
+}
+
+@media (max-width: 1080px) {
+  .kronologi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-preview {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .kronologi-header,
+  .timeline-item {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline::before,
+  .timeline-item::before {
+    display: none;
+  }
+
+  .kronologi-header {
+    display: grid;
+  }
+
+  .kronologi-summary {
+    text-align: left;
+  }
+}

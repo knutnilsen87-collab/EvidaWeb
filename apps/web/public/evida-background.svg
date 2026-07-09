@@ -1,0 +1,49 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1920" height="1080" fill="#0A0A0A"/>
+  <g opacity="0.72" filter="url(#softGlow)">
+    <path d="M214 820C394 620 518 536 730 506C1004 468 1178 298 1370 142" stroke="url(#emeraldLine)" stroke-width="2"/>
+    <path d="M124 246C356 336 582 364 832 336C1096 306 1308 354 1666 552" stroke="url(#blueLine)" stroke-width="1.4"/>
+    <path d="M1178 200C1058 344 1004 482 1016 636C1028 792 948 908 778 1010" stroke="url(#emeraldLineSoft)" stroke-width="1.2"/>
+    <path d="M1486 180L1572 366L1400 366L1486 180Z" stroke="url(#emeraldLine)" stroke-width="1.5"/>
+    <path d="M310 470L390 642L230 642L310 470Z" stroke="url(#blueLine)" stroke-width="1.3"/>
+    <path d="M1240 354H1668" stroke="url(#emeraldLineSoft)" stroke-width="1.2"/>
+    <path d="M214 642H390" stroke="url(#blueLine)" stroke-width="1.1"/>
+  </g>
+  <g opacity="0.28">
+    <circle cx="1502" cy="354" r="162" stroke="url(#ring)" stroke-width="1"/>
+    <circle cx="1502" cy="354" r="236" stroke="url(#ring)" stroke-width="0.7"/>
+    <circle cx="330" cy="642" r="168" stroke="url(#ringBlue)" stroke-width="0.8"/>
+  </g>
+  <defs>
+    <filter id="softGlow" x="0" y="0" width="1920" height="1080" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.35" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="emeraldLine" x1="214" y1="820" x2="1668" y2="142" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00D4A3" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="#00D4A3" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#2DD4BF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="emeraldLineSoft" x1="778" y1="1010" x2="1668" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00D4A3" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#00D4A3" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#00D4A3" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="blueLine" x1="124" y1="246" x2="1666" y2="642" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B3B68" stop-opacity="0"/>
+      <stop offset="0.48" stop-color="#38BDF8" stop-opacity="0.62"/>
+      <stop offset="1" stop-color="#0B3B68" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="1266" y1="118" x2="1738" y2="590" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00D4A3" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#00D4A3" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ringBlue" x1="162" y1="474" x2="498" y2="810" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>

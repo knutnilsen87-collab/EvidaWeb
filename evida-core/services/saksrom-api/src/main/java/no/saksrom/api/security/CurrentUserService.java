@@ -1,6 +1,9 @@
 package no.saksrom.api.security;
 
 import no.saksrom.api.config.EvidaProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,6 +19,12 @@ import java.util.stream.Collectors;
 
 @Component
 public class CurrentUserService {
+    public static final String EVIDA_TENANT_HEADER = "X-Evida-Tenant-ID";
+    public static final String EVIDA_AUTHENTICATED_TENANT_HEADER = "X-Evida-Authenticated-Tenant-ID";
+    public static final String EVIDA_USER_HEADER = "X-Evida-User-ID";
+    public static final String EVIDA_EMAIL_HEADER = "X-Evida-User-Email";
+    public static final String EVIDA_ROLES_HEADER = "X-Evida-Roles";
+
     public static final String TENANT_HEADER = "X-Saksrom-Tenant-Id";
     public static final String USER_HEADER = "X-Saksrom-User-Id";
     public static final String ROLES_HEADER = "X-Saksrom-Roles";
@@ -24,13 +33,20 @@ public class CurrentUserService {
     private static final UUID DEV_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000102");
 
     private final EvidaProperties properties;
+    private final Environment environment;
+
+    @Autowired
+    public CurrentUserService(EvidaProperties properties, Environment environment) {
+        this.properties = properties;
+        this.environment = environment;
+    }
 
     public CurrentUserService(EvidaProperties properties) {
-        this.properties = properties;
+        this(properties, new StandardEnvironment());
     }
 
     public AuthenticatedUser currentUser() {
-        if (properties.security().localDevMode()) {
+        if (properties.security().localDevMode() || isDevProfile()) {
             return localDevUser();
         }
 
@@ -42,6 +58,7 @@ public class CurrentUserService {
         return new AuthenticatedUser(
                 claimUuid(jwt, "tenant_id"),
                 claimUuid(jwt, "user_id"),
+                email(jwt),
                 jwtRoles(jwt)
         );
     }
@@ -52,14 +69,26 @@ public class CurrentUserService {
             return new AuthenticatedUser(DEV_TENANT_ID, DEV_USER_ID, Set.of("OWNER", "ADMIN", "AUDITOR", "SECURITY_ADMIN"));
         }
 
-        String tenant = attributes.getRequest().getHeader(TENANT_HEADER);
-        String user = attributes.getRequest().getHeader(USER_HEADER);
-        String roles = attributes.getRequest().getHeader(ROLES_HEADER);
+        String tenant = firstHeader(attributes, EVIDA_AUTHENTICATED_TENANT_HEADER);
+        String user = firstHeader(attributes, EVIDA_USER_HEADER, USER_HEADER);
+        String email = firstHeader(attributes, EVIDA_EMAIL_HEADER);
+        String roles = firstHeader(attributes, EVIDA_ROLES_HEADER, ROLES_HEADER);
         return new AuthenticatedUser(
                 parseUuidOrDefault(tenant, DEV_TENANT_ID),
                 parseUuidOrDefault(user, DEV_USER_ID),
+                email == null || email.isBlank() ? "dev@evida.local" : email,
                 parseRoles(roles)
         );
+    }
+
+    private String firstHeader(ServletRequestAttributes attributes, String... names) {
+        for (String name : names) {
+            String value = attributes.getRequest().getHeader(name);
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private UUID claimUuid(Jwt jwt, String claim) {
@@ -83,6 +112,11 @@ public class CurrentUserService {
         return parseRoles(scope);
     }
 
+    private String email(Jwt jwt) {
+        String email = jwt.getClaimAsString("email");
+        return email == null || email.isBlank() ? "unknown@evida.local" : email;
+    }
+
     private UUID parseUuidOrDefault(String value, UUID fallback) {
         if (value == null || value.isBlank()) {
             return fallback;
@@ -98,5 +132,14 @@ public class CurrentUserService {
                 .map(String::trim)
                 .filter(role -> !role.isBlank())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private boolean isDevProfile() {
+        for (String profile : environment.getActiveProfiles()) {
+            if ("dev".equalsIgnoreCase(profile) || "local".equalsIgnoreCase(profile)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

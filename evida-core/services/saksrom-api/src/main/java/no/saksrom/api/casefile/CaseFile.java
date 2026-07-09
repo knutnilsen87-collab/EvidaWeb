@@ -1,11 +1,17 @@
 package no.saksrom.api.casefile;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "cases")
+@FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = UUID.class))
+@Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 public class CaseFile {
     @Id
     private UUID id;

@@ -1,0 +1,143 @@
+/* Master Modal Standard - authority through width and calm composition. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px) saturate(145%);
+  -webkit-backdrop-filter: blur(12px) saturate(145%);
+}
+
+.modal-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr);
+  align-items: center;
+  width: min(90vw, 900px);
+  gap: clamp(2rem, 6vw, 4rem);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 32px;
+  padding: clamp(2.5rem, 7vw, 5rem);
+  background:
+    var(--evida-bg-grain),
+    rgba(10, 10, 12, 0.98);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+}
+
+.modal-header {
+  display: grid;
+  gap: 1rem;
+}
+
+.modal-header h2,
+.modal-header p {
+  margin: 0;
+}
+
+.modal-header h2 {
+  color: #f0f0f0;
+  font-family: var(--evida-font-header);
+  font-size: 3rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.modal-header p {
+  color: var(--evida-text-secondary);
+  line-height: 1.65;
+}
+
+.modal-kicker {
+  color: var(--evida-status-active);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.modal-actions-area {
+  display: grid;
+  gap: 2rem;
+}
+
+.modal-input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 1rem 0;
+  background: transparent;
+  color: var(--evida-text-primary);
+  font-size: 1.08rem;
+  outline: none;
+}
+
+.modal-input::placeholder {
+  color: var(--evida-text-muted);
+}
+
+.modal-input:focus {
+  border-bottom-color: rgba(4, 120, 87, 0.8);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.85rem;
+}
+
+.cancel-btn,
+.confirm-btn {
+  border-radius: 999px;
+  padding: 0.85rem 1.25rem;
+  cursor: pointer;
+  font-weight: 750;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.cancel-btn {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: var(--evida-text-secondary);
+}
+
+.confirm-btn {
+  border: 0;
+  background: #ffffff;
+  color: #09090b;
+}
+
+.cancel-btn:hover,
+.confirm-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.confirm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+@media (max-width: 720px) {
+  .modal-container {
+    grid-template-columns: 1fr;
+    width: min(100%, 38rem);
+    gap: 2rem;
+    padding: 2rem;
+    border-radius: 24px;
+  }
+
+  .modal-header h2 {
+    font-size: 2.4rem;
+  }
+
+  .modal-footer {
+    display: grid;
+  }
+}

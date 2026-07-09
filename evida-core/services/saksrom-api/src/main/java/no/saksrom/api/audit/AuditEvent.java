@@ -28,7 +28,7 @@ public class AuditEvent {
     @Column(name = "entity_id")
     private UUID entityId;
 
-    @Column(name = "event_payload", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "event_payload", nullable = false, columnDefinition = "TEXT")
     private String eventPayload;
 
     @Column(name = "previous_event_hash")

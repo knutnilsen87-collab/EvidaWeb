@@ -9,9 +9,10 @@ class PolicyControllerTest {
     @Test
     void defaultPolicyIsLocalFirstAndNoProviderCalls() {
         var props = new EvidaProperties(
-                new EvidaProperties.Security(true),
-                new EvidaProperties.Ai(false),
-                new EvidaProperties.Documents(false)
+                EvidaProperties.Security.of(true),
+                EvidaProperties.Ai.of(false),
+                EvidaProperties.Documents.of(false),
+                null
         );
 
         var response = new PolicyController(props).effectivePolicy();

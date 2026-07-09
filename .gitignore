@@ -15,24 +15,46 @@ legacy/abandoned-initial-app/
 **/.tools/
 **/target/
 **/dist/
+**/build/
+**/coverage/
+**/.next/
+**/.playwright/
+**/test-results/
+**/.evida-layout-backups/
+**/tree.txt
 **/.pytest_cache/
 **/__pycache__/
 **/*.pyc
 **/*.egg-info/
 **/src-tauri/gen/
 
+# Local assistant / agent state
+.claude/
+
 # Local runtime data
 **/local_data/
 **/reports/
 **/logs/
 **/tmp/
+**/data/tessdata/
+evida-core/services/saksrom-api/data/
+evida-core/services/saksrom-api/test.txt
 *.sqlite3
 *.db
+
+# Local stress / generated artifacts
+artifacts/stress/
 
 # Secrets
 .env
 .env.*
 !.env.example
+!.env.local.example
+
+# Large local media / manual test packages
+*.mp4
+testpakker/
+apps/web/public/dev-fixture-tmp.pdf
 
 # OS/editor
 .DS_Store

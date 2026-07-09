@@ -1,0 +1,39 @@
+.citation-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-width: 0;
+  gap: 0.5rem;
+  border: 1px solid rgba(0, 212, 163, 0.22);
+  border-radius: 12px;
+  padding: 0.36rem 0.72rem;
+  background: rgba(0, 212, 163, 0.1);
+  color: var(--accent-teal);
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.2;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.citation-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 212, 163, 0.42);
+  background: rgba(0, 212, 163, 0.18);
+  color: #bffff0;
+}
+
+.citation-chip__label {
+  overflow: hidden;
+  max-width: 18ch;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.citation-chip__page {
+  color: rgba(255, 255, 255, 0.72);
+}

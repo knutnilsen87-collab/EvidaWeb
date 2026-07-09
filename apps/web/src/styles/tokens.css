@@ -1,0 +1,68 @@
+:root {
+  color-scheme: dark;
+
+  --evida-font-header: "Instrument Serif", "Georgia", "Times New Roman", serif;
+  --evida-font-ui: "Plus Jakarta Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--evida-font-header);
+  --font-sans: var(--evida-font-ui);
+  --evida-bg-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+
+  --primary: #00d4a3;
+  --primary-glow: rgba(0, 212, 163, 0.24);
+  --accent-teal: var(--primary);
+  --status-amber: #f59e0b;
+  --status-red: #ef4444;
+
+  --evida-bg-app: #0a0c10;
+  --evida-bg-base: #09090b;
+  --evida-bg-shell: #09090b;
+  --evida-bg-workspace: #121214;
+  --evida-bg-panel: #18181b;
+  --evida-bg-elevated: #27272a;
+  --evida-bg-glass: rgba(16, 18, 24, 0.4);
+  --evida-bg-glass-strong: rgba(16, 18, 24, 0.7);
+
+  --evida-surface-paper: #f8f9fa;
+  --evida-text-on-paper: #111827;
+
+  --evida-glass-bg: rgba(18, 18, 20, 0.7);
+  --evida-glass-border: rgba(255, 255, 255, 0.12);
+  --evida-glass-glow: var(--primary-glow);
+  --evida-glass-blur: blur(16px);
+  --glass-blur: 24px;
+  --glass-border: 1px solid rgba(255, 255, 255, 0.06);
+  --evida-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --evida-panel-shadow:
+    0 10px 30px -5px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+
+  --evida-text-primary: #fafafa;
+  --evida-text-secondary: #a1a1aa;
+  --evida-text-muted: #71717a;
+
+  --evida-status-active: var(--primary);
+  --evida-status-quarantine: #d97706;
+  --evida-status-warning: #d97706;
+  --evida-status-verified: #16a34a;
+  --evida-status-critical: #dc2626;
+  --evida-status-processing: #2563eb;
+  --status-green: var(--evida-status-verified);
+  --status-yellow: var(--evida-status-warning);
+  --status-red: var(--evida-status-critical);
+  --status-blue: var(--evida-status-processing);
+
+  --evida-radius-sm: 4px;
+  --evida-radius-md: 8px;
+  --evida-radius-lg: 12px;
+  --evida-radius-xl: 18px;
+
+  --evida-space-1: 4px;
+  --evida-space-2: 8px;
+  --evida-space-3: 12px;
+  --evida-space-4: 16px;
+  --evida-space-5: 24px;
+  --evida-space-6: 32px;
+
+  --evida-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --evida-transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
