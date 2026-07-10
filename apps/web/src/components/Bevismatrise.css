@@ -55,7 +55,7 @@
   display: grid;
   gap: 0.8rem;
   padding: 1.35rem;
-  cursor: grab;
+  cursor: pointer;
   border-radius: 8px;
   background:
     radial-gradient(circle at 20% 0%, rgba(13, 148, 136, 0.09), transparent 48%),
@@ -67,6 +67,11 @@
 
 .evidence-card:active {
   cursor: grabbing;
+}
+
+.evidence-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 58%, transparent);
+  outline-offset: 3px;
 }
 
 .evidence-card div {

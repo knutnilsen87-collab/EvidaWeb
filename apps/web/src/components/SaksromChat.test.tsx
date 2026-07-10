@@ -1,8 +1,29 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { SourceCoverage } from "../lib/api";
 import { citationStore } from "../lib/CitationManager";
 import { SaksromChat } from "./SaksromChat";
+
+function coverage(readyPages: number, totalPages: number): SourceCoverage {
+  return {
+    totalDocuments: 1,
+    sourceReadyDocuments: readyPages === totalPages ? 1 : 0,
+    partialDocuments: readyPages > 0 && readyPages < totalPages ? 1 : 0,
+    failedDocuments: 0,
+    totalPages,
+    readyPages,
+    ocrReadyPages: 0,
+    textReadyPages: readyPages,
+    missingOcrPages: 0,
+    belowThresholdPages: Math.max(0, totalPages - readyPages),
+    failedPages: 0,
+    coveragePercent: totalPages > 0 ? Math.round((readyPages / totalPages) * 100) : 0,
+    missingOcrPageRanges: "",
+    belowThresholdPageRanges: readyPages < totalPages ? `${readyPages + 1}-${totalPages}` : "",
+    documentCoverage: []
+  };
+}
 
 describe("SaksromChat", () => {
   afterEach(() => {
@@ -39,7 +60,53 @@ describe("SaksromChat", () => {
 
     expect(screen.getByText("Mangler kildegrunnlag")).toBeInTheDocument();
     expect(screen.getByText("NO_SOURCE_BASIS")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Ã…pne kilde/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Åpne kilde/ })).not.toBeInTheDocument();
+  });
+
+  it("enables chat for partial 153/156 source coverage", () => {
+    render(
+      <SaksromChat
+        isPreliminary
+        sourceCoverage={coverage(153, 156)}
+        tenantId="00000000-0000-0000-0000-000000000101"
+        verifiedCount={1}
+      />
+    );
+
+    expect(screen.getByLabelText("Saksrom melding")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+    expect(screen.getByText(/153 av 156 sider er klare/i)).toBeInTheDocument();
+    expect(screen.queryByText("NO_SOURCE_BASIS")).not.toBeInTheDocument();
+  });
+
+  it("enables chat for partial 77/78 source coverage", () => {
+    render(
+      <SaksromChat
+        isPreliminary
+        sourceCoverage={coverage(77, 78)}
+        tenantId="00000000-0000-0000-0000-000000000101"
+        verifiedCount={1}
+      />
+    );
+
+    expect(screen.getByLabelText("Saksrom melding")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+    expect(screen.getByText(/1 sider krever fortsatt kontroll/i)).toBeInTheDocument();
+  });
+
+  it("blocks chat for zero ready pages", () => {
+    render(
+      <SaksromChat
+        isPreliminary
+        sourceCoverage={coverage(0, 156)}
+        tenantId="00000000-0000-0000-0000-000000000101"
+        verifiedCount={1}
+      />
+    );
+
+    expect(screen.getByText("NO_SOURCE_BASIS")).toBeInTheDocument();
+    expect(screen.getByLabelText("Saksrom melding")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
   });
 
   it("renders real citation pill and emits jump-to-source when clicked", async () => {
@@ -47,7 +114,7 @@ describe("SaksromChat", () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        answer: "Kildebundet vurdering basert pÃ¥ valgt kildegrunnlag.",
+        answer: "Kildebundet vurdering basert på valgt kildegrunnlag.",
         sourceBound: true,
         warnings: [],
         sources: [
@@ -55,14 +122,20 @@ describe("SaksromChat", () => {
             documentId: "00000000-0000-0000-0000-000000001111",
             sourceUnitId: "doc_00000000_p0001_b0001",
             pageNumber: 1,
-            quote: "Skriftlig varsling mÃ¥ dokumenteres.",
+            quote: "Skriftlig varsling må dokumenteres.",
             confidence: 0.85
           }
         ]
       })
     });
     vi.stubGlobal("fetch", fetchMock);
-    render(<SaksromChat tenantId="00000000-0000-0000-0000-000000000101" selectedSourceUnitIds={["doc_00000000_p0001_b0001"]} />);
+    render(
+      <SaksromChat
+        tenantId="00000000-0000-0000-0000-000000000101"
+        selectedSourceUnitIds={["doc_00000000_p0001_b0001"]}
+        sourceCoverage={coverage(1, 1)}
+      />
+    );
 
     await user.type(screen.getByLabelText("Saksrom melding"), "Hva er varslingsplikten?");
     await user.click(screen.getByRole("button", { name: "Send" }));
@@ -105,28 +178,15 @@ describe("SaksromChat", () => {
       <SaksromChat
         tenantId="00000000-0000-0000-0000-000000000101"
         selectedSourceUnitIds={["doc_001_p1"]}
-        isPreliminary={true}
+        isPreliminary
+        sourceCoverage={coverage(77, 78)}
       />
     );
 
     await user.type(screen.getByLabelText("Saksrom melding"), "Test spørsmål");
     await user.click(screen.getByRole("button", { name: "Send" }));
 
-    expect(
-      await screen.findByText(/Produsert med foreløpig kildegrunnlag/i)
-    ).toBeInTheDocument();
-  });
-
-  it("no source-ready docs produces honest no-source message", () => {
-    render(
-      <SaksromChat
-        tenantId="00000000-0000-0000-0000-000000000101"
-        verifiedCount={0}
-      />
-    );
-    expect(screen.getByText("Saksrommet er åpnet, men kan ikke gi kildebaserte svar før minst ett dokument er ferdig behandlet.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Saksrom melding")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(await screen.findAllByText(/Svar bygger på ferdig behandlede kilder/i)).not.toHaveLength(0);
   });
 
   it("stale warning banner appears and re-submit button submits lastQuestion", async () => {
@@ -157,7 +217,7 @@ describe("SaksromChat", () => {
     const { rerender } = render(
       <SaksromChat
         tenantId="00000000-0000-0000-0000-000000000101"
-        verifiedCount={1}
+        sourceCoverage={coverage(1, 2)}
       />
     );
 
@@ -165,21 +225,16 @@ describe("SaksromChat", () => {
     await user.click(screen.getByRole("button", { name: "Send" }));
     expect(await screen.findByText("Svar 1")).toBeInTheDocument();
 
-    // Rerender with verifiedCount = 2 (kildegrunnlag updated)
     rerender(
       <SaksromChat
         tenantId="00000000-0000-0000-0000-000000000101"
-        verifiedCount={2}
+        sourceCoverage={coverage(2, 2)}
       />
     );
 
-    // Stale warning should appear
     expect(await screen.findByText("Kildegrunnlaget er oppdatert siden forrige svar.")).toBeInTheDocument();
 
-    const updateBtn = screen.getByRole("button", { name: "Oppsummer saken på nytt" });
-    await user.click(updateBtn);
-
-    // Should fetch again and display Svar 2
+    await user.click(screen.getByRole("button", { name: "Oppsummer saken på nytt" }));
     expect(await screen.findByText("Svar 2")).toBeInTheDocument();
   });
 });

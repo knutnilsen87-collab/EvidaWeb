@@ -231,7 +231,7 @@ describe("App workroom router", () => {
     });
 
     expect(screen.queryByRole("heading", { level: 1, name: "Signert klientavtale" })).not.toBeInTheDocument();
-    expect(screen.getByText("Foreløpig kildegrunnlag")).toBeInTheDocument();
+    expect(screen.getAllByText("Foreløpig kildegrunnlag").length).toBeGreaterThan(0);
     expect(screen.getByText(/Brukes nå: 1 dokumenter/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Foreløpig saksoppsummering" })).toBeInTheDocument();
   });

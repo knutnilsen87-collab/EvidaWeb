@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { EvidaDocument, fetchCaseDocuments } from "../lib/api";
+import { EvidaDocument, fetchCaseDocuments, fetchSourceCoverage, SourceCoverage } from "../lib/api";
 import { Citation, CitationComparison, citationStore } from "../lib/CitationManager";
 import { PDFViewer } from "./PDFViewer";
 import { SaksromCaseSummary } from "./SaksromCaseSummary";
@@ -12,6 +12,7 @@ interface SaksromViewProps {
   tenantId: string;
   documents?: EvidaDocument[];
   onDocumentsChange?: (docs: EvidaDocument[]) => void;
+  onOpenMissingDocuments?: () => void;
 }
 
 function isSourceReady(document: EvidaDocument) {
@@ -26,10 +27,12 @@ export function SaksromView({
   caseId,
   tenantId,
   documents = [],
-  onDocumentsChange
+  onDocumentsChange,
+  onOpenMissingDocuments
 }: SaksromViewProps) {
   const [chatCollapsed, setChatCollapsed] = useState(false);
   const [localDocs, setLocalDocs] = useState<EvidaDocument[]>(documents);
+  const [sourceCoverage, setSourceCoverage] = useState<SourceCoverage | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const { user } = useAuth();
   const prevReadyCountRef = useRef<number | null>(null);
@@ -79,18 +82,37 @@ export function SaksromView({
   const failedCount = localDocs.filter(
     (document) => document.status === "ingestion_failed" || document.status === "rejected"
   ).length;
-  const coverage = totalCount > 0 ? Math.round((fullReadyCount / totalCount) * 100) : 0;
-  const isPreliminary = coverage < 100 || partialReadyCount > 0;
+  const coverage = sourceCoverage?.totalPages
+    ? sourceCoverage.coveragePercent
+    : totalCount > 0
+    ? Math.round((fullReadyCount / totalCount) * 100)
+    : 0;
+  const isPreliminary = sourceCoverage?.totalPages
+    ? sourceCoverage.readyPages < sourceCoverage.totalPages
+    : coverage < 100 || partialReadyCount > 0;
 
   useEffect(() => {
     if (!caseId || !tenantId) {
       return;
     }
 
+    const refreshCoverage = async () => {
+      try {
+        setSourceCoverage(await fetchSourceCoverage(tenantId, caseId));
+      } catch (err) {
+        console.error("Failed to fetch source coverage in SaksromView:", err);
+      }
+    };
+    void refreshCoverage();
+
     const interval = window.setInterval(async () => {
       try {
-        const freshDocs = await fetchCaseDocuments(caseId, tenantId);
+        const [freshDocs, freshCoverage] = await Promise.all([
+          fetchCaseDocuments(caseId, tenantId),
+          fetchSourceCoverage(tenantId, caseId)
+        ]);
         setLocalDocs(freshDocs);
+        setSourceCoverage(freshCoverage);
         onDocumentsChange?.(freshDocs);
       } catch (err) {
         console.error("Failed to poll documents in SaksromView:", err);
@@ -125,29 +147,41 @@ export function SaksromView({
   }
 
   return (
-    <section
-      className={canvasClass}
-      aria-labelledby="saksrom-title"
-    >
+    <section className={canvasClass} aria-labelledby="saksrom-title">
       {isPreliminary ? (
         <div className="saksrom-preliminary-banner" role="status" data-evida-saksrom-chat-first="true">
           <div className="saksrom-preliminary-banner__title" data-evida-saksrom-chat-first="true">
             <span className="banner-pulse" />
             <strong>Foreløpig kildegrunnlag</strong>
           </div>
-          <p>Foreløpig kildegrunnlag - svar kan være ufullstendige.</p>
+          {sourceCoverage?.totalPages ? (
+            <p>
+              Denne oppsummeringen bygger på {sourceCoverage.readyPages} av {sourceCoverage.totalPages} sider.
+              {sourceCoverage.missingOcrPages > 0
+                ? ` ${sourceCoverage.missingOcrPages} sider krever OCR og er ikke vurdert.`
+                : ""}
+              {sourceCoverage.belowThresholdPages > 0
+                ? ` ${sourceCoverage.belowThresholdPages} side${sourceCoverage.belowThresholdPages === 1 ? "" : "r"} krever kontroll.`
+                : ""}
+            </p>
+          ) : (
+            <p>Foreløpig kildegrunnlag - svar kan være ufullstendige.</p>
+          )}
           <p>
-            Saksrom bruker bare dokumentene som er ferdig behandlet som kildegrunnlag.
-            Dokumenter i karantene, under behandling eller med feil er ikke med i vurderingen ennå.
+            Saksrom bruker bare sider med faktiske kildeenheter. Manglende OCR-sider og sider med for lite lesbar tekst brukes ikke som kilder.
           </p>
           <div className="banner-status-details">
-            {verifiedCount === 0 ? (
+            {sourceCoverage?.totalPages ? (
+              <span>Kildedekning: {sourceCoverage.coveragePercent}%.</span>
+            ) : verifiedCount === 0 ? (
               <span>
                 Saksrommet er åpnet, men kan ikke gi kildebaserte svar før minst ett dokument er ferdig behandlet.
               </span>
             ) : (
               <span>Brukes nå: {verifiedCount} dokumenter.</span>
             )}
+            {sourceCoverage?.missingOcrPageRanges ? <span>Mangler OCR: side {sourceCoverage.missingOcrPageRanges}.</span> : null}
+            {sourceCoverage?.belowThresholdPageRanges ? <span>Krever kontroll: side {sourceCoverage.belowThresholdPageRanges}.</span> : null}
             {partialReadyCount > 0 ? <span>Delvis behandlet: {partialReadyCount} dokumenter.</span> : null}
             <span>Mangler fortsatt: {pendingCount} dokumenter.</span>
             <span>Feilet / krever kontroll: {failedCount} dokumenter.</span>
@@ -165,7 +199,7 @@ export function SaksromView({
       {activeDocumentId ? (
         <section className="doc-pane" aria-label="Kildedokument visning">
           <header className="pane-header">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
               <div>
                 <span className="pane-kicker">Dokumentgrunnlag</span>
                 <h1 id="saksrom-title">
@@ -214,16 +248,22 @@ export function SaksromView({
           <>
             <SaksromCaseSummary
               key={`summary-${caseId}`}
+              caseId={caseId}
               coverage={coverage}
               documents={localDocs}
               failedCount={failedCount}
+              tenantId={tenantId || user?.tenantId}
               pendingCount={pendingCount}
+              sourceCoverage={sourceCoverage}
+              onGoToMissingDocuments={onOpenMissingDocuments}
+              onShowSourceBasis={() => setNotification("Kildegrunnlaget vises i oppsummeringens kildepiller og dokumentpanelet.")}
             />
             <SaksromChat
               key={`chat-${caseId}`}
               caseId={caseId}
               tenantId={user?.tenantId}
               isPreliminary={isPreliminary}
+              sourceCoverage={sourceCoverage}
               verifiedCount={verifiedCount}
             />
           </>
@@ -232,4 +272,3 @@ export function SaksromView({
     </section>
   );
 }
-

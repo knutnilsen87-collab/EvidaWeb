@@ -210,18 +210,23 @@
   display: grid;
   gap: var(--evida-space-2);
   padding: var(--evida-space-3) var(--evida-space-4);
-  background: rgba(217, 119, 6, 0.1);
-  border: 1px solid rgba(217, 119, 6, 0.22);
+  background:
+    linear-gradient(135deg, rgba(255, 204, 120, 0.055), rgba(0, 212, 163, 0.025));
+  border: 1px solid rgba(255, 204, 120, 0.16);
   border-radius: var(--evida-radius-lg);
-  color: var(--evida-status-warning);
+  color: rgba(245, 241, 232, 0.9);
   font-size: 0.9rem;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 60px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .saksrom-preliminary-banner p {
   margin: 0;
-  color: var(--evida-status-warning);
+  color: rgba(245, 241, 232, 0.84);
   font-size: 0.85rem;
   line-height: 1.45;
 }
@@ -237,8 +242,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--evida-status-warning);
-  box-shadow: 0 0 8px var(--evida-status-warning);
+  background: rgba(255, 211, 143, 0.82);
+  box-shadow: 0 0 10px rgba(255, 211, 143, 0.28);
   animation: banner-pulse-anim 2s infinite ease-in-out;
 }
 
@@ -246,7 +251,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--evida-space-3);
-  color: var(--evida-status-warning);
+  color: rgba(245, 241, 232, 0.8);
   font-size: 0.8rem;
   opacity: 0.88;
 }

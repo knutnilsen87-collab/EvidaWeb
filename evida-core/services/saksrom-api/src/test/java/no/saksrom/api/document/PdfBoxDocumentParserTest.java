@@ -12,12 +12,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
+import no.saksrom.api.config.EvidaProperties;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -106,6 +108,74 @@ class PdfBoxDocumentParserTest {
     }
 
     @Test
+    void imagePdfCreatesOcrPageUnitWhenRuntimeProbeIsUsable() throws Exception {
+        Path pdf = imageOnlyPdf("image-ocr.pdf", "Skannet tekst");
+        EvidaProperties.Parser properties = ocrTestProperties();
+        PdfBoxDocumentParser parser = parserWithOcr(
+                properties,
+                image -> "OCR tekst fra skannet juridisk dokument med nok innhold"
+        );
+        parser.validateOcrRuntime();
+
+        ParsedDocument parsed = parser.parse(document("image-ocr.pdf"), pdf);
+
+        assertTrue(parsed.ocrRequired());
+        assertTrue(parsed.ocrPerformed());
+        assertEquals(1, parsed.pages().size());
+        assertEquals("OCR", parsed.pages().getFirst().extractionMethod());
+        assertTrue(parsed.pages().getFirst().text().contains("OCR tekst fra skannet"));
+    }
+
+    @Test
+    void imagePdfWithEmptyOcrOutputFailsClosedWithoutPageUnit() throws Exception {
+        Path pdf = imageOnlyPdf("empty-ocr.pdf", "Skannet tekst");
+        EvidaProperties.Parser properties = ocrTestProperties();
+        PdfBoxDocumentParser parser = parserWithOcr(properties, image -> "   ");
+        parser.validateOcrRuntime();
+
+        DocumentParsingException error = assertThrows(
+                DocumentParsingException.class,
+                () -> parser.parse(document("empty-ocr.pdf"), pdf)
+        );
+
+        assertTrue(error.getMessage().contains("OCR_TEXT_BELOW_THRESHOLD"));
+    }
+
+    @Test
+    void mixedPdfWithUsableOcrRuntimeEmitsOcrAndTextPageUnits() throws Exception {
+        Path pdf = mixedFiveScannedSeventyThreeTextPdf("mixed-ocr-available.pdf");
+        EvidaProperties.Parser properties = ocrTestProperties();
+        PdfBoxDocumentParser parser = parserWithOcr(
+                properties,
+                image -> "OCR tekst fra skannet juridisk side med tilstrekkelig innhold"
+        );
+        parser.validateOcrRuntime();
+
+        ParsedDocument parsed = parser.parse(document("mixed-ocr-available.pdf"), pdf);
+
+        assertEquals(78, parsed.pages().size());
+        assertTrue(parsed.ocrRequired());
+        assertTrue(parsed.ocrPerformed());
+        assertEquals("OCR", parsed.pages().getFirst().extractionMethod());
+        assertEquals("TEXT", parsed.pages().get(5).extractionMethod());
+        assertTrue(parsed.pages().stream().anyMatch(page -> page.pageNumber() == 10 && "TEXT".equals(page.extractionMethod())));
+    }
+
+    @Test
+    void realConfiguredOcrRuntimeCreatesPageUnitWhenEnvPresent() throws Exception {
+        Path pdf = highContrastImagePdf("real-ocr.pdf");
+        EvidaProperties.Parser properties = realOcrProperties(8);
+        PdfBoxDocumentParser parser = new PdfBoxDocumentParser(properties);
+        parser.validateOcrRuntime();
+
+        ParsedDocument parsed = parser.parse(document("real-ocr.pdf"), pdf);
+
+        assertEquals(1, parsed.pages().size());
+        assertEquals("OCR", parsed.pages().getFirst().extractionMethod());
+        assertTrue(parsed.pages().getFirst().text().replaceAll("\\s+", "").length() >= 8);
+    }
+
+    @Test
     void mixedPdfWithoutOcrRuntimeStillEmitsTextLayerPagesAndReportsMissingOcrPages() throws Exception {
         Path pdf = mixedFiveScannedSeventyThreeTextPdf("mixed-78.pdf");
         var parser = new PdfBoxDocumentParser();
@@ -146,6 +216,31 @@ class PdfBoxDocumentParserTest {
         assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 50 && page.text().length() >= 40));
         assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 60 && page.text().length() >= 40));
         assertTrue(emittedPages.stream().noneMatch(page -> page.pageNumber() <= 5 || page.pageNumber() == 75));
+    }
+
+    @Test
+    void masterdocFixtureWithRealOcrRuntimeCreatesOcrAndTextPagesWhenEnvPresent() {
+        Path pdf = Path.of("..", "..", "..", "testpakker", "Masterdoc_001_Kompleks_Saksbehandling.pdf");
+        org.junit.jupiter.api.Assumptions.assumeTrue(Files.exists(pdf), "Manual Masterdoc fixture is not committed");
+        EvidaProperties.Parser properties = realOcrProperties(40);
+        PdfBoxDocumentParser parser = new PdfBoxDocumentParser(properties);
+        parser.validateOcrRuntime();
+        List<PageUnit> emittedPages = new java.util.ArrayList<>();
+        PartialDocumentParsingException warning = null;
+
+        try {
+            parser.parsePages(document("Masterdoc_001_Kompleks_Saksbehandling.pdf"), pdf, 1, emittedPages::add);
+        } catch (PartialDocumentParsingException e) {
+            warning = e;
+        }
+
+        assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 1 && "OCR".equals(page.extractionMethod())));
+        assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 5 && "OCR".equals(page.extractionMethod())));
+        assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 10 && "TEXT".equals(page.extractionMethod())));
+        assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 50 && "TEXT".equals(page.extractionMethod())));
+        if (warning != null) {
+            assertTrue(warning.ocrRuntimeMissingPages().isEmpty());
+        }
     }
 
     @Test
@@ -357,6 +452,41 @@ class PdfBoxDocumentParserTest {
         return pdf;
     }
 
+    private Path imageOnlyPdf(String filename, String imageText) throws Exception {
+        Path pdf = tempDir.resolve(filename);
+        try (PDDocument document = new PDDocument()) {
+            addImageOnlyPage(document, imageText);
+            document.save(pdf.toFile());
+        }
+        return pdf;
+    }
+
+    private Path highContrastImagePdf(String filename) throws Exception {
+        Path pdf = tempDir.resolve(filename);
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage();
+            document.addPage(page);
+            BufferedImage image = new BufferedImage(900, 260, BufferedImage.TYPE_INT_RGB);
+            Graphics2D graphics = image.createGraphics();
+            try {
+                graphics.setColor(Color.WHITE);
+                graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+                graphics.setColor(Color.BLACK);
+                graphics.setFont(new Font("Arial", Font.BOLD, 48));
+                graphics.drawString("LEASE DOCUMENT PAGE ONE", 40, 130);
+            } finally {
+                graphics.dispose();
+            }
+            try (PDPageContentStream content = new PDPageContentStream(document, page)) {
+                content.drawImage(JPEGFactory.createFromImage(document, image), 72, 520, 440, 128);
+            } finally {
+                image.flush();
+            }
+            document.save(pdf.toFile());
+        }
+        return pdf;
+    }
+
     private Path mixedFiveScannedSeventyThreeTextPdf(String filename) throws Exception {
         Path pdf = tempDir.resolve(filename);
         try (PDDocument document = new PDDocument()) {
@@ -397,6 +527,66 @@ class PdfBoxDocumentParserTest {
         } finally {
             image.flush();
         }
+    }
+
+    private EvidaProperties.Parser ocrTestProperties() {
+        return new EvidaProperties.Parser(
+                true,
+                40,
+                72,
+                5,
+                tempDir.resolve("tessdata").toString(),
+                "",
+                "nor+eng",
+                20_000
+        );
+    }
+
+    private EvidaProperties.Parser realOcrProperties(int textThresholdChars) {
+        String tessdataPath = System.getenv("EVIDA_TESSDATA_PATH");
+        String tesseractPath = System.getenv("EVIDA_TESSERACT_PATH");
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+                tessdataPath != null
+                        && !tessdataPath.isBlank()
+                        && Files.isRegularFile(Path.of(tessdataPath).resolve("nor.traineddata"))
+                        && Files.isRegularFile(Path.of(tessdataPath).resolve("eng.traineddata")),
+                "real OCR runtime tessdata env is not configured"
+        );
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+                tesseractPath != null && !tesseractPath.isBlank() && Files.isRegularFile(Path.of(tesseractPath)),
+                "real OCR runtime executable env is not configured"
+        );
+        return new EvidaProperties.Parser(
+                true,
+                textThresholdChars,
+                300,
+                30,
+                tessdataPath,
+                tesseractPath,
+                "nor+eng",
+                20_000
+        );
+    }
+
+    private PdfBoxDocumentParser parserWithOcr(EvidaProperties.Parser properties, OcrEngine ocrEngine) {
+        OcrRuntimeProbe probe = new OcrRuntimeProbe(properties) {
+            @Override
+            public OcrRuntimeStatus probe() {
+                return new OcrRuntimeStatus(
+                        true,
+                        true,
+                        "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+                        "tesseract 5",
+                        properties.tessdataPath(),
+                        true,
+                        true,
+                        properties.ocrLanguages(),
+                        true,
+                        ""
+                );
+            }
+        };
+        return new PdfBoxDocumentParser(properties, probe, ocrEngine);
     }
 
     private Document document(String filename) {

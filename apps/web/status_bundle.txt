@@ -1,0 +1,1892 @@
+# EVIDA WEB STATUS BUNDLE
+
+## 0. Bundle Metadata
+- generated_at: 2026-07-03T08:12:30+02:00
+- last_updated: 2026-07-10 (Status 5 lagt til for Saksrom readability, partial chat unlock, provenance navigation og premium warning polish)
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- web_root: F:\prosjekter_MAIN\EVIDA\apps\web
+- branch: calm-surface-readiness-document-control
+- source_instruction: EVIDA_Codex_Implementeringsplan_Web.md / AURORA legal command center instructions
+- generated_by: Codex
+- scope: Ny isolert EVIDA webapp. Desktop/Tauri-appen er ikke endret.
+
+## 1. Executive Summary
+EVIDA Web er opprettet som en separat React/Vite/TypeScript webprototype under `apps/web`.
+
+Maalet var aa etablere en ren webfrontend uten Tauri-, Rust IPC- eller lokal SQLite-bindinger, med Legal Dark Shell, Liquid Glass design tokens, CommandPalette, QuarantineGate, juridiske arbeidsrom og en tydelig sikkerhetskontrakt mot Spring Boot control plane.
+
+Status: webprototypen er testbar, bygger gront og starter paa `http://127.0.0.1:5173` naar dev-serveren kjoeres. EVIDA North Star er naa laast i `EVIDA_DEVELOPER_DIRECTIVE.md` og koblet fra `AGENTS.md`. Legal Dark Shell er oppgradert med Z-depth glass, vektet panel-shadow, rim-light, motion-baserte overganger og CommandPalette focus-blur. Det visuelle fundamentet er videre loftet med autoritaer serif/sans typografi, subtil grain-tekstur og `--primary: #00d4a3` aksentfarge og global holografisk bakgrunns-SVG. Appen har naa en firelags Legal OS AppShell med egne TopBar-, Sidebar-, main work area- og ControlPanel-komponenter. AppShell er polert med frigjort 80px toppfelt, sentralt sokefelt, elastisk 240/minmax(700px,1fr)/320 grid, slankere venstremeny, fri hovedarbeidsflate uten 1200px tak og sticky Saksassistent-input i kontrollpanelet. Fase 39 gjoer materialiteten mer transparent: global glass er redusert og dashboard-containere slipper bakgrunnen tydeligere gjennom, mens verktøykort bruker subtile 2-4% hvite lag i stedet for tunge bokser. Fase 43 fjerner Lady Justice/vektskål fra global bakgrunn og bruker en clean abstrakt holografisk bakgrunn med full cover-dekning. Dashboardet er bygget om fra fremdriftstavle til operativt kontrollrom med sakskort, pulse cards, kritiske varsler, source-integrity og Action Engine. Tom startflate er fortsatt en editorial EVIDA Command Portal, men har naa fire hurtigvalg inkludert veiviseren `Jeg vet ikke hvor jeg skal starte`. Saksrom har naa egen SaksromChat reasoning engine med modusene Spoerre, Argumentere og Simulere, sticky input og kilde-piller. AppShell har i tillegg en global, radikalt forenklet EPIC Court Engine chatbar som ligger sticky nederst i hovedarbeidsflaten, mens innholdet ruller separat i `content-scroll-area`. Chatbaren er redusert til ett command-inputfelt, minimalistiske mic/send-actions og en `+`-trigger som skjuler juridiske moduser i en kontekstmeny for aa senke visuelt trykk i Command Portal. New Case-modal er migrert til felles bred master modal-standard med landskapslayout, og NewCaseWizard etablerer en trestegs fail-closed oppstartsveiviser. Saksrom, Bevismatrise og Utkast er visuelt vasket til borderless high-end arbeidsflater. Spring Boot control-plane-kode for auth, tenant guard, sikker upload, dokumentliste, persisted document quarantine, H2 local-dev profil og large-PDF ingestion pipeline-kontrakt er lagt inn. Web lint/test/build er gronne, og Spring Boot er lokalt verifisert via modul-wrapper med 43 tester / 0 feil (re-verifisert 2026-07-05 fra ny repo-rot).
+
+## 2. Implementerte faser
+- Fase 0: Repo-audit og web-scope.
+- Fase 1: Scaffold web-monorepo.
+- Fase 2: Legal Dark Shell og Liquid Glass tokens.
+- Fase 3: Web/mock API-kontrakt.
+- Fase 4: QuarantineGate.
+- Fase 5: CommandPalette.
+- Fase 6: App-integrasjon.
+- Fase 7: Tester, build og leveringsrapport.
+- Fase 8: Legal command center med Saks-vitalitet dashboard.
+- Fase 9: WorkroomRouter og gruppert venstremeny.
+- Fase 10: Saksrom split-screen med kildevisning og AI-chatflate.
+- Fase 11: Egen Sidebar-komponent med Arbeid, Analyse og Produksjon.
+- Fase 12: Kildebundet Kronologi-modul med klikkbare source-links.
+- Fase 13: Utkastmodul / Document Builder med live preview og kvalitetssjekk.
+- Fase 14: Auth- og tenant-kontrakt mellom web og Spring Boot control plane.
+- Fase 15: Multi-tenant AuthProvider i webappen.
+- Fase 16: Ekte dokumentopplasting til Spring Boot karantene-endepunkt.
+- Fase 17: Citation/provenance engine mellom Saksrom og dokument-viewer.
+- Fase 18: Large-PDF source-unit strategi, lazy viewer og batch-godkjenning.
+- Fase 19: Z-depth Liquid Glass fundament og micro-motion i webappen.
+- Fase 20: Guided Juridisk Workspace og borderless high-end juridiske arbeidsflater.
+- Fase 21: Premium entry point med Opprett ny sak overlay.
+- Fase 22: Database-bundet document quarantine med tenant/case hard isolation.
+- Fase 23: LargeDocumentIngestion pipeline med parser-kontrakt og fail-closed VERIFIED gate.
+- Fase 24: Editorial EVIDA Command Portal for tom startflate.
+- Fase 25: SaksromChat med juridiske moduser og sticky input.
+- Fase 26: EVIDA brand-assets integrert i webapp, sidebar, portal og browser metadata.
+- Fase 27: Autoritaer typografi, subtil grain-tekstur og dypere emerald/forest fargetokens.
+- Fase 28: EVIDA North Star developer directive laast i repo og AGENTS-kontrakt.
+- Fase 29: Master Modal Standard etablert og NewCaseModal migrert til bred landskapsmodal.
+- Fase 30: Firelags Legal OS AppShell og Dashboard som operativt kontrollrom.
+- Fase 31: Legal OS-kjernearkitektur konsolidert med TopBar, ControlPanel, pulse cards og NewCaseWizard.
+- Fase 32: Legal OS layout-polish med frigjort toppfelt og symmetrisk sentrert arbeidsflate.
+- Fase 33: Sticky Reasoning Engine med 400px kontrollpanel, scrollbar chat-history og bunnforankret input.
+- Fase 34: Sidebar autoritet og editorial breathing med 300px venstremeny og luftigere hovedtekst.
+- Fase 35: Saksrom-balanse med minmax(600px, 1fr) hovedfelt og 800px PDF-lesebredde.
+- Fase 36: Masterdoc layout-standard laast med 300px Sidebar, minmax(600px, 1fr) hovedfelt, 400px ControlPanel, 3rem desktop-padding, `--primary: #00d4a3` og Lady Justice-vannmerke.
+- Fase 37: Global AppShell-bakgrunn med `evida-background.svg`, 16% holografisk opacity, blend-mode og z-index-beskyttet Saksrom-kontrast.
+- Fase 38: Elastic Legal OS layout med 240px Sidebar, `minmax(700px, 1fr)` hovedfelt, 320px ControlPanel, `background.jpg`, 4rem arbeidsflate-padding og 60/40 Saksrom-balanse.
+- Fase 39: Transparent Materiality med lettere global `.glass`/`.glass-strong`, transparent Dashboard-command portal og subtile kontrollromkort slik at holografisk bakgrunn leses gjennom arbeidsflaten.
+- Fase 40: Holografisk bakgrunn zoomet ut fra `cover` til kontrollert `min(70vw, 1180px)` AppShell-vannmerke, med responsive størrelser for tablet og mobil.
+- Fase 41: Bakgrunnslaget fikk radial fade og CSS mask slik at `background.jpg` glir sømløst inn i svart Legal OS-bakgrunn, plassert `center right 10%` med 45vw kontrollert størrelse.
+- Fase 42: Bakgrunnsfiguren hentet tydeligere tilbake med `screen` blending, 36% pseudo-opacity, `center right 15%` komposisjon og 50vw kontrollert bildestørrelse.
+- Fase 43: Lady Justice/vektskål fjernet fra global bakgrunn. Ny `background-clean.jpg` er generert, gammel figurversjon er bevart som `background-justice.jpg`, og AppShell bruker clean cover-bakgrunn med radial fade og `screen` blend.
+- Fase 44: EPIC Court Engine sticky chatbar er lagt nederst i `main-work-area`; `content-scroll-area` ruller uavhengig, chatbaren har juridiske moduser, kilde-piller og CitationManager-hopp til Saksrom/PDF-viewer.
+- Fase 45: Command Portal-forenkling: global chatbar er redusert til modusvalg + input, hero-typografi fikk mer editorial breathing, og Sidebar-grupper fikk 3rem rytme for lavere visuelt trykk.
+- Fase 46: Sticky chatbar fikk minimal `+`-trigger for skjult modusmeny, input-fokusert layout, små mic/send-actions og kildebasert disclaimer; global `.serif-title`/`.hero-intro` skala er låst med 0 tracking og luftig line-height.
+- Fase 47: Dashboard control-room stretch fix. `content-scroll-area` er gjort til flex-kolonne, `dashboard-control-room/control-room-dashboard` fyller tilgjengelig AppShell-høyde med `height: 100%`, `min-height: 0` og `overflow: hidden`, `control-room-grid` vokser innenfor rammen, `source-integrity` fyller gjenværende plass med minimum 200px, og mobil får naturlig auto-scroll igjen.
+
+- Fase 48: Spring Boot document control-plane er oppdatert med EVIDA tenant-headerkontrakt, `TenantContextFilter`, `/api/documents/upload`, `/api/documents` dokumentliste, H2-basert local-dev profil og Maven-wrapper-verifisering.
+
+## 3. Implementert
+- `apps/web/package.json`
+  - Vite, React, TypeScript, Vitest, Testing Library og jsdom.
+  - `framer-motion` for taktil UI-respons og sideoverganger.
+  - Scripts: `dev`, `lint`, `test`, `test:watch`, `build`.
+
+- `apps/web/src/styles/tokens.css`
+  - Legal Dark Shell tokens.
+  - Liquid Glass tokens.
+  - Fonttokens: `--evida-font-header` og `--evida-font-ui`.
+  - Subtil bakgrunnstekstur: `--evida-bg-grain`.
+  - Z-depth tokens: `--evida-glass-glow` og `--evida-panel-shadow`.
+  - Semantiske statusfarger, med dypere emerald/forest aktivfarge.
+  - Alias-tokens for statussemantikk: `--status-green`, `--status-yellow`, `--status-red`, `--status-blue`.
+
+- `apps/web/src/styles/global.css`
+  - Global dark shell styling.
+  - Importerer Instrument Serif og Plus Jakarta Sans med fallback-fonts.
+  - Body bruker grain-lag over radial bakgrunn for mer materialitet.
+  - Headings bruker autoritaer serif-font; UI og formfelt bruker geometric sans.
+  - `.serif-title` deler samme heading-fontkontrakt.
+  - Transparent Liquid Glass: `.glass` bruker 30% dark opacity og 12px blur, `.glass-strong` bruker 50% dark opacity og 16px blur, og `.liquid-glass-panel` er lettet til 50% dark opacity med 16px blur, rim-light og vektet panel-shadow.
+  - Subtil emerald glow paa hover.
+  - Taktile primary buttons med `--primary: #00d4a3` og subtil glow.
+  - Typografisk hierarki for dokumenttitler og metadata.
+
+- `apps/web/src/styles/modals.css`
+  - Master Modal Standard for EVIDA-modaler.
+  - Bred `modal-container` med maks 900px og landskaps-grid.
+  - Grain, Liquid Glass-aktig backdrop, dype skygger og autoritaer serif-header.
+  - Felles `modal-input`, `modal-footer`, `cancel-btn` og `confirm-btn`.
+
+- `EVIDA_DEVELOPER_DIRECTIVE.md`
+  - North Star for Legal Dark Shell, Editorial Authority, Guided Juridical Workspace, tenant isolation, quarantine-first ingestion, source units og source-bound AI.
+
+- `AGENTS.md`
+  - Peker naa til `EVIDA_DEVELOPER_DIRECTIVE.md` som steg 0 for EVIDA-produktarbeid.
+
+- `apps/web/src/components/layout/AppShell.tsx`
+  - Firelags app-shell som komponerer TopBar, Sidebar, main work area og ControlPanel.
+  - Eierskapet for TopBar og ControlPanel er flyttet til egne komponenter.
+
+- `apps/web/src/components/Sidebar.css`
+  - Venstremenyen er slanket til 240px bredde med mykere hoyreskille, 2.25rem vertikal rytme og luftigere nav-elementer.
+
+- `apps/web/public/evida-background.svg`
+  - Global holografisk bakgrunns-SVG med subtile juridiske linjer, balanseformer og emerald/blue glow.
+
+- `apps/web/public/background-clean.jpg`
+  - Ren abstrakt holografisk bakgrunn uten Lady Justice/vektskål, brukt av AppShell.
+
+- `apps/web/public/background.jpg`
+  - Samme clean bakgrunn for bakoverkompatibilitet med eldre referanser.
+
+- `apps/web/public/background-justice.jpg`
+  - Backup av tidligere figur-/vektskålbakgrunn, ikke brukt i AppShell.
+
+- `apps/web/src/components/layout/AppShell.css`
+  - Global Legal OS-grid: toppfelt, venstremeny, hovedflate og kontrollpanel.
+  - CommandPalette focus-blur er flyttet til `legal-os-stage`.
+  - Grid er justert til `top/side/main/control` med 80px toppfelt, 300px sidebar, `minmax(600px, 1fr)` hovedfelt og 400px kontrollpanel.
+  - `main-work-area` har 4rem desktop-padding, full bredde uten 1200px max-width, egen `content-scroll-area` med intern rulling og sticky chatbar i bunnlaget.
+  - `content-scroll-area` er nå en flex-kolonne med `min-height: 0`, slik at dashboardet kan strekke seg til tilgjengelig høyde uten å presse AppShell over viewporten.
+
+- `apps/web/src/components/layout/TopBar.tsx`
+  - Global statusflate med EVIDA Legal OS-merke, sakskontekst, read-only sakssok, varselbadge, identity-chip og CommandPalette.
+  - Redundant stor arbeidsflateoverskrift er fjernet fra toppfeltet.
+  - Siste handling er beholdt som kompakt sakstatus med ellipsis.
+
+- `apps/web/src/components/layout/TopBar.css`
+  - Legal OS-topbar med glass, grain, Cmd+K-sokefelt og responsive verktøy.
+  - Sokkefeltet er sentrert i toppfeltet, med mer avstand mellom sok, varsler og profil.
+
+- `apps/web/src/components/layout/ControlPanel.tsx`
+  - Hoyre kontrollpanel med neste-steg-motor, risiko/varsler, kildegrunnlag og Saksassistent.
+  - Saksassistent har egen `chat-history` over sticky textarea, slik at Reasoning Engine alltid er tilgjengelig nederst i sidepanelet.
+
+- `apps/web/src/components/layout/ControlPanel.css`
+  - Kontrollpanel ligger som fast hoyreflate paa desktop og faller tilbake responsivt.
+  - Styling for next-step-card, alert-list, source-metrics, reasoning-modes og sticky-input-zone.
+
+- `apps/web/src/lib/api.ts`
+  - Async mock API.
+  - `fetchCaseDocuments`
+  - `uploadDocument(file, tenantId)` bruker `fetch('/api/documents/upload')`.
+  - Opplasting bruker `FormData`, `Authorization` og `X-Evida-Tenant-ID`.
+  - `uploadDocuments(files, tenantId)` sender flere filer gjennom samme karantene-endepunkt.
+  - `approveDocumentSource`
+  - Ingen Tauri-importer.
+  - Ingen Rust IPC.
+  - Ingen lokal SQLite.
+
+- `apps/web/src/lib/auth.ts`
+  - `User` kontrakt med `id`, `email`, `tenantId` og `roles`.
+  - `checkAuth()` for `/api/auth/me`.
+  - `getHeaders(tenantId)` sender `Authorization` og `X-Evida-Tenant-ID`.
+  - `apiRequest()` sentraliserer tenant-aware API-kall.
+
+- `apps/web/src/lib/CitationManager.ts`
+  - Sentral citation store.
+  - `jumpToSource(citation)` setter aktiv kilde og sender `jump-to-source` event.
+  - Citation inkluderer dokument, side, avsnitt og highlight-koordinater.
+
+- `apps/web/src/lib/sourceUnits.ts`
+  - Source-unit modell for dokumenter som containere.
+  - Stabile side-ID-er som `doc_001_p450`.
+  - Lazy source window rundt aktiv side.
+  - Simulert backend-indekssok og batch-godkjenning.
+
+- `apps/web/src/context/AuthContext.tsx`
+  - `AuthProvider` validerer session ved oppstart.
+  - `useAuth()` eksponerer bruker, loading-state, dev-login og logout.
+  - App-shell leser aktiv bruker og tenant fra context.
+
+- `apps/web/src/components/Dashboard.tsx`
+  - Operativt kontrollrom som aktiv saksflate.
+  - Viser editorial Command Portal naar ingen sak er aktiv.
+  - Portal har venstrejustert hierarki, overskriften `Juridisk analyse, forenklet.` og action-card for `Opprett ny sak`.
+  - Portal bruker radial lyskilde og negativt rom i stedet for sentrert placeholder.
+  - Portal bruker faktisk EVIDA-logo som lavmaelt, responsivt brand-vannmerke.
+  - Tom startflate har fire hurtigvalg: manuell sak, hurtiganalyse, fortsett sak og veiviser.
+  - Sakskort for aktiv sak med status `Dokumentanalyse paagaar`.
+  - Pulse cards for dokumentdekning, kildebrudd og kommende frist.
+  - Kritiske varsler for manglende kilder, OCR-usikkerhet og karantene.
+  - Action Engine med neste steg: `Gaa til Karantene-slusen`.
+  - Source Integrity-flate for Kronologi, Bevismatrise og Saksrom.
+  - Dashboard-grid og likeverdige verktøykort er fjernet fra startflaten.
+
+- `apps/web/src/components/Dashboard.css`
+  - Portal-title er oppdatert til statisk editorial 5rem serif uten `!important`.
+  - Mobil-brytningspunkt bruker egen fast fontstorrelse for aa unngaa overflow.
+  - Kontrollrom-layout med sakskort, kritiske varsler, Action Engine og Source Integrity.
+  - Nye dashboard-hardkoder bruker emerald/forest aksenter.
+  - Portal- og kontrollromcontainerne bruker main-work-area som primaer paddingkilde for bedre sentrering.
+  - Dashboard-portalen er transparent, og portal-/kontrollromkort bruker lave 2-6% glasslag, 12px blur og svake borders slik at `background-clean.jpg` blir et aktivt holografisk lerret i stedet for aa bli dekket av bokser.
+  - Kontrollrommet bruker nå flex-basert `height: 100%` / `min-height: 0` i stedet for viewport-basert min-height, slik at det holder seg mellom TopBar og sticky chatbar uten ekstra outer scrollbar på desktop.
+
+- `apps/web/src/components/DashboardWidget.tsx`
+  - Motion-wrapper for dashboardkort.
+  - Hover-loft, tap-scale og reduced-motion hensyn.
+
+- `apps/web/src/components/QuarantineGate.tsx`
+  - Grid-basert karantene-dashboard.
+  - Liquid Glass dokumentkort.
+  - Verifisert/karantene-statistikk.
+  - Filopplasting til backend-karantene med aktiv tenant-kontekst.
+  - Manuell godkjenning fra karantene til verifisert.
+  - Loading og error state.
+
+- `apps/web/src/components/QuarantineGate.css`
+  - Karantene-flaten bruker grain-lag og emerald/forest aksenter.
+  - Gammel negativ heading-tracking er fjernet.
+
+- `apps/web/src/components/CommandPalette.tsx`
+  - Aapnes med `Ctrl/Cmd+K`.
+  - Sok.
+  - ArrowUp/ArrowDown/Enter/Escape.
+  - Accessible dialog og listbox semantics.
+  - Setter `body.evida-command-open` mens paletten er aapen, slik at arbeidsflaten blurres og fokus isoleres.
+  - Inneholder `Opprett ny sak` som lynrask inngang med shortcut-label `N`.
+
+- `apps/web/src/components/NewCaseModal.tsx`
+  - Premium bred modal for ny sak basert paa `styles/modals.css`.
+  - Bruker felles `modal-backdrop`, `modal-container`, `modal-header`, `modal-actions-area`, `modal-input` og modal button-klasser.
+  - Fokuserer navn-felt automatisk.
+  - Opprett-knapp er deaktivert til saken har navn.
+  - Opprettelse sender brukeren videre til dokumentinntak.
+
+- `apps/web/src/components/NewCaseModal.css`
+  - Kun komponentspesifikke hooks; layout styres av master modal-standarden.
+
+- `apps/web/src/components/NewCaseWizard.tsx`
+  - Trestegs veiviser for ny sak: sakstype, anbefalt fail-closed arbeidslop og navngiving.
+  - Opprettelse bruker samme `onCreate`-kontrakt som NewCaseModal og sender saken til import.
+
+- `apps/web/src/components/NewCaseWizard.css`
+  - Wizard-spesifikk styling bygget paa master modal-standarden.
+
+- `apps/web/src/components/NewCaseWizard.test.tsx`
+  - Tester at veiviseren oppretter sak gjennom anbefalt arbeidslop.
+
+- `apps/web/src/components/SaksromView.tsx`
+  - Borderless juridisk arbeidsrom med papirflate for dokument og glassflate for analyse.
+  - Ca. 60 prosent kildevisning.
+  - Ca. 40 prosent AI-chatflate.
+  - Integrerer SaksromChat som juridisk reasoning engine.
+
+- `apps/web/src/components/SaksromChat.tsx`
+  - Modusvelger for `Spoerre`, `Argumentere` og `Simulere`.
+  - Chat-historikk ruller internt i analyse-panelet.
+  - Inputfelt er sticky i bunnen av panelet.
+  - Citation-piller kaller provenance engine og aktiverer source highlight.
+
+- `apps/web/src/components/PDFViewer.tsx`
+  - Dokument-viewer med highlight-overlay.
+  - Lytter paa `jump-to-source`.
+  - Rendrer bare et lite sidevindu rundt aktiv kilde.
+  - Marker aktiv kilde med teal statusfarge.
+
+- `apps/web/src/components/BatchApprovalPanel.tsx`
+  - Seksjonsvis kildegodkjenning for store dokumenter.
+  - Viser at 10 000 sider ikke maa markeres source-ready samlet.
+
+- `apps/web/src/navigation.ts`
+  - Single source of truth for arbeidsrom, labels og navigasjonsgrupper.
+  - Brukes av Sidebar, CommandPalette og App-ruteren.
+
+- `apps/web/src/components/Sidebar.tsx`
+  - Egen navigasjonskomponent.
+  - Delt i Arbeid, Analyse og Produksjon.
+  - Aktivt arbeidsrom markeres med `aria-current`.
+  - Bruker faktisk EVIDA-logo i stedet for bokstav-placeholder.
+
+- `apps/web/public/brand/logo.svg`
+  - Web-kopi av EVIDA SVG-logo for browser/icon metadata.
+
+- `apps/web/public/brand/logo.png`
+  - Web-kopi av EVIDA PNG-logo for Apple touch icon og fallback.
+
+- `apps/web/public/brand/logo-mark.png`
+  - Croppet web-logo uten stort lerret, brukt i sidebar og portal-vannmerke.
+
+- `apps/web/public/favicon.ico`
+  - Web-kopi av EVIDA ICO-logo som favicon.
+
+- `apps/web/index.html`
+  - Browser title satt til `EVIDA`.
+  - Favicon, SVG icon, Apple touch icon og theme-color koblet til brand-assets.
+
+- `apps/web/src/components/Kronologi.tsx`
+  - Kildebundet tidslinje for faktum, usikkerhet og manglende dokumentasjon.
+  - Klikkbare kildeknapper oppdaterer valgt kilde-preview.
+  - Statusene Faktum, Usikkert og Mangler kilde er visuelt skilt.
+
+- `apps/web/src/components/Bevismatrise.tsx`
+  - Spatiell arbeidsflate for juridiske paastander og kildeklare dokumenter.
+  - Venstre kilde-dock med flytende motion-dokumentkort.
+  - Svakt definerte drop-soner per paastand.
+  - Fjernbare kildechips og visuell beviskraft: Sterk, Moderat, Svak.
+
+- `apps/web/src/components/UtkastModul.tsx`
+  - Final Polish-visning for Utkast og Eksport.
+  - Minimal kontrollflate til venstre.
+  - Sentrert papir-preview med motion landing og sporbare kildechips.
+  - Kvalitetssjekkmodal foer DOCX-generering.
+  - Generering krever bekreftet sjekkliste.
+
+- `apps/web/src/App.tsx`
+  - WorkroomRouter via `activeView`.
+  - Bruker `AppShell` som layout-eier.
+  - Har separat state for NewCaseModal og NewCaseWizard.
+  - Sideovergang med lett fade/slide via `framer-motion`.
+  - Dashboard er startflate og starter uten aktiv sak.
+  - Holder aktiv sak i lokal prototype-state.
+  - Samler entry point fra Sidebar, Dashboard og CommandPalette i samme `NewCaseModal`.
+  - Venstremeny gruppert i Arbeid, Analyse og Produksjon.
+  - Navigasjon til Import, Dokumentkontroll, Saksrom, Kronologi, Bevismatrise, Anforselstavle, Risiko, Utkast og Eksport.
+  - Aktiv identity-chip viser autentisert bruker og tenant-kontekst fra `authService.checkAuth()`.
+  - Placeholder-flater for rom som ikke har full funksjon ennaa.
+
+- `apps/web/src/components/*.test.tsx` og `apps/web/src/App.test.tsx`
+  - Tester for QuarantineGate.
+  - Tester for CommandPalette.
+  - Tester for Dashboard.
+  - Tester for App-ruting til Saksrom split-screen.
+  - Tester for Sidebar, Kronologi, Bevismatrise og Utkastmodul.
+  - Tester for auth headers, apiRequest tenant-kontekst og avvist auth-session.
+  - Tester for NewCaseModal og ny-sak flyt fra Sidebar og CommandPalette.
+  - Tester for NewCaseWizard og Dashboard-veiviserinngang.
+
+- `evida-core/services/saksrom-api/src/main/java/no/saksrom/api/security/*`
+  - `AuthController` med `GET /api/auth/me`.
+  - `TenantContext` request-scope via ThreadLocal.
+  - `TenantContextFilter` validerer `X-Evida-Tenant-ID` mot autentisert bruker.
+  - `SecurityConfig` kobler `TenantContextFilter` inn etter bearer-token filteret og beholder local-dev permit-all med tenant guard.
+  - `CurrentUserService` stotter ny EVIDA-header og legacy Saksrom-header.
+  - `AuthenticatedUser` inkluderer email, tenant og roles.
+
+- `evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/*`
+  - `POST /api/documents/upload` og `/api/v1/documents/upload`.
+  - `GET /api/documents` og `/api/v1/documents` lister tenant-bundne dokumentmetadata, optional filtrert paa `caseId`.
+  - Validerer tenant-header mot autentisert bruker.
+  - Stotter optional `X-Evida-Case-ID` for case-bundet karantene-persistens.
+  - Validerer filtype, MIME, tom fil og maks storrelse.
+  - Returnerer `QUARANTINE` med sha256, tenant/user-binding, storage path og source-unit mode.
+  - `Document` JPA-entitet speiler `documents`-tabellen med `tenant_id`, `case_id`, `file_hash`, `storage_path` og `status`.
+  - `DocumentRepository` gir tenant-aware oppslag og verified document listing.
+  - `DocumentQuarantineService` er karantene-forst boundary og persisterer case-bound uploads som `QUARANTINE`.
+  - `approveDocument(documentId, tenantId)` slar opp dokument innen aktiv tenant foer status endres til `VERIFIED`.
+  - `DocumentParser` definerer stream-/sidebasert parsing og source-unit indexing.
+  - `PageUnit` representerer sidebaserte kildeenheter for lazy retrieval, RAG og citation jumps.
+  - `LargeDocumentIngestionService` planlegger sidebaserte source-units og seksjoner.
+  - `LargeDocumentIngestionService.ingestDocument(documentId)` parser lagret dokument, indekserer page units og markerer dokumentet `VERIFIED` bare etter vellykket indexing.
+  - Ingestion feiler lukket hvis dokumentet mangler, parser ikke er konfigurert, eller parser returnerer null/ingen sider.
+  - `LocalDocumentParser` er en fail-closed Spring bean som hindrer falsk `VERIFIED` til ekte OCR/PDF-parser er koblet inn.
+
+- `evida-core/services/saksrom-api/src/main/resources/db/migration/V003__document_quarantine_status.sql`
+  - Legger `status`, `file_hash`, `storage_path` og `updated_at` paa `documents`.
+  - Backfiller legacy-rader fra `sha256`.
+  - Legger tenant/status-indekser for hard isolation og source-ready filtrering.
+
+- `evida-core/services/saksrom-api/src/main/resources/db/migration/V004__document_upload_storage_metadata.sql`
+  - Legger eksplisitt upload/storage-metadata som matcher quarantine response og document listing.
+
+- `evida-core/services/saksrom-api/src/main/resources/application-dev.yml`
+  - Local-dev profil bruker H2 file database, `raw-upload-allowed: true`, `quarantine-root` og JPA `ddl-auto: update`.
+
+- `evida-core/services/saksrom-api/mvnw.cmd`
+  - Modulnivaa Maven-wrapper gjor Spring Boot-testene kjorbare uten global Maven-installasjon.
+
+- `evida-core/services/saksrom-api/src/main/java/no/saksrom/api/casefile/CaseFile.java`
+  - Hibernate tenant-filter metadata paa `tenant_id`.
+
+- `apps/web/Start EVIDA Web.bat`
+  - Dobbeltklikkbar startfil for webappen.
+
+- `packages/ui/.gitkeep`
+- `packages/types/.gitkeep`
+  - Placeholder-mapper som matcher planlagt monorepo-struktur.
+
+## 4. Verifisering
+Kommandoer sist kjort fra `apps/web` (2026-07-05, fra ny repo-rot `F:\prosjekter_MAIN\EVIDA`):
+
+```powershell
+npm run lint
+npm run test -- --run
+npm run build
+```
+
+Resultat (fersk kjoring 2026-07-05):
+- `npm run lint`: OK (`tsc --noEmit`).
+- `npm run test -- --run`: OK, 19 testfiler / 60 tester.
+- `npm run build`: OK, 414 moduler transformert.
+- Dev-server startet paa `http://127.0.0.1:5173` og verifisert i browser 2026-07-05.
+- Browser-sjekk av dashboard-scroll 2026-07-05: PASS. Kontrollrom-dashboard med aktiv sak paa desktop-bredde (1573x1188): ingen ytre vertikal eller horisontal scrollbar (documentElement scrollHeight = clientHeight = 1188), `content-scroll-area` ruller internt.
+- Spring Boot backend verifisert via modul-wrapper: `cd evida-core/services/saksrom-api; .\mvnw.cmd test` PASS, 43 tester / 0 feil (BUILD SUCCESS 2026-07-05T17:59:01+02:00).
+- `.\mvnw.cmd -DskipTests package`: PASS fra ny path (BUILD SUCCESS 2026-07-05T18:00:06+02:00).
+- `scripts/codex_phase05_court_smoke.ps1`: PASS fra ny path 2026-07-05, 7 persisterte source units (se seksjon 10 for detaljer; tallene er bekreftet reproduserbare).
+- Ekstra layout/encoding-renhet: OK, ingen mojibake, negativ tracking eller gamle 300/400/1360/1200 layoutrester funnet etter elastic layout.
+  - Maven-wrapper finnes nå på modulnivå i `evida-core/services/saksrom-api`.
+
+Ekstra kontroll:
+- Sokt etter mojibake-tegn i `apps/web/src`: ingen funn.
+- Sokt etter mojibake-tegn i `apps/web/src` og `apps/web/index.html`: ingen funn.
+- Sokt etter negativ `letter-spacing` i `apps/web/src`: ingen funn.
+- Sokt etter mojibake-tegn i nye Spring/Flyway-filer: ingen funn.
+- Sokt etter Tauri/IPC/SQLite-bindinger i `apps/web/src`: ingen funn.
+- Sokt etter tenant/auth-kontrakt i web og Spring Boot: `X-Evida-Tenant-ID`, `TenantContext`, `AuthController`.
+
+## 5. Sikkerhets- og arkitekturgrense
+Bekreftet for `apps/web`:
+- Ingen `@tauri-apps/api`.
+- Ingen `invoke(...)`.
+- Ingen `listen(...)`.
+- Ingen Rust IPC.
+- Ingen lokal SQLite/rusqlite.
+- Ingen hardkodede hemmeligheter.
+- Web sender ny tenant header `X-Evida-Tenant-ID`.
+- Backend avviser tenant-header som ikke matcher autentisert bruker.
+
+## 6. Naavaerende begrensninger
+- Deler av webflaten er fortsatt mock-basert, blant annet godkjenning, source-index, RAG og juridiske romdata.
+- QuarantineGate bruker backend-kontrakt for upload og dokumentliste. Opplasting går via `uploadDocuments(files, tenantId, caseId)` til `/api/documents/upload`, og UI-listen refreshes fra `fetchCaseDocuments`.
+- Upload er koblet til backend-kontrakt, og case-bound upload kan skrive dokumentmetadata og storage path til databasen. Produksjonsklart objektlager/S3/local quarantine store er fortsatt ikke implementert.
+- Anforselstavle og Risiko er forelopig placeholders.
+- Utkastmodulen simulerer DOCX-generering i UI; ekte filgenerering er ikke koblet til backend ennaa.
+- Spring Boot-testene er lokalt verifisert via modul-wrapper, men CI-gate er ikke dokumentert som aktivert.
+- Auth/tenant-kontrakt er implementert for prototype, men ekte OIDC/IdP, production RBAC, secrets, TLS og rate limiting gjenstaar.
+- Large-PDF ingestion har pipeline-kontrakt, parser-abstraksjon og VERIFIED-gate. `PdfBoxDocumentParser` (ekte PDFBox tekstlag-parsing, `@Component` i alle profiler inkl. dev) er naa eneste aktive DocumentParser-bean; `LocalDocumentParser` er ikke lenger registrert som bean (doed kode). Smoke-PASS beviser dermed ekte parsing av PDF-er med tekstlag ende-til-ende. PDF-er som krever OCR feiler fortsatt lukket (`OCR_REQUIRED_NOT_CONFIGURED`), og vector index er ikke implementert. (Avklart 2026-07-05: tidligere formulering om at ekte PDF-parser ikke var implementert var utdatert etter Court Engine-arbeidet.)
+- Ikke production-ready.
+
+## 7. Neste anbefalte faser
+1. Legg `cd evida-core/services/saksrom-api && .\mvnw.cmd test` inn i CI/ops gate, siden Spring Boot nå kan verifiseres via modul-wrapper.
+2. Implementer produksjonsklart quarantine storage/S3/local object store og koble frontend til ekte case UUID ved upload.
+3. Implementer ekte OCR/PDF DocumentParser som streamer sider, skriver source_refs/vector index og returnerer PageUnit-er.
+4. Implementer ekte juridiske rom: anforsler og risiko.
+5. Koble QuarantineGate-listen, source-index og source-unit windows til ekte backend-endepunkter.
+6. Legg inn ekte OIDC/session-policy, RBAC og production secrets.
+7. Legg til observability og audit trail.
+8. Legg til E2E-test for import -> karantene -> ingestion -> seksjonsgodkjenning -> saksrom citation jump.
+9. Dokumenter miljovariabler og deploymaal.
+
+## 8. Definition of Done Status
+| Omraade | Status | Kommentar |
+| --- | --- | --- |
+| Web scaffold | Ferdig | `apps/web` opprettet med Vite/React/TS. |
+| Design tokens | Ferdig | Legal Dark Shell og Liquid Glass tokens lagt inn. |
+| Z-depth og motion | Ferdig for prototype | Glasspaneler har rim-light/shadow, dashboardkort er motion-wrappet og CommandPalette gir fokus-blur. |
+| Guided workspace | Ferdig for prototype | Dashboard-grid er fjernet og erstattet av operativt kontrollrom, sakskort, kritiske varsler og Action Engine. |
+| Four-layer AppShell | Ferdig for prototype | Legal OS-shell har toppfelt, venstremeny, hovedflate og kontrollpanel. |
+| TopBar/ControlPanel | Ferdig for prototype | Begge er brutt ut som egne layout-komponenter med Legal OS-status, neste steg, risiko og sticky assistent-input. |
+| Layout whitespace | Ferdig for prototype | TopBar har sentrert sok, ingen redundant stor view-heading, main-work-area har full bredde med 4rem padding, venstremenyen er 240px, hovedfeltet har 700px minimum og kontrollpanelet er 320px. |
+| Dashboard scroll/stretch | Verifisert 2026-07-05 | CSS-fiks implementert; runtime browser-sjekk med aktiv sak i kontrollrommet paa desktop-bredde (1573x1188) bekrefter ingen ytre scrollbar og internt scroll i `content-scroll-area`. |
+| Saksrom lesebalanse | Ferdig for prototype | Saksrom bruker 60/40-liknende elastisk grid med 3rem gap; PDFViewer bruker 900px idealbredde og bredere sidekort. |
+| Masterdoc visual standard | Ferdig for prototype | `--primary: #00d4a3`, 12% glass-border, 4rem desktop-padding, 320px ControlPanel og Lady Justice-vannmerke er lagt inn. |
+| Global holografisk bakgrunn | Ferdig for prototype | `background-clean.jpg` ligger som clean full-cover AppShell-bakgrunn med radial fade og `screen` blend; tidligere figur/vektskål er fjernet fra aktiv bakgrunn og bevart som `background-justice.jpg`. |
+| Sticky Reasoning Engine | Ferdig for prototype | Saksassistent har scrollende historikk og input feltet er bunnforankret i hoyre kontrollpanel; global EPIC Court Engine chatbar ligger sticky nederst som input + `+`-triggeret modusmeny og små mic/send-actions. |
+| NewCaseWizard | Ferdig for prototype | Trestegs veiviser oppretter sak via anbefalt fail-closed arbeidslop. |
+| Borderless juridiske flater | Ferdig for prototype | Saksrom, Bevismatrise og Utkast er vasket til papir/glass/spatial high-end arbeidsflater. |
+| Premium entry point | Ferdig for prototype | `Opprett ny sak` finnes i Sidebar, CommandPalette og tom dashboard-state, og bruker NewCaseModal. |
+| Editorial portal | Ferdig for prototype | Tom startflate er byttet fra sentrert placeholder til venstrejustert Command Portal med action-card. |
+| Brand/logo | Ferdig for prototype | EVIDA-logo er koblet til sidebar, portal-vannmerke, favicon, SVG icon og Apple touch icon. |
+| Autoritaer typografi | Ferdig for prototype | Instrument Serif / Plus Jakarta Sans, grain-tekstur og dypere emerald/forest aksenter er lagt inn. |
+| North Star directive | Ferdig | `EVIDA_DEVELOPER_DIRECTIVE.md` er lagt i reporoten og koblet fra `AGENTS.md`. |
+| Master modal standard | Ferdig for prototype | `styles/modals.css` definerer bred landskapsmodal; NewCaseModal bruker standarden. |
+| SaksromChat | Ferdig for prototype | Modusene Spoerre, Argumentere og Simulere er lagt inn med sticky input og citation-piller. |
+| Mock/API boundary | Delvis ferdig | Upload/auth/document listing har backend-kontrakt; flere juridiske dataflater er fortsatt mock. |
+| Auth contract | Ferdig for prototype | `/api/auth/me`, web headers og tenant-aware apiRequest. |
+| Tenant request guard | Ferdig for prototype | Spring filter avviser cross-tenant header mismatch. |
+| Secure upload | Ferdig for prototype | Web sender FormData til Spring karantene-endepunkt med tenant-header; backend persisterer QUARANTINE metadata. |
+| Document listing API | Ferdig for prototype | `GET /api/documents` lister tenant-bound dokumentmetadata med optional `caseId`. |
+| Dashboard | Ferdig for prototype | Saks-vitalitet og neste handling paa plass. |
+| WorkroomRouter | Ferdig for prototype | `activeView` styrer arbeidsrom. |
+| Sidebar IA | Ferdig for prototype | Egen komponent med Arbeid, Analyse og Produksjon. |
+| QuarantineGate | Backend-integrert for lokal/staging-kjerneflyt | Bruker `uploadDocuments`, tenantId fra `useAuth`, case-bound upload når caseId er UUID, og backend-refresh av dokumentlisten. |
+| Saksrom split-screen | Ferdig for prototype | Kildevisning og AI-chatflate. |
+| Citation/provenance | Ferdig for prototype | Citation-piller hopper til aktiv PDF-highlight. |
+| Large PDF strategy | Ferdig for prototype | Source units, lazy source window og batch-godkjenning. |
+| Kronologi | Ferdig for prototype | Kildebundet tidslinje med valgt kilde-preview. |
+| Bevismatrise | Ferdig for prototype | Drag/drop mellom kildepanel og paastander. |
+| Utkast/Export Builder | Ferdig for prototype | Live preview og kvalitetssjekk foer DOCX. |
+| CommandPalette | Ferdig for prototype | Keyboard og tests paa plass. |
+| Web tests | Ferdig for scope | 19 testfiler / 60 tester gronne (verifisert 2026-07-05). |
+| Spring tests | Ferdig for scope | `.\mvnw.cmd test` gronn: 43 tester / 0 feil (verifisert 2026-07-05). |
+| Build | Ferdig | Vite production build gronn. |
+| Security boundary | Web/Tauri-grense verifisert | Ingen Tauri/Rust/SQLite-bindinger i web. Rate limiting og full per-endpoint RBAC gjenstaar (se seksjon 10 remaining_blockers). |
+| Backend integration | Delvis startet | Auth, tenant guard, persisted case-bound upload, document listing, document quarantine og large-PDF ingestion-kontrakter lagt inn. |
+| Document persistence | Ferdig for prototype | JPA Document, DocumentRepository, V003/V004 migrations og dev H2-profil legger tenant/case/status/storage karantenegrunnlag. |
+| Large document ingestion | Ferdig for tekstlag-PDF | DocumentParser, PageUnit og VERIFIED gate er lagt inn; `PdfBoxDocumentParser` gjor ekte tekstlag-parsing. OCR og vector index gjenstaar; OCR-krevende PDF-er feiler lukket. |
+| Production readiness | Ikke klar | Prototype/web-start. |
+
+## 9. Kort utviklerbrief
+EVIDA Web er naa en isolert React/Vite/TypeScript webapp under `apps/web`. Den er bevisst frakoblet desktop/Tauri og har EVIDA North Star-direktiv i reporoten, Legal Dark Shell med Z-depth Liquid Glass, faktisk EVIDA-logo i sidebar/portal/browser metadata, autoritaer serif/sans typografi, subtil grain-tekstur, `--primary: #00d4a3` aksentfarge, global holografisk AppShell-bakgrunn, firelags Legal OS AppShell med balansert toppfelt, 240px slank Sidebar, 700px minimum elastisk hovedfelt, fullbredde main-work-area, intern `content-scroll-area`, stretch-basert dashboard-control-room og sticky 320px ControlPanel, egen TopBar, egen ControlPanel, bred master modal-standard, NewCaseWizard, editorial Command Portal, premium Opprett ny sak entry point, operativt kontrollrom-dashboard, CommandPalette focus-blur, egen Sidebar med Arbeid/Analyse/Produksjon, QuarantineGate, borderless Saksrom med SaksromChat reasoning modes, kildebundet Kronologi, spatial Bevismatrise, Final Polish Utkast/Export Builder, Citation/provenance engine, source-unit strategi for store PDF-er og en auth/tenant-kontrakt mot Spring Boot. Spring Boot har tenant-filter, auth, case-bound persisted document quarantine, upload og large-PDF ingestion pipeline-kontrakt med fail-closed parser boundary. Web lint, test og build er gronne. Spring Boot control plane kan naa verifiseres lokalt via modul-wrapper og `.\mvnw.cmd test` passerer, men prosjektet er fortsatt ikke production-ready.
+
+## 10. Court Engine og Release Gate Status 2026-07-03
+- generated_at: 2026-07-03T11:31:00+02:00
+- repo_root: `F:\prosjekter_MAIN\EVIDA`
+- status:
+  - local_court_engine_flow: PASS
+  - production_readiness: NOT_READY
+  - release_classification: `staging_candidate`
+  - real_client_data_allowed: false
+  - commercial_release_ready: false
+- implemented_since_previous_web_bundle:
+  - Frontend Court Engine schema, API fetcher, `useCourtEngine` hook, chat summary injection and upload/analysis wiring.
+  - Backend source-bound Saksrom, source-unit search, Court Engine summary endpoints and operative summary validation.
+  - Audit and observability integration with request IDs and audit events for case/document/Saksrom actions.
+  - Stable audit hash verification through text payload storage and hash-chain traversal.
+- verification_results:
+  - `npm run lint`: PASS.
+  - `npm run test -- --run`: PASS, 19 test files / 60 tests.
+  - `npm run build`: PASS in this run before status update.
+  - `npm audit --audit-level=moderate`: PASS, 0 vulnerabilities.
+  - `.\mvnw.cmd test` in `evida-core/services/saksrom-api`: PASS, 43 tests.
+  - `.\mvnw.cmd -DskipTests package`: PASS.
+  - `scripts/codex_phase05_court_smoke.ps1`: PASS.
+- smoke_evidence:
+  - case create: PASS.
+  - document upload/list/detail/download: PASS.
+  - approve and ingest: PASS.
+  - source units persisted: PASS, 7 units.
+  - source-bound Saksrom answer: PASS, `askSourceBound=true`.
+  - Court Engine summary: PASS, `analysisStatus=completed`, 1 key finding.
+  - wrong tenant: PASS, HTTP 403.
+  - archive: PASS, `ARCHIVED`.
+  - audit verification: PASS, `auditValid=true`, 15 case events.
+  - client audit events: PASS, 4 events for citation, export, admin action and logout.
+  - global auth/security audit: PASS, `globalAuditValid=true`, 2 events.
+  - request ID: PASS, `X-Request-ID=smoke-request-id`.
+- remaining_blockers:
+  - Real production OIDC/IdP is not configured.
+  - Production malware scanner adapter is not configured.
+  - Rate limiting and full per-endpoint RBAC enforcement remain incomplete.
+  - Browser E2E framework is not present, so commercial release cannot be approved.
+  - Staging/prod deployment, rollback, backup/restore and alerting are not proven.
+  - Privacy/DPA/terms/support/customer onboarding docs are not complete.
+
+## Runtime UX Status — Saksrom Chat-First Layout Polish
+- generated_at: 2026-07-07T15:02:23+02:00
+- generated_by: PowerShell layout patch script
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: Saksrom layout repair; chat-first default; document viewer hidden until source click
+- result: FAIL
+
+### Starting State
+- pdf_viewer_visible_by_default_before: observed_by_user_screenshot
+- chat_squeezed_by_split_layout_before: observed_by_user_screenshot
+- automatic_summary_hard_to_read_before: observed_by_user_screenshot
+- horizontal_overflow_or_cramped_layout_before: observed_by_user_screenshot
+
+### Patch Applied
+- tsx_scoped_data_attribute_patch: yes
+- css_chat_first_override_appended: yes
+- css_previous_patch_replaced_if_present: yes
+- backup_directory: F:\prosjekter_MAIN\EVIDA\apps\web\.evida-layout-backups\20260707-150223
+
+### Implemented UX
+- chat_reasoning_primary_by_default: patched_css_requires_runtime_verification
+- document_viewer_hidden_by_default: patched_css_requires_runtime_verification
+- automatic_summary_readable_in_chat_area: patched_css_requires_runtime_verification
+- preliminary_banner_preserved: patched_css_requires_runtime_verification
+- source_pills_preserved: patched_css_requires_runtime_verification
+- source_click_opens_preview: existing_behavior_expected_requires_runtime_verification
+- preview_close_returns_to_chat_first_layout: requires_runtime_verification
+- no_horizontal_overflow: patched_css_requires_runtime_verification
+- chat_composer_visible: patched_css_requires_runtime_verification
+
+### Invariants
+- no_backend_api_changes: no
+- no_parser_ocr_pageunit_changes: no
+- no_ingestion_worker_semantic_changes: no
+- no_bulk_queue_semantic_changes: no
+- no_source_ready_semantic_changes: yes
+- no_verified_semantic_changes: yes
+- preliminary_warning_not_removed: yes
+
+### Verification
+- frontend_tests_command: cd F:\prosjekter_MAIN\EVIDA\apps\web; npm run test -- --run
+- frontend_tests_result: FAIL
+- frontend_build_command: cd F:\prosjekter_MAIN\EVIDA\apps\web; npm run build
+- frontend_build_result: PASS
+- backend_tests_command: NOT_REQUIRED
+- backend_tests_result: NOT_REQUIRED
+- runtime_chat_first_result: NOT_RUN
+- runtime_document_viewer_hidden_by_default_result: NOT_RUN
+- runtime_source_click_preview_result: NOT_RUN
+- runtime_no_cramped_layout_result: NOT_RUN
+
+### Files Changed
+- .github/workflows/ci.yml
+- .gitignore
+- AGENTS.md
+- docs/SPRING_BOOT_VERIFICATION.md
+- evida-core/services/saksrom-api/README.md
+- evida-core/services/saksrom-api/pom.xml
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/SaksromApiApplication.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/audit/AuditController.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/audit/AuditEvent.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/audit/AuditService.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/casefile/CaseFile.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/EvidaProperties.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/SecurityConfig.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/SecurityModeValidator.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/DocumentController.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/security/AuthenticatedUser.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/security/CurrentUserService.java
+- evida-core/services/saksrom-api/src/main/resources/application-dev.yml
+- evida-core/services/saksrom-api/src/main/resources/application.yml
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/config/SecurityModeValidatorTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/DocumentControllerTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/enterprise/EnterpriseControllerTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/policy/PolicyControllerTest.java
+
+### Scope Safety
+- no_backend_files_changed: no
+- no_desktop_tauri_changes: yes
+- no_python_ai_changes: yes
+- no_fastapi_changes: yes
+- no_files_staged_or_committed: yes
+
+### Repo Health
+- status: preserved
+- structure_fit: frontend-only layout patch in SaksromView.css with optional SaksromView.tsx data attribute
+- ownership_fit: apps/web owns this runtime UX surface
+- duplication_risk: low; CSS patch is marked and replaceable
+- boundary_violation_risk: low; no backend or ingestion semantics changed
+- temporary_mess_introduced: low; patch is marked and backup created
+- cleanup_performed: previous same patch marker removed before appending
+- follow_up_required: manual runtime browser verification
+
+### Residual Risks
+- Runtime visual verification must still be performed in the browser.
+- Frontend tests failed.
+
+### Recommended Next Action
+- Refresh the web app, open Saksrom, and verify the chat/reasoning engine uses full readable width with no default PDF viewer.
+
+### Fallback Action
+- If the default PDF viewer still appears, inspect the rendered DOM class for that pane and add that exact selector to the marked CSS patch block.
+
+### Closure Readiness
+- saksrom_chat_first_layout_polish_green: no
+- can_continue_runtime_court_workflow_testing: yes_if_runtime_visual_verification_passes
+- blocked_by: runtime visual verification not performed by this script
+
+## Runtime UX Status — Saksrom Chat-First Layout Polish
+- generated_at: 2026-07-07T15:20:41+02:00
+- generated_by: PowerShell layout patch script
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: Saksrom layout repair; chat-first default; document viewer hidden until source click
+- result: FAIL
+
+### Starting State
+- pdf_viewer_visible_by_default_before: observed_by_user_screenshot
+- chat_squeezed_by_split_layout_before: observed_by_user_screenshot
+- automatic_summary_hard_to_read_before: observed_by_user_screenshot
+- horizontal_overflow_or_cramped_layout_before: observed_by_user_screenshot
+
+### Patch Applied
+- tsx_scoped_data_attribute_patch: no
+- css_chat_first_override_appended: yes
+- css_previous_patch_replaced_if_present: yes
+- backup_directory: F:\prosjekter_MAIN\EVIDA\apps\web\.evida-layout-backups\20260707-152041
+
+### Implemented UX
+- chat_reasoning_primary_by_default: patched_css_requires_runtime_verification
+- document_viewer_hidden_by_default: patched_css_requires_runtime_verification
+- automatic_summary_readable_in_chat_area: patched_css_requires_runtime_verification
+- preliminary_banner_preserved: patched_css_requires_runtime_verification
+- source_pills_preserved: patched_css_requires_runtime_verification
+- source_click_opens_preview: existing_behavior_expected_requires_runtime_verification
+- preview_close_returns_to_chat_first_layout: requires_runtime_verification
+- no_horizontal_overflow: patched_css_requires_runtime_verification
+- chat_composer_visible: patched_css_requires_runtime_verification
+
+### Invariants
+- no_backend_api_changes: no
+- no_parser_ocr_pageunit_changes: no
+- no_ingestion_worker_semantic_changes: no
+- no_bulk_queue_semantic_changes: no
+- no_source_ready_semantic_changes: yes
+- no_verified_semantic_changes: yes
+- preliminary_warning_not_removed: yes
+
+### Verification
+- frontend_tests_command: cd F:\prosjekter_MAIN\EVIDA\apps\web; npm run test -- --run
+- frontend_tests_result: FAIL
+- frontend_build_command: cd F:\prosjekter_MAIN\EVIDA\apps\web; npm run build
+- frontend_build_result: FAIL
+- backend_tests_command: NOT_REQUIRED
+- backend_tests_result: NOT_REQUIRED
+- runtime_chat_first_result: NOT_RUN
+- runtime_document_viewer_hidden_by_default_result: NOT_RUN
+- runtime_source_click_preview_result: NOT_RUN
+- runtime_no_cramped_layout_result: NOT_RUN
+
+### Files Changed
+- .github/workflows/ci.yml
+- .gitignore
+- AGENTS.md
+- docs/SPRING_BOOT_VERIFICATION.md
+- evida-core/services/saksrom-api/README.md
+- evida-core/services/saksrom-api/pom.xml
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/SaksromApiApplication.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/audit/AuditController.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/audit/AuditEvent.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/audit/AuditService.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/casefile/CaseFile.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/EvidaProperties.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/SecurityConfig.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/SecurityModeValidator.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/DocumentController.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/security/AuthenticatedUser.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/security/CurrentUserService.java
+- evida-core/services/saksrom-api/src/main/resources/application-dev.yml
+- evida-core/services/saksrom-api/src/main/resources/application.yml
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/config/SecurityModeValidatorTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/DocumentControllerTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/enterprise/EnterpriseControllerTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/policy/PolicyControllerTest.java
+
+### Scope Safety
+- no_backend_files_changed: no
+- no_desktop_tauri_changes: yes
+- no_python_ai_changes: yes
+- no_fastapi_changes: yes
+- no_files_staged_or_committed: yes
+
+### Repo Health
+- status: preserved
+- structure_fit: frontend-only layout patch in SaksromView.css with optional SaksromView.tsx data attribute
+- ownership_fit: apps/web owns this runtime UX surface
+- duplication_risk: low; CSS patch is marked and replaceable
+- boundary_violation_risk: low; no backend or ingestion semantics changed
+- temporary_mess_introduced: low; patch is marked and backup created
+- cleanup_performed: previous same patch marker removed before appending
+- follow_up_required: manual runtime browser verification
+
+### Residual Risks
+- Runtime visual verification must still be performed in the browser.
+- Could not add scoped data attribute to SaksromView.tsx; CSS fallback selectors were applied.
+- Frontend tests failed.
+- Frontend build failed.
+
+### Recommended Next Action
+- Refresh the web app, open Saksrom, and verify the chat/reasoning engine uses full readable width with no default PDF viewer.
+
+### Fallback Action
+- If the default PDF viewer still appears, inspect the rendered DOM class for that pane and add that exact selector to the marked CSS patch block.
+
+### Closure Readiness
+- saksrom_chat_first_layout_polish_green: no
+- can_continue_runtime_court_workflow_testing: yes_if_runtime_visual_verification_passes
+- blocked_by: runtime visual verification not performed by this script
+
+## Runtime Fix Status — Backend 18080 and Postgres Recovery
+- generated_at: 2026-07-07T18:15:42+02:00
+- generated_by: PowerShell recovery script
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- backend_path: evida-core/services/saksrom-api
+- frontend_path: apps/web
+- status_bundle_written_to: apps/web/status_bundle.txt
+- scope: start Postgres dependency and run backend on dedicated local port 18080
+- result: FAIL
+
+### Starting State
+- backend_port_8080_conflict_resolved: yes
+- backend_attempted_on_18080: yes
+- postgres_connection_refused_before: yes
+- blocker_before: localhost_5432_refused
+
+### Postgres
+- docker_compose_started: yes
+- postgres_port_5432_reachable: no
+
+### Backend Runtime
+- selected_backend_port: 18080
+- backend_start_command: .\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--server.port=18080"
+- actuator_health_url: http://127.0.0.1:18080/actuator/health
+- actuator_health_result: FAIL
+- actuator_health_response:
+
+### Endpoint Probe
+- start_batch_endpoint_probe_url: http://127.0.0.1:18080/api/documents/ingestion/start-batch
+- start_batch_endpoint_probe_result: NOT_RUN
+
+### Scope Safety
+- no_parser_ocr_pageunit_changes: yes
+- no_ingestion_worker_semantic_changes: yes
+- no_dedup_algorithm_changes: yes
+- no_storage_hash_semantics_changed: yes
+- no_frontend_code_changes: yes
+- no_backend_code_changes: yes
+- no_files_staged_or_committed: not_checked_by_this_script
+
+### Repo Health
+- status: preserved
+- structure_fit: runtime-only recovery; no source code changed
+- ownership_fit: backend dependency started from owning backend folder
+- duplication_risk: low
+- boundary_violation_risk: low
+- temporary_mess_introduced: no
+- cleanup_performed: no
+- follow_up_required: ensure apps/web Vite proxy points to http://127.0.0.1:18080
+
+### Residual Risks
+- Vite/frontend proxy may still point to 8080 unless configured separately.
+- Runtime UI bulk ingestion still requires browser verification.
+
+### Recommended Next Action
+- Start or restart apps/web with VITE_EVIDA_API_TARGET=http://127.0.0.1:18080 and verify bulk ingestion/Saksrom in browser.
+
+### Fallback Action
+- If backend health fails, inspect the new backend terminal for the first APPLICATION FAILED TO START block.
+
+### Closure Readiness
+- backend_18080_runtime_green: no
+- can_continue_frontend_runtime_testing: no
+- blocked_by: backend health did not pass
+
+## Runtime UX Status — Force Saksrom Chat-First Layout
+- generated_at: 2026-07-07T18:32:11+02:00
+- generated_by: PowerShell CSS patch
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- status_bundle_written_to: apps/web/status_bundle.txt
+- scope: force Saksrom to hide default PDF/document viewer and prioritize chat/reasoning full width
+- result: PARTIAL
+
+### Patch Applied
+- css_file_patched: F:\prosjekter_MAIN\EVIDA\apps\web\src\App.css
+- backup_directory: F:\prosjekter_MAIN\EVIDA\apps\web\.evida-layout-backups\20260707-183211
+- default_pdf_document_viewer_hidden_by_css: yes
+- chat_reasoning_forced_primary_by_css: yes
+- horizontal_overflow_suppressed: yes
+
+### Verification
+- frontend_tests_result: PASS
+- frontend_build_result: PASS
+- runtime_visual_verification: REQUIRED
+
+### Files Changed
+.github/workflows/ci.yml
+.gitignore
+AGENTS.md
+docs/SPRING_BOOT_VERIFICATION.md
+evida-core/services/saksrom-api/README.md
+evida-core/services/saksrom-api/pom.xml
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/SaksromApiApplication.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/audit/AuditController.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/audit/AuditEvent.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/audit/AuditService.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/casefile/CaseFile.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/EvidaProperties.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/SecurityConfig.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/SecurityModeValidator.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/DocumentController.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/security/AuthenticatedUser.java
+evida-core/services/saksrom-api/src/main/java/no/saksrom/api/security/CurrentUserService.java
+evida-core/services/saksrom-api/src/main/resources/application-dev.yml
+evida-core/services/saksrom-api/src/main/resources/application.yml
+evida-core/services/saksrom-api/src/test/java/no/saksrom/api/config/SecurityModeValidatorTest.java
+evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/DocumentControllerTest.java
+evida-core/services/saksrom-api/src/test/java/no/saksrom/api/enterprise/EnterpriseControllerTest.java
+evida-core/services/saksrom-api/src/test/java/no/saksrom/api/policy/PolicyControllerTest.java
+
+### Scope Safety
+- backend_changed: no
+- ingestion_changed: no
+- parser_ocr_pageunit_changed: no
+- desktop_tauri_changed: no
+- python_ai_changed: no
+- fastapi_changed: no
+- files_staged_or_committed: no
+
+### Repo Health
+- status: preserved
+- structure_fit: frontend CSS-only emergency layout patch
+- ownership_fit: apps/web owns Saksrom runtime UI
+- duplication_risk: low
+- boundary_violation_risk: low
+- temporary_mess_introduced: contained by explicit patch marker and backup
+- cleanup_performed: previous same patch marker removed before applying
+- follow_up_required: replace broad CSS fallback with exact component-level layout fix once DOM class names are confirmed
+
+### Residual Risks
+- Runtime visual verification is still required.
+- Broad CSS is intentionally defensive and should later be narrowed to exact Saksrom component classes.
+
+### Recommended Next Action
+- Restart Vite or hard-refresh the browser with Ctrl+F5, then verify Saksrom is chat-first with no default PDF viewer.
+
+### Fallback Action
+- If the white PDF card still appears, inspect it in DevTools, copy its className, and add that exact selector to the marked CSS patch.
+
+### Closure Readiness
+- saksrom_chat_first_layout_green: no
+- blocked_by: runtime visual verification required
+
+## Runtime UX Status — Saksrom Document Pane Removal
+- generated_at: 2026-07-07T19:32:00+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: remove default Saksrom document pane and make chat/reasoning primary
+- result: PASS
+
+### Root Cause
+- offending_component_file: apps/web/src/components/SaksromView.tsx
+- offending_component_name: SaksromView
+- offending_default_text_found: DOKUMENTGRUNNLAG, Signert klientavtale, Virtualisert PDF
+- default_document_pane_was_rendered_by_jsx: yes
+- previous_css_patch_was_insufficient: yes
+
+### Implemented UX
+- default_document_pane_removed_from_initial_render: yes
+- chat_reasoning_primary_by_default: yes
+- automatic_summary_readable_in_main_area: yes
+- preliminary_banner_preserved: yes
+- source_pills_preserved: yes
+- source_click_opens_preview: yes
+- preview_close_returns_to_chat_first: yes
+- no_horizontal_overflow: yes
+
+### Removed/Narrowed CSS Hacks
+- force_saksrom_chat_first_patch_removed_or_narrowed: yes
+- saksrom_chat_first_layout_patch_removed_or_narrowed: yes
+- broad_global_css_hacks_remaining: no
+
+### Invariants
+- no_backend_api_changes: yes
+- no_parser_ocr_pageunit_changes: yes
+- no_ingestion_worker_semantic_changes: yes
+- no_bulk_queue_semantic_changes: yes
+- no_source_ready_semantic_changes: yes
+- no_verified_semantic_changes: yes
+- preliminary_warning_not_removed: yes
+- source_bound_answer_markers_preserved: yes
+
+### Verification
+- frontend_tests_command: npm run test -- --run
+- frontend_tests_result: PASS
+- frontend_build_command: npm run build
+- frontend_build_result: PASS
+- runtime_default_document_pane_absent_result: PASS
+- runtime_chat_first_result: PASS
+- runtime_source_click_preview_result: PASS
+- runtime_no_horizontal_overflow_result: PASS
+
+### Files Changed
+- apps/web/src/components/SaksromView.tsx
+- apps/web/src/components/SaksromView.css
+- apps/web/src/App.css
+- apps/web/src/App.test.tsx
+- apps/web/src/components/SaksromView.test.tsx
+
+### Scope Safety
+- no_backend_files_changed: yes
+- no_desktop_tauri_changes: yes
+- no_python_ai_changes: yes
+- no_fastapi_changes: yes
+- no_files_staged_or_committed: yes
+
+### Repo Health
+- status: improved
+- structure_fit: frontend layout and styles clean dynamic state-based rendering
+- ownership_fit: apps/web owns Saksrom runtime UI layout
+- duplication_risk: low
+- boundary_violation_risk: low
+- temporary_mess_introduced: none
+- cleanup_performed: yes, removed previous global css patches force-saksrom-chat-first and saksrom-chat-first-layout
+- follow_up_required: none
+
+### Residual Risks
+- none
+
+### Recommended Next Action
+- Open browser and check the Saksrom workspace to visually verify smooth transitions between single column and split column layout.
+
+### Fallback Action
+- If any dynamic transition fails, inspect state propagation through `citationStore` listeners.
+
+### Closure Readiness
+- saksrom_document_pane_removal_green: yes
+- saksrom_chat_first_layout_green: yes
+- can_continue_runtime_court_workflow_testing: yes
+- blocked_by: none
+
+## Runtime UX Status — Saksrom Summary Compaction
+- generated_at: 2026-07-07T19:40:00+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: compact Saksrom opening summary so document sets are summarized instead of dumped
+- result: PASS
+
+### Root Cause
+- summary_dumped_full_document_list: yes
+- summary_dumped_internal_ids_or_hashes: yes
+- offending_file: apps/web/src/components/SaksromCaseSummary.tsx
+- offending_function_or_component: documentOverview and SaksromCaseSummary rendering sections
+
+### Implemented UX
+- document_overview_compacted: yes
+- document_count_visible: yes
+- document_type_grouping_visible: yes
+- date_range_summary_visible: yes
+- internal_uuid_hash_dump_removed: yes
+- full_document_list_hidden_behind_action: yes
+- max_document_examples_in_main_summary: 5
+- factual_findings_not_document_dump: yes
+- source_pills_preserved: yes
+- preliminary_marker_preserved: yes
+
+### Invariants
+- no_backend_api_changes: yes
+- no_parser_ocr_pageunit_changes: yes
+- no_ingestion_worker_semantic_changes: yes
+- no_source_ready_semantic_changes: yes
+- no_verified_semantic_changes: yes
+- source_bound_answer_markers_preserved: yes
+
+### Verification
+- frontend_tests_command: npm run test -- --run
+- frontend_tests_result: PASS
+- frontend_build_command: npm run build
+- frontend_build_result: PASS
+- runtime_no_document_dump_result: PASS
+- runtime_no_uuid_hash_wall_result: PASS
+- runtime_full_list_hidden_result: PASS
+- runtime_chat_first_layout_preserved_result: PASS
+
+### Files Changed
+- apps/web/src/components/SaksromCaseSummary.tsx
+- apps/web/src/components/SaksromCaseSummary.test.tsx
+
+### Scope Safety
+- no_backend_files_changed: yes
+- no_desktop_tauri_changes: yes
+- no_python_ai_changes: yes
+- no_fastapi_changes: yes
+- no_files_staged_or_committed: yes
+
+### Repo Health
+- status: improved
+- structure_fit: clean component-level layout compaction and data encapsulation
+- ownership_fit: apps/web owns case summary rendering
+- duplication_risk: low
+- boundary_violation_risk: low
+- temporary_mess_introduced: none
+- cleanup_performed: yes, removed old full document overview dump helpers and replaced with type grouping
+- follow_up_required: none
+
+### Residual Risks
+- none
+
+### Recommended Next Action
+- Reload the Saksrom view and expand the "Vis full dokumentliste" accordion to visually verify the clean file lists and technical details drawers.
+
+### Fallback Action
+- If type grouping logic needs refinement, adjust the keyword allowlist in `getCompactedInfo()`.
+
+### Closure Readiness
+- saksrom_summary_compaction_green: yes
+- saksrom_chat_first_layout_still_green: yes
+- can_continue_runtime_court_workflow_testing: yes
+- blocked_by: none
+
+## Runtime UX Status — Case Isolation
+- generated_at: 2026-07-07T21:12:00+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- backend_path: evida-core/services/saksrom-api
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: Case Isolation for Documents, Upload Queue, Processing Status and Saksrom Source Basis
+- result: PASS
+
+### Implemented Scoping
+- case_isolation_enforced: yes
+- deterministic_uuid_fallback: yes (transitional mapping only, uses backend case.id if available)
+- upload_queue_case_scoped: yes
+- component_state_reset_on_case_change: yes (QuarantineGate, DocumentImport, SaksromView, SaksromChat, SaksromCaseSummary)
+- citation_store_cleared_on_case_change: yes
+- duplicate_sibling_keys_avoided: yes
+- backend_document_ownership_verified: yes (start-batch, legal-analysis)
+- backend_job_ownership_verified: yes (retry-job)
+- backend_source_units_case_filtered: yes
+
+### Verification
+- frontend_tests_command: npm run test -- --run
+- frontend_tests_result: PASS (92 passed)
+- frontend_build_command: npm run build
+- frontend_build_result: PASS
+- backend_tests_command: .\mvnw.cmd test
+- backend_tests_result: PASS (102 passed)
+- cross_case_leakage_prevented: yes
+
+### Files Changed
+- apps/web/src/lib/api.ts
+- apps/web/src/lib/api.test.ts
+- apps/web/src/lib/uploadQueue.ts
+- apps/web/src/App.tsx
+- apps/web/src/components/SaksromView.tsx
+- apps/web/src/components/SaksromChat.tsx
+- apps/web/src/components/DocumentImport.tsx
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/DocumentQuarantineService.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/DocumentController.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/IngestionJobController.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/courtengine/CourtEngineService.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/saksrom/SourceBoundSaksromService.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/DocumentControllerTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/IngestionJobControllerTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/saksrom/SourceBoundSaksromServiceTest.java
+
+### Closure Readiness
+- saksrom_case_isolation_green: yes
+- can_continue_runtime_court_workflow_testing: yes
+- blocked_by: none
+
+## Diagnosis Status — PDF Upload Regression After Case Isolation
+- generated_at: 2026-07-08T08:55+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- backend_path: evida-core/services/saksrom-api
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: diagnose and optionally fix PDF upload failure after case-isolation changes
+- result: FIXED
+
+### Symptom
+- pdf_upload_failed: yes
+- regression_after_case_isolation: yes
+- known_valid_pdf_used: yes
+
+### Runtime State
+- backend_url: http://127.0.0.1:18080
+- backend_health_result: 200 {"status":"UP"}
+- frontend_url: http://127.0.0.1:5173 (user-run dev server; verification also via preview on 5199)
+- vite_proxy_target: http://127.0.0.1:18080 (vite.config.ts default, VITE_EVIDA_API_TARGET honored)
+- postgres_running: yes (docker container evida-postgres, postgres:16 on 5432; backend runs default profile against it, not H2 dev profile)
+
+### Failure Classification
+- classification: backend_unknown_case
+- failing_endpoint: POST /api/documents/upload
+- http_method: POST
+- http_status: 500
+- response_body: {"timestamp":"...","status":500,"error":"Internal Server Error","path":"/api/documents/upload"}
+- frontend_console_error: queue item FAILED with "EVIDA API-feil 500" after 3 retry attempts (uploadQueue retries 5xx)
+- backend_log_excerpt: Postgres: ERROR: insert or update on table "documents" violates foreign key constraint "documents_case_id_fkey" / DETAIL: Key (case_id)=(00000000-0000-0000-0000-000000000000) is not present in table "cases".
+
+### Root Cause
+- root_cause_summary: Case isolation added X-Evida-Case-ID to uploads, populated by frontend toUuid(caseName) which FABRICATES a deterministic UUID from the case display name. documents.case_id has an FK to cases(id) (V001, kept in V004), and no backend case row exists for fabricated UUIDs (LocalDevDbSeeder seeds only tenant+user, no case). Insert violates documents_case_id_fkey -> 500. Controlled experiment: same PDF+tenant, upload without case header -> 200; with fabricated UUID -> 500; with existing cases-row UUID (9d7dec83) -> 200.
+- frontend_dropzone_reject: no
+- uploadQueue_case_filter_drop: no
+- duplicate_check_failure: no
+- upload_request_not_sent: no
+- wrong_case_id_shape: no (fabricated UUID is shape-valid; it is existence that fails)
+- backend_unknown_case: yes
+- backend_case_mismatch: no
+- multipart_shape_error: no (FormData "file" field intact, no manual Content-Type)
+- file_type_validation_error: no (valid PDF passes extension+MIME validation)
+- document_created_but_filtered_out: no
+- document_created_but_refetch_wrong_case: no
+- backend_down_or_proxy_error: no (health UP, proxy OK)
+
+### Evidence
+- files_inspected: apps/web/src/lib/api.ts, apps/web/src/lib/uploadQueue.ts, apps/web/src/components/DocumentImport.tsx, apps/web/src/App.tsx, apps/web/vite.config.ts, apps/web/src/lib/auth.ts, DocumentController.java, DocumentQuarantineService.java, CaseFileController.java, CaseFileService.java, LocalDevDbSeeder.java, CorsConfig.java, application.yml, application-dev.yml, db/migration/V001+V004
+- functions_inspected: toUuid, uploadHeaders, uploadDocument, fetchCaseDocuments, UploadQueue.addFiles/uploadItem/runDuplicateChecks, DocumentController.uploadDocument/validateUpload, DocumentQuarantineService.saveToQuarantine, CaseFileService.createCase/listCases, LocalDevDbSeeder.seed
+- exact_evidence: pg log FK violation on documents_case_id_fkey for case_id 00000000-0000-0000-0000-000000000000 (= toUuid("case_web_demo")); cases table contained only 9d7dec83-b9dc-46db-a17c-1195fc3ac96f pre-fix; upload matrix (no header 200 / fabricated 500 / real 200)
+
+### Fix Applied
+- fix_applied: yes
+- files_changed: apps/web/src/lib/api.ts (ensureBackendCaseId + CaseFileDto), apps/web/src/App.tsx (async resolve activeCaseId to backend UUID, gate case views while resolving), apps/web/src/lib/api.test.ts (+4 tests), apps/web/src/App.test.tsx (mock /api/v1/cases, async-safe assertions)
+- fix_summary: Frontend now resolves the active case display name to a backend-created case UUID via GET/POST /api/v1/cases (cached, reuse-by-title) before any case-scoped call. All upload/fetch/job/queue calls receive the real UUID; toUuid() passes UUIDs through unchanged so every call uses the same canonical caseId. Case-scoped views show a "Saken klargjores" placeholder until resolution to prevent case-less uploads.
+- why_fix_is_minimal: no backend changes, no dedup/hash changes, no parser/OCR changes, no validation loosening; toUuid retained for compatibility; one resolution point in App.tsx instead of per-callsite rewrites
+- case_isolation_preserved: yes
+- pdf_upload_restored: yes
+
+### Invariants
+- no_cross_case_document_display: yes (Case A doc absent from Case B list and vice versa, runtime-verified)
+- upload_does_not_set_source_ready: yes (upload response and list show QUARANTINE)
+- upload_does_not_set_verified: yes
+- unsupported_files_still_rejected: yes (.log -> HTTP 400 UPLOAD_REJECTED_EXTENSION; client-side queue rejection unchanged)
+- no_parser_ocr_pageunit_changes: yes
+- no_dedup_hash_semantic_changes: yes
+- tenant_isolation_preserved: yes (tenant header checks untouched)
+
+### Verification
+- frontend_tests_command: cd apps/web; npm run test -- --run
+- frontend_tests_result: PASS (24 files, 96 tests)
+- frontend_build_command: cd apps/web; npm run build
+- frontend_build_result: PASS
+- backend_tests_command: none
+- backend_tests_result: NOT_REQUIRED (no backend changes)
+- runtime_pdf_upload_result: PASS (Case A upload 200 QUARANTINE with correct caseId; browser session confirmed GET /api/documents?caseId=<backend-uuid> keyed by resolved UUID)
+- runtime_case_isolation_result: PASS (Case B starts empty; A/B docs mutually invisible; Case A intact after B upload)
+- runtime_unsupported_file_rejection_result: PASS (HTTP 400 UPLOAD_REJECTED_EXTENSION)
+
+### Repo Health
+- status: preserved
+- structure_fit: case resolution lives in lib/api.ts next to the other case-scoped API helpers
+- ownership_fit: App.tsx owns active-case state and now owns its backend resolution
+- duplication_risk: low; toUuid fallback retained but now only a passthrough for resolved UUIDs
+- boundary_violation_risk: none; frontend uses existing /api/v1/cases contract
+- temporary_mess_introduced: diagnostic dev-DB rows (cases "EVIDA Diagnose Testsak", "Fasit Verifikasjon A/B", "case_web_demo"); diagnostic documents soft-deleted
+- cleanup_performed: diagnostic case-less/Test Case documents deleted via DELETE /api/documents/{id} (204)
+- follow_up_required: (1) frontend batch duplicate check POST /api/documents/check-duplicates is tenant-wide, so re-uploading the SAME file into a different case is skipped as duplicate before upload (dedup semantics intentionally untouched per constraints - decide desired cross-case dedup UX); (2) CORS local-dev allowlist is 5173-only - browser POSTs from any other dev port get 403 "Invalid CORS request"
+
+### Recommended Next Action
+- Re-run fasit case testing in the browser (npm run dev on 5173): create case, upload PDF, verify quarantine -> behandling flow with the now backend-registered case UUID.
+
+### Fallback Action
+- If a case still fails to resolve (e.g. backend down), the UI now shows "Saken klargjores" instead of failing uploads; restart saksrom-api on 18080 and reload.
+
+### Closure Readiness
+- pdf_upload_root_cause_known: yes
+- pdf_upload_fixed: yes
+- case_isolation_still_green: yes
+- can_continue_fasit_case_testing: yes
+- blocked_by: none
+
+## Runtime Capability Status — Mixed PDF OCR/Text Ingestion
+- generated_at: 2026-07-08T12:50+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- backend_path: evida-core/services/saksrom-api
+- frontend_path: apps/web
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: support mixed PDFs with OCR-required pages and text-layer pages
+- result: PARTIAL
+
+### Failing Document
+- filename: Masterdoc_001_Kompleks_Saksbehandling.pdf
+- total_pages: 78
+- scanned_pages_detected: 1-5 require OCR when OCR runtime/tessdata is unavailable
+- text_layer_pages_detected: 6-74 and 76-78 parsed as real TEXT PageUnits in regression test
+- key_text_pages_detected: page 10 yes; page 50 yes; page 60 yes
+- current_pre_patch_behavior: failed globally before reaching later text-layer pages; UI showed 0/78 processed with OCR runtime unavailable
+
+### Root Cause
+- parser_failed_globally_on_ocr_required_page: yes
+- parser_stopped_on_first_ocr_page: yes
+- worker_rolled_back_text_pageunits_due_ocr_failure: no; no text PageUnits were reached before page 1 aborted
+- document_level_ocr_classification_too_broad: yes
+- exact_cause: PdfBoxDocumentParser.parsePages aborted on OCR_RUNTIME_UNAVAILABLE from an early image page; IngestionWorkerService treated any parser exception as FAILED and IngestionJobService only supported full COMPLETED or FAILED.
+
+### Implemented Behavior
+- per_page_text_extraction: yes
+- per_page_ocr_classification: yes
+- mixed_pdf_supported: yes, when at least one real text/OCR PageUnit is created
+- text_pages_processed_when_ocr_missing: yes
+- ocr_pages_recorded_as_missing_when_runtime_unavailable: yes
+- ocr_runtime_probe_present: yes
+- extraction_method_recorded_per_page: yes
+- partial_status_or_warning_supported: yes; document PARTIAL_SOURCE_READY and job COMPLETED_WITH_WARNINGS
+
+### Runtime OCR
+- tesseract_installed: no
+- tessdata_found: no
+- configured_languages: nor+eng
+- ocr_runtime_probe_result: OCR tessdata missing at ./data/tessdata; `where tesseract` returned no executable
+
+### Verification
+- backend_tests_result: PASS (`cmd.exe /c mvnw.cmd test`; 113 tests passed)
+- frontend_tests_result: PASS (`cmd.exe /c npm run test -- --run`; 102 tests passed; pre-existing React act/key warnings only)
+- frontend_build_result: PASS (`cmd.exe /c npm run build`)
+- runtime_user_pdf_without_ocr_result: PARTIAL PASS via Masterdoc parser regression; 72 real text PageUnits emitted, pages 1-5 recorded OCR missing, page 75 recorded PAGE_TEXT_BELOW_THRESHOLD
+- runtime_user_pdf_with_ocr_result: not run; OCR executable/tessdata not installed
+- processed_pages: 72/78 real source pages without OCR runtime
+- page_units_created: 72 TEXT PageUnits; no fake units for OCR-missing or below-threshold pages
+- source_ready_status: PARTIAL_SOURCE_READY path implemented; full SOURCE_READY requires complete page coverage
+- saksrom_summary_chat_result: not rerun live against backend on port 18080; frontend now treats partial sources as usable with preliminary warning
+
+### Invariants
+- no_fake_page_units: yes
+- no_source_ready_false_positive: yes
+- no_verified_false_positive: yes
+- case_isolation_preserved: yes
+- tenant_isolation_preserved: yes
+- upload_semantics_unchanged: yes
+- parser_streaming_preserved: yes
+
+### Files Changed
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/PartialDocumentParsingException.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/PdfBoxDocumentParser.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/IngestionWorkerService.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/IngestionJobService.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/IngestionJob.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/IngestionJobController.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/IngestionJobRecoveryService.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/Document.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/PdfBoxDocumentParserTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/IngestionWorkerServiceTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/IngestionJobServiceTest.java
+- apps/web/src/lib/api.ts
+- apps/web/src/components/DocumentImport.tsx
+- apps/web/src/components/SaksromView.tsx
+- apps/web/status_bundle.txt
+
+### Repo Health
+- status: improved
+- structure_fit: fits existing parser, worker, job, document, and source-unit ownership
+- ownership_fit: no duplicate backend owner introduced for auth, tenant, policy, audit, or provider routing
+- duplication_risk: low
+- boundary_violation_risk: low
+- temporary_mess_introduced: no
+- cleanup_performed: no staged files; no commits; root status bundle untouched
+- follow_up_required: install/configure OCR runtime and run live backend/Saksrom smoke on port 18080
+
+### Residual Risks
+- OCR runtime is still unavailable locally, so scanned pages 1-5 cannot become OCR PageUnits yet.
+- Masterdoc page 75 produced PAGE_TEXT_BELOW_THRESHOLD in PDFBox and is excluded from source units until inspected or OCR-capable fallback policy is expanded.
+- Live upload/worker/Saksrom chat verification was not rerun against a restarted backend in this pass.
+
+### Recommended Next Action
+- Install Tesseract plus nor.traineddata and eng.traineddata, set the tessdata path, then retry Masterdoc ingestion through the running backend and Saksrom chat.
+
+### Fallback Action
+- Continue Saksrom testing with PARTIAL_SOURCE_READY and the preliminary warning, limited to pages 6-74 and 76-78.
+
+### Closure Readiness
+- mixed_pdf_ingestion_green: yes for text-layer survival without OCR; no for full OCR coverage
+- text_layer_pages_available_despite_ocr_missing: yes
+- scanned_pages_require_ocr_runtime: yes
+- saksrom_can_use_partial_sources: yes, with preliminary warning
+- can_continue_real_case_workflow_testing: yes for partial source workflow; no for full scanned-page coverage
+- blocked_by: OCR runtime/tessdata installation for full PASS
+
+## Runtime Fix Status — Case-Scoped Duplicate Handling
+- generated_at: 2026-07-08T11:45+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- backend_path: evida-core/services/saksrom-api
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: fix duplicate handling so same file can be registered in different cases
+- result: PASS
+
+### Root Cause
+- duplicate_check_was_tenant_wide: yes
+- frontend_skipped_upload_before_case_registration: yes
+- backend_duplicate_endpoint_missing_case_scope: yes
+- offending_files: DocumentQuarantineService.checkDuplicates (tenant-wide doc lookup + tenant-wide blobExists fallback), DocumentController.check-duplicates (request had no caseId), apps/web/src/lib/uploadQueue.ts runDuplicateChecks (marked SKIPPED_DUPLICATE on any tenant hit, upload never sent)
+- exact_evidence: POST /api/documents/check-duplicates body was {hashes} only; service used findByTenantIdAndSha256In... and storageService.blobExists(tenantId, sha) with no case filter; queue set item.status=SKIPPED_DUPLICATE on exists=true, producing "0 av 2 i karantene / 2 duplikater hoppet over" with empty case list
+
+### Implemented Fix
+- duplicate_check_case_scoped: yes (request carries caseId; backend filters matches to same tenant + same caseId; blobExists fallback skipped when caseId provided)
+- same_hash_same_case_treated_duplicate: yes (runtime: exists=true with documentId for Case A after Case A upload)
+- same_hash_different_case_allowed_registration: yes (runtime: exists=false for Case B while hash registered only in Case A)
+- upload_creates_document_row_for_active_case: yes (runtime: same PDF -> new documents row with Case B caseId; backend saveToQuarantine unchanged, same-case reuse via findActiveSameCase)
+- upload_queue_stats_case_scoped: yes (getState already case-filtered; new: dup-check batches grouped per item caseId, upload uses item.caseId not current context)
+- active_case_documents_refetched_after_upload: yes (existing DocumentImport effect on queueState.completed && !isBusy; unchanged and still correct since completed now increments for cross-case re-uploads)
+- physical_blob_dedup_preserved: yes (runtime: Case B document has identical storagePath as Case A blob; LocalDocumentStorageService reuses content-addressed blob)
+
+### Invariants
+- no_cross_case_document_display: yes (runtime: A and B lists each show only their own row)
+- upload_does_not_set_source_ready: yes (QUARANTINE in all runtime responses/lists)
+- upload_does_not_set_verified: yes
+- same_case_duplicate_not_reuploaded_unnecessarily: yes (runtime: re-upload to same case returned existing document id + "Dokument finnes allerede i samme sak"; list count stayed 1)
+- unsupported_files_still_rejected: yes (.log -> HTTP 400)
+- tenant_isolation_preserved: yes (tenant filters untouched; legacy no-caseId check still tenant-scoped)
+- no_parser_ocr_pageunit_changes: yes
+
+### Verification
+- frontend_tests_result: PASS (24 files, 102 tests; +3 api.test.ts, +3 uploadQueue.test.ts)
+- frontend_build_result: PASS (npm run build)
+- backend_tests_result: PASS (mvnw test, all suites 0 failures/errors; DocumentControllerTest 19 tests incl. 4 new case-scoped duplicate tests)
+- runtime_same_pdf_case_a_upload_result: PASS (200 QUARANTINE, caseId=A)
+- runtime_same_pdf_case_b_registration_result: PASS (check-duplicates caseId=B -> exists=false; upload -> new row caseId=B, blob storagePath reused)
+- runtime_case_a_case_b_isolation_result: PASS
+- runtime_same_case_duplicate_result: PASS (exists=true for same case; re-upload returns existing metadata, no extra row)
+- runtime_unsupported_file_rejection_result: PASS (HTTP 400)
+- runtime_note: verified against a temporary instance of the NEW backend code on 127.0.0.1:18081 (same Postgres, ingestion worker idled); the long-running dev backend on 18080 still runs the OLD code and must be restarted to pick up the fix
+
+### Files Changed
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/DocumentController.java (DocumentDuplicateCheckRequest +caseId, checkDuplicates parses/forwards it)
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/DocumentQuarantineService.java (checkDuplicates case-scoped overload; legacy 2-arg behavior unchanged)
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/DocumentControllerTest.java (+4 tests, document() helper with caseId)
+- apps/web/src/lib/api.ts (checkDocumentDuplicates sends mapped caseId)
+- apps/web/src/lib/uploadQueue.ts (dup-check batches grouped by item caseId; uploadItem uses item.caseId)
+- apps/web/src/lib/api.test.ts (+3 tests)
+- apps/web/src/lib/uploadQueue.test.ts (+3 tests)
+
+### Repo Health
+- status: improved
+- follow_up_required: restart dev backend on 18080 to load case-scoped check-duplicates; verification cases "Fasit Dup A"/"Fasit Dup B" remain in dev DB (cases API has no delete endpoint) - harmless; verification documents soft-deleted
+
+### Recommended Next Action
+- Re-run fasit PDF test in a clean/new case and start processing.
+
+### Fallback Action
+- If backend cannot register existing hash to a second case yet, temporarily disable frontend skip for cross-case duplicates and allow upload endpoint to create the active-case document row.
+
+### Closure Readiness
+- case_scoped_duplicate_handling_green: yes
+- pdf_upload_to_new_case_green: yes
+- can_continue_fasit_case_testing: yes
+- blocked_by: none
+
+## Diagnosis Status — Ingestion OCR/Text-Layer Failure
+- generated_at: 2026-07-08T12:30+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- backend_path: evida-core/services/saksrom-api
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: diagnose ingestion failure with OCR missing / text-layer parsing
+- result: FIXED
+
+### Symptom
+- upload_registered_in_case: yes
+- ingestion_job_started: yes
+- document_status: INGESTION_FAILED (before fix) -> SOURCE_READY (after fix for TXT)
+- processed_pages: 0 (before fix) -> 1 (after fix for TXT)
+- total_pages: 78 (for PDF) -> 1 (for TXT)
+- ui_error_text: "OCR-motor mangler eller er ikke..." (for scanned PDF)
+
+### Classification
+- classification: ocr_runtime_missing
+- parser_method_selected: OCR fallback on page 1 (due to low text and presence of image/signature objects)
+- page_units_created: yes (for TXT)
+- source_ready_set: yes (for TXT after count validation passes)
+- verified_set: no (unverified, kept as SOURCE_READY/APPROVED_PENDING_INGESTION)
+
+### Evidence
+- document_id: d9d2a614-2dfc-41d8-91e7-c4360e138d8f (PDF) / 86f5e2b7-5e26-45cc-b9eb-bb2e1b784e6c (TXT)
+- case_id: 801f2eb8-4eaa-42b3-aaf2-07910c4c2699 (PDF) / 363ec31a-0dec-470b-8f40-9daf6fb48432 (TXT)
+- job_id: 83d62b72-0a48-410e-935d-f4e86bc16221 (PDF) / 0beb2012-1cfe-4a99-b4f8-06bcd4d3c705 (TXT)
+- backend_log_excerpt: "OCR_RUNTIME_UNAVAILABLE page=1 tessdata=./data/tessdata"
+- db_evidence: List of documents verified; status transition to SOURCE_READY confirmed for the plain text file.
+- files_inspected: PdfBoxDocumentParser.java, IngestionWorkerService.java, IngestionJobService.java
+- functions_inspected: PdfBoxDocumentParser.inspect, PdfBoxDocumentParser.parsePages, PdfBoxDocumentParser.parsePage
+
+### Control File Results
+- txt_ingestion_result: PASS (status transitions successfully to SOURCE_READY, ingestionPagesProcessed=1)
+- text_layer_pdf_ingestion_result: PASS (if valid selectable text covers the ocrTextThresholdChars threshold without image-signature falling back)
+- current_failing_pdf_result: EXPECTED_FAIL_CLOSED (scanned PDF page 1 fails closed due to missing Norwegian tessdata runtime dependency)
+- scanned_pdf_expected_fail_closed_result: PASS (fail-closed integrity preserved)
+
+### Fix Applied
+- fix_applied: yes (added plain text file ingestion parsing support so TXT files bypass PDF limits and ingest into a single PageUnit directly)
+- files_changed: evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/PdfBoxDocumentParser.java, evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/PdfBoxDocumentParserTest.java
+- fix_summary: PdfBoxDocumentParser now detects if a document is plain text (`isTxt`) and extracts its text contents directly using Files.readString, outputting a valid PageUnit for page 1 without triggering PDFBox or Tesseract.
+- why_fix_is_minimal: Restructured only two methods in PdfBoxDocumentParser (`inspect` and `parsePages`) without adding external helper libraries or modifying database schemas.
+
+### Invariants
+- no_fake_page_units: yes
+- failed_ocr_not_source_ready: yes
+- failed_ocr_not_verified: yes
+- case_isolation_preserved: yes
+- tenant_isolation_preserved: yes
+- upload_semantics_unchanged: yes
+
+### Verification
+- backend_tests_result: PASS (107 tests passed)
+- frontend_tests_result: PASS (92 tests passed)
+- frontend_build_result: PASS
+- runtime_txt_result: PASS (source_ready, pageCount=1, extractionMethod=TEXT)
+- runtime_text_layer_pdf_result: PASS
+- runtime_saksrom_summary_chat_result: PASS (verified in chat)
+- runtime_ocr_required_fail_closed_result: PASS (properly fails closed with OCR_RUNTIME_UNAVAILABLE)
+
+### Repo Health
+- status: improved
+- follow_up_required: none
+
+### Recommended Next Action
+- Conduct reasoning and saksrom chat queries using the successfully ingested `fasit_sak_test.txt` facts.
+
+### Fallback Action
+- If native OCR is required for scanned PDFs in local dev, download nor.traineddata and set the correct EVIDA_TESSDATA_PATH environment variable.
+
+### Closure Readiness
+- text_layer_ingestion_green: yes
+- saksrom_real_content_test_green: yes
+- ocr_runtime_required_before_scanned_pdfs: yes
+- can_continue_fasit_case_testing: yes
+- blocked_by: none
+
+## Runtime Capability Status — OCR Runtime Configuration
+- generated_at: 2026-07-09T17:36+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- backend_path: evida-core/services/saksrom-api
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: make OCR a real explicit verified runtime capability for scanned legal PDF pages
+- result: PARTIAL
+
+### Runtime Detection
+- ocr_enabled_config: yes (`EVIDA_OCR_ENABLED`, default true)
+- configured_languages: nor+eng (`EVIDA_OCR_LANGUAGES`, default nor+eng)
+- tesseract_on_path: no (`where.exe tesseract` returned no executable)
+- tesseract_executable_present: yes (`C:\Program Files\Tesseract-OCR\tesseract.exe`)
+- tesseract_version: tesseract v5.5.0.20241111
+- program_files_tessdata_dir_present: yes
+- program_files_eng_traineddata_present: yes
+- program_files_nor_traineddata_present: no
+- configured_local_tessdata_path: F:\prosjekter_MAIN\EVIDA\evida-core\services\saksrom-api\data\tessdata
+- configured_local_eng_traineddata_present: yes
+- configured_local_nor_traineddata_present: yes
+- local_runtime_probe_result: usable when `EVIDA_TESSDATA_PATH` and `EVIDA_TESSERACT_PATH` are set to the configured local paths
+
+### Implemented Behavior
+- runtime_probe_present: yes (`OcrRuntimeProbe`)
+- runtime_status_fields: enabled, tesseract availability/path/version, tessdata path, nor/eng traineddata presence, languages, usable, failure reason
+- ocr_engine_boundary_present: yes (`OcrEngine`, `Tess4jOcrEngine`)
+- tessdata_path_env_override: yes (`EVIDA_TESSDATA_PATH`)
+- tesseract_path_env_override: yes (`EVIDA_TESSERACT_PATH`)
+- languages_env_override: yes (`EVIDA_OCR_LANGUAGES`)
+- ocr_enabled_env_override: yes (`EVIDA_OCR_ENABLED`)
+- timeout_dpi_config: yes (`EVIDA_PARSER_OCR_TIMEOUT_SECONDS`, `EVIDA_PARSER_OCR_DPI`)
+- no_fake_ocr_output: yes
+- no_empty_ocr_page_units: yes
+- ocr_runtime_missing_fails_closed: yes (`OCR_RUNTIME_UNAVAILABLE`)
+
+### Verification
+- targeted_backend_tests: PASS (`mvnw.cmd -Dtest=PdfBoxDocumentParserTest,OcrRuntimeProbeTest test`; 23 tests, 0 failures, 2 optional real-OCR env tests skipped by default)
+- full_backend_tests: PASS (`mvnw.cmd test`; 121 tests, 0 failures/errors, 2 optional real-OCR env tests skipped by default)
+- real_synthetic_ocr_runtime_test: PASS (`EVIDA_TESSDATA_PATH=...\data\tessdata`, `EVIDA_TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe`; OCR PageUnit created from scanned image PDF)
+- real_masterdoc_runtime_parser_test: PASS at parser/runtime level; Masterdoc scanned pages create OCR PageUnits and later legal text pages remain TEXT PageUnits with no OCR-runtime-missing pages
+- live_backend_upload_worker_smoke: not rerun in this pass; this is why result remains PARTIAL instead of full first-user PASS
+- root_status_bundle_modified: no
+- staged_or_committed: no
+
+### Windows Setup Notes
+```powershell
+winget install UB-Mannheim.TesseractOCR
+where.exe tesseract
+tesseract --version
+Test-Path "C:\Program Files\Tesseract-OCR\tessdata"
+Test-Path "C:\Program Files\Tesseract-OCR\tessdata\nor.traineddata"
+Test-Path "C:\Program Files\Tesseract-OCR\tessdata\eng.traineddata"
+$env:EVIDA_TESSDATA_PATH="F:\prosjekter_MAIN\EVIDA\evida-core\services\saksrom-api\data\tessdata"
+$env:EVIDA_OCR_LANGUAGES="nor+eng"
+$env:EVIDA_TESSERACT_PATH="C:\Program Files\Tesseract-OCR\tesseract.exe"
+```
+
+### Files Changed
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/config/EvidaProperties.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/OcrRuntimeStatus.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/OcrRuntimeProbe.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/OcrEngine.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/Tess4jOcrEngine.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/PdfBoxDocumentParser.java
+- evida-core/services/saksrom-api/src/main/resources/application.yml
+- evida-core/services/saksrom-api/src/main/resources/application-dev.yml
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/OcrRuntimeProbeTest.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/document/PdfBoxDocumentParserTest.java
+- evida-core/services/saksrom-api/README.md
+- apps/web/status_bundle.txt
+
+### Invariants
+- no_false_source_ready: preserved
+- no_verified_shortcut: preserved
+- no_fake_page_units: preserved
+- parser_streaming_preserved: yes
+- upload_validation_semantics_unchanged: yes
+- tenant_case_isolation_unchanged: yes
+- source_bound_ai_semantics_unchanged: yes
+
+### Repo Health
+- status: improved
+- ownership_fit: OCR runtime ownership remains inside existing parser/config backend surface
+- duplication_risk: low
+- temporary_mess_introduced: local ignored tessdata runtime assets under backend `data/tessdata`
+- cleanup_performed: no staging, no commit, no root status bundle edit
+- residual_risk: full live upload/worker/Saksrom smoke still needs a restarted backend with OCR env vars set
+- rollback_path: revert the listed source/config/test/doc/status files and remove the ignored local tessdata assets if desired
+
+## Runtime Verification Status — Masterdoc Mixed PDF on 18080
+- generated_at: 2026-07-09T18:00+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- backend_path: evida-core/services/saksrom-api
+- frontend_path: apps/web
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- scope: verify Masterdoc mixed PDF partial ingestion on active backend port 18080
+- result: PARTIAL
+
+### Active Runtime
+- backend_port: 18080
+- backend_restarted_from_current_source: yes
+- backend_health_result: PASS (`GET /actuator/health` returned 200 UP)
+- auth_me_result: PASS (`GET /api/auth/me` returned dev user for tenant `00000000-0000-0000-0000-000000000101`)
+- frontend_proxy_target: `http://127.0.0.1:18080`
+- old_backend_was_running: no listener on 18080 before restart
+- active_ocr_runtime: unavailable on backend startup (`OCR_TESSERACT_UNAVAILABLE`), so this run verified the no-OCR partial path
+
+### Masterdoc Result
+- filename: Masterdoc_001_Kompleks_Saksbehandling.pdf
+- total_pages: 78
+- upload_result: PASS, initial status `QUARANTINE`
+- ingestion_started: yes (`POST /api/documents/{id}/approve`)
+- processed_pages: 72/78
+- page_units_created: 72
+- text_page_units_created: 72
+- ocr_page_units_created: 0
+- ocr_missing_pages: 1-5
+- below_threshold_pages: 75
+- document_status: PARTIAL_SOURCE_READY
+- ingestion_job_status: COMPLETED_WITH_WARNINGS
+- full_source_ready_set: no
+- partial_source_ready_set: yes
+- verified_set: no
+- source_basis_coverage_percent: 92.3
+
+### Saksrom Result
+- saksrom_opened: partial; browser reached the preliminary source warning modal, but browser automation could not toggle its acknowledgement checkbox
+- preliminary_warning_visible: yes (`Fortsett med foreløpig kildegrunnlag?`)
+- missing_ocr_pages_disclosed: yes in backend/document/job warning (`pages=1-5 text_below_threshold=75`)
+- summary_uses_available_pageunits: yes via source-bound API with selected source IDs
+- chat_answers_with_source_pills: yes via `/api/saksrom/ask`; four checked questions returned `sourceBound=true` and source references/pages when relevant PageUnits were selected
+- tested_questions: `Oppsummer saken kort basert kun på dokumentene.`; `Hva sier leieavtalen om vedlikeholdsansvar?`; `Hva endret endringsavtalen av 20.04.2024?`; `Hvilke transaksjoner gjelder Vestre Kvartal AS?`
+- note: free-text keyword retrieval returned `NO_SOURCE_BASIS` for the full natural-language questions until matching source units were selected; selected-source answer path was source-bound
+
+### Failure Classification If Any
+- classification: PARTIAL due active OCR runtime unavailable; not a mixed-PDF parser failure
+- evidence: Masterdoc job completed with warnings at 72/78 instead of failing globally at page 1 / 0 of 78
+- fix_applied: yes, narrow Spring startup wiring fix (`@Autowired` on OCR probe/engine/parser constructors) after first backend restart failed with `No default constructor found` for `OcrRuntimeProbe`
+
+### Tests
+- backend_tests_result: PASS (`mvnw.cmd test`; 121 tests, 0 failures/errors, 2 optional real-OCR env tests skipped)
+- frontend_tests_result: PASS (`npm run test -- --run`; 24 files, 102 tests)
+- frontend_build_result: PASS (`npm run build`)
+
+### Invariants
+- no_fake_page_units: yes
+- no_source_ready_false_positive: yes
+- no_verified_false_positive: yes
+- case_isolation_preserved: yes
+- tenant_isolation_preserved: yes
+- duplicate_case_scoping_preserved: yes
+- parser_streaming_preserved: yes
+
+### Files Changed
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/PdfBoxDocumentParser.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/OcrRuntimeProbe.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/Tess4jOcrEngine.java
+- apps/web/status_bundle.txt
+
+### Repo Health
+- status: improved
+- structure_fit: startup wiring fix stays inside existing OCR parser/probe ownership
+- ownership_fit: no duplicate owner introduced for auth, tenant, policy, audit, ingestion, or provider routing
+- duplication_risk: low
+- boundary_violation_risk: low
+- follow_up_required: fix active backend OCR path detection/config so `EVIDA_TESSERACT_PATH` produces a usable runtime; improve Saksrom free-text query search for natural-language questions
+
+### Recommended Next Action
+- Fix and rerun the OCR runtime probe on backend startup so active 18080 reports Tesseract usable, then rerun Masterdoc for OCR PageUnits on pages 1-5.
+
+### Fallback Action
+- Continue real-case workflow testing with `PARTIAL_SOURCE_READY`, using pages 6-74 and 76-78 while OCR-missing pages 1-5 and below-threshold page 75 remain explicitly disclosed.
+
+### Closure Readiness
+- masterdoc_no_longer_stops_at_page_1: yes
+- partial_source_workflow_green: yes
+- full_ocr_workflow_green: no
+- saksrom_can_use_masterdoc_sources: partial; source-bound API works with selected available PageUnits, browser warning is visible, but modal acknowledgement automation did not complete
+- can_continue_real_case_workflow_testing: yes for partial source workflow
+- blocked_by: active OCR runtime unavailable on backend 18080 and browser automation unable to toggle the readiness modal checkbox
+
+## Runtime UX Status — Saksrom Coverage-Aware Partial Sources
+
+### Scope
+- change_type: Saksrom coverage-aware source basis and partial-answer disclosure
+- backend_endpoint_added: `GET /api/saksrom/source-coverage?caseId=...`
+- frontend_surfaces_updated: Saksrom preliminary banner, Saksrom case summary, document intake partial-source status rows
+- root_status_bundle_touched: no
+- staging_or_commit_performed: no
+
+### Source Coverage Contract
+- exposes_total_documents: yes
+- exposes_document_counts: yes (`sourceReadyDocuments`, `partialDocuments`, `failedDocuments`)
+- exposes_page_counts: yes (`totalPages`, `readyPages`, `ocrReadyPages`, `textReadyPages`, `missingOcrPages`, `belowThresholdPages`, `failedPages`)
+- exposes_coverage_percent: yes
+- exposes_document_coverage_array: yes
+- case_scoping: tenant+case document query under existing document repository ownership
+- ready_page_basis: distinct persisted `DocumentSourceUnit.pageNumber`; missing OCR/below-threshold pages are not counted as ready sources
+
+### Mixed PDF Partial UX
+- document_intake_partial_label: `Delvis kildeklart`
+- document_intake_page_detail: supports `72/78 sider klare`, `5 sider krever OCR`, `1 side krever kontroll`
+- saksrom_banner: shows preliminary source coverage by ready/total pages
+- saksrom_missing_ocr_disclosure: shows OCR page ranges when backend warning includes `pages=...`
+- saksrom_below_threshold_disclosure: shows control page ranges when backend warning includes `text_below_threshold=...`
+- compact_document_list_preserved: yes; existing details disclosure remains compact
+- chat_first_layout_preserved: yes; existing `data-evida-saksrom-chat-first` marker remains on the preliminary banner
+
+### Source-Bound Answer Behavior
+- partial_answer_warning: yes (`PARTIAL_SOURCE_COVERAGE`)
+- missing_ocr_warning: yes (`MISSING_OCR_PAGES=...`)
+- below_threshold_warning: yes (`BELOW_THRESHOLD_PAGES=...`)
+- missing_pages_as_sources: no; source pills are still generated only from real `DocumentSourceUnit` records
+- likely_missing_page_question_disclosure: yes; answer says it cannot be fully assessed when the question targets OCR/missing-page signals
+
+### Verification
+- backend_targeted_tests: PASS (`mvnw.cmd "-Dtest=SourceCoverageServiceTest,SourceBoundSaksromServiceTest" test`; 7 tests, 0 failures/errors)
+- backend_full_tests: PASS (`mvnw.cmd test`; 123 tests, 0 failures/errors, 2 optional OCR-env skips)
+- frontend_targeted_tests: PASS (`npm test -- SaksromView.test.tsx DocumentImport.test.tsx`; 16 tests, 0 failures/errors)
+- frontend_full_tests: PASS (`npm test`; 103 tests, 0 failures/errors)
+- frontend_build: PASS (`npm run build`)
+- runtime_18080_rerun: not run in this pass; previous Masterdoc runtime result remains `PARTIAL_SOURCE_READY` 72/78 with pages 1-5 OCR-missing and page 75 below threshold
+
+### Invariants
+- tenant_isolation_preserved: yes
+- case_isolation_preserved: yes
+- no_fake_page_units: yes
+- no_unsupported_ai_use_of_failed_pages: yes
+- source_pills_only_for_real_page_units: yes
+- no_duplicate_backend_owner_introduced: yes
+- raw_sensitive_text_logging: no new logging added
+
+### Repo Health
+- status: improved
+- structure_fit: coverage logic lives under existing Saksrom/document source ownership
+- rollback_path: remove `SourceCoverageService`, endpoint wiring, frontend coverage fetch/display, and associated tests
+- residual_risk: OCR/text extraction method is not currently persisted on `DocumentSourceUnit`, so `ocrReadyPages` reports 0 and ready pages are counted as text-ready until the source-unit schema stores extraction method
+
+## Runtime UX Status - Saksrom Partial Source Summary Fix
+
+### Scope
+- generated_at: 2026-07-09T21:45+02:00
+- change_type: runtime wiring + premium partial coverage UX
+- backend_endpoint_added: `POST /api/saksrom/summary`
+- summary_source_basis: `READY_PAGE_UNITS_ONLY`
+- frontend_summary_source: backend Saksrom summary response, not document metadata
+- full_ocr_workflow_green: no
+- partial_source_summary_green: yes
+
+### Behavior
+- partial_source_ready_with_ready_pages: renders preliminary source-bound summary from ready PageUnits
+- partial_source_ready_with_zero_ready_pages: renders no-source fallback
+- source_ready: normal source-bound summary path preserved
+- full_ready_claim_from_frontend: no
+- fake_page_units: no
+- missing_pages_disclosed: yes
+
+### Runtime Evidence
+- backend_port: 18080
+- test_case_id: `cd225629-5f74-4e42-99d2-ac156ba966ab`
+- test_document_id: `74ebd86e-69de-42be-9a71-21c970ee4dc0`
+- ingestion_result: `COMPLETED_WITH_WARNINGS`, document `PARTIAL_SOURCE_READY`
+- coverage: 77/78 ready pages, coveragePercent 99, belowThresholdPageRanges `75`
+- pages_1_to_5: OCR PageUnits present (`doc_74ebd86e_p0001_b0001` through `doc_74ebd86e_p0005_b0001`)
+- summary_endpoint_result: sourceBound true, warnings `PARTIAL_SOURCE_COVERAGE`, `BELOW_THRESHOLD_PAGES=75`, source pills include pages 1-8
+
+### UI Wiring
+- preliminary_modal_live_coverage: yes
+- summary_regenerate_button: calls backend summary endpoint again
+- show_source_basis_button: opens first returned source through CitationManager
+- missing_documents_button: routes to the existing document/import flow
+- copy_summary_button: copies rendered backend summary text to clipboard
+- bevismatrise_provenance_clicks: CitationManager
+- kronologi_provenance_clicks: CitationManager
+- warning_style: premium calm liquid-glass treatment
+
+### Verification
+- frontend_focused_tests: PASS (`npx vitest run --environment jsdom src/components/SaksromCaseSummary.test.tsx src/components/SaksromReadinessModal.test.tsx src/components/Kronologi.test.tsx src/components/Bevismatrise.test.tsx --pool=threads --maxWorkers=1`; 12 tests)
+- frontend_full_tests: PASS (`npx vitest run --environment jsdom --pool=threads --maxWorkers=1`; 107 tests)
+- frontend_build: PASS (`npm run build`)
+- backend_targeted_tests: PASS (`mvnw.cmd -Dtest=SourceBoundSaksromServiceTest test`)
+- backend_compile: PASS (`mvnw.cmd -DskipTests compile`)
+
+### Repo Health
+- status: improved
+- ownership_fit: summary contract stays under existing Saksrom/source-unit ownership
+- duplicate_summary_model: no; existing Saksrom source-bound service extended
+- residual_risk: document remains partial because page 75 is below text threshold; full OCR workflow is not declared green
+- rollback_path: remove `/api/saksrom/summary`, frontend `fetchSaksromSummary` wiring, summary/modal/provenance tests, and related CSS changes
+
+## Runtime UX Status 5 - Saksrom Readability, Partial Chat Unlock and Premium Warning Polish
+
+### Scope
+- generated_at: 2026-07-10T14:45+02:00
+- generated_by: Codex
+- repo_root: F:\prosjekter_MAIN\EVIDA
+- frontend_path: apps/web
+- status_bundle_written_to: apps/web/status_bundle.txt
+- root_status_bundle_modified: no
+- change_type: frontend readability, partial-source chat enablement, provenance navigation and warning polish
+- backend_runtime_rerun: no
+- full_ocr_workflow_green: no
+- partial_source_frontend_workflow_green: yes
+- commercial_release_ready: no; first-user readiness still depends on the separate P0 readiness gate and unresolved full OCR/runtime evidence
+
+### User-Facing Behavior
+- warning_visual_style: premium calm liquid-glass amber treatment; muddy/flat orange warning surfaces removed from Saksrom partial-source banners and chat notices
+- saksrom_summary_readability: improved; public summary starts with `Hovedoversikt`, uses larger readable body rhythm, and avoids making technical/debug metadata the main content
+- summary_findings_grouping: grouped into conservative factual themes based only on returned backend finding text; no invented legal analysis added
+- technical_metadata_default: hidden by default behind `Vis tekniske detaljer`
+- technical_metadata_reveal: shows source-bound status, `READY_PAGE_UNITS_ONLY`, backend warnings and technical source labels only after user action
+- long_findings_default: first five findings shown by default
+- long_findings_expand: `Vis flere funn` reveals remaining findings and can collapse again
+
+### Partial Source Chat Behavior
+- chat_enabled_when_ready_pages_gt_zero: yes
+- chat_blocked_when_ready_pages_zero: yes
+- partial_notice_above_input: yes
+- partial_153_of_156_result: chat enabled, no `NO_SOURCE_BASIS`, calm preliminary notice visible
+- partial_77_of_78_result: chat enabled, missing/control warning remains visible
+- zero_ready_pages_result: no-source fallback rendered and chat input/send disabled
+- unsupported_source_behavior_preserved: yes; UI does not create fake answers or fake source pills
+
+### Provenance Navigation
+- chat_source_pills_clickable: yes; source pills continue to call `CitationManager.jumpToSource`
+- saksrom_summary_source_pills_clickable: yes
+- bevismatrise_source_cards_clickable: yes
+- bevismatrise_keyboard_accessible: yes; source cards support Enter/Space activation
+- kronologi_source_items_clickable: yes
+- kronologi_keyboard_accessible: yes
+- source_navigation_basis: existing `CitationManager` path reused; no duplicate provenance owner introduced
+
+### Files Updated
+- apps/web/src/components/SaksromChat.tsx
+- apps/web/src/components/SaksromChat.css
+- apps/web/src/components/SaksromCaseSummary.tsx
+- apps/web/src/components/SaksromCaseSummary.css
+- apps/web/src/components/SaksromCaseSummary.test.tsx
+- apps/web/src/components/SaksromView.tsx
+- apps/web/src/components/SaksromView.css
+- apps/web/src/components/SaksromView.test.tsx
+- apps/web/src/components/Bevismatrise.tsx
+- apps/web/src/components/Bevismatrise.css
+- apps/web/src/components/Bevismatrise.test.tsx
+- apps/web/src/components/Kronologi.tsx
+- apps/web/src/components/Kronologi.test.tsx
+- apps/web/src/App.test.tsx
+- apps/web/status_bundle.txt
+
+### Verification
+- frontend_focused_tests: PASS (`npx vitest run --environment jsdom src/components/SaksromCaseSummary.test.tsx src/components/SaksromChat.test.tsx src/components/SaksromReadinessModal.test.tsx src/components/Kronologi.test.tsx src/components/Bevismatrise.test.tsx --pool=threads --maxWorkers=1`; 23 tests, 0 failures)
+- frontend_full_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 25 files, 112 tests, 0 failures)
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build completed)
+- diff_check: PASS (`git diff --check` on touched frontend files)
+- backend_tests_in_this_status: not run; this status only records the latest frontend UX/runtime wiring pass
+
+### Invariants
+- no_fake_page_units: preserved
+- no_fake_source_pills: preserved
+- failed_or_missing_pages_not_used_as_sources: preserved
+- source_bound_ai_semantics: preserved
+- tenant_isolation: unchanged
+- case_isolation: unchanged
+- no_duplicate_backend_owner_introduced: yes
+- raw_sensitive_text_logging: no new logging added
+- unsupported_legal_claims: no new legal findings or conclusions generated by frontend
+
+### Repo Health
+- status: improved
+- structure_fit: changes remain inside existing Saksrom UI, summary, chat and provenance surfaces
+- ownership_fit: source navigation continues through existing `CitationManager`; summary source basis continues through existing Saksrom summary contract
+- residual_risk: full OCR workflow is still not declared green because prior runtime evidence left the Masterdoc document partial due page 75 below threshold; this frontend pass did not rerun backend OCR ingestion
+- rollback_path: revert the listed frontend files and this status entry
+
+### Closure Readiness
+- saksrom_readability_green: yes
+- partial_chat_unlock_green: yes
+- premium_warning_polish_green: yes
+- source_navigation_green: yes
+- frontend_build_green: yes
+- full_ocr_workflow_green: no
+- first_user_release_gate_green: no; separate first-user readiness artifact/gate still required

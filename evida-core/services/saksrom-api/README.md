@@ -72,7 +72,10 @@ Large files are treated as containers:
 OCR configuration:
 
 ```text
+EVIDA_OCR_ENABLED=true
 EVIDA_TESSDATA_PATH=./data/tessdata
+EVIDA_TESSERACT_PATH=
+EVIDA_OCR_LANGUAGES=nor+eng
 EVIDA_PARSER_OCR_TEXT_THRESHOLD_CHARS=40
 EVIDA_PARSER_OCR_DPI=300
 EVIDA_PARSER_OCR_TIMEOUT_SECONDS=60
@@ -80,6 +83,22 @@ EVIDA_PARSER_MAX_PAGES=20000
 ```
 
 Place `nor.traineddata` and `eng.traineddata` under the configured tessdata path. These traineddata files are runtime assets and must not be committed to the repo; `**/data/tessdata/` is ignored. If tessdata or native Tesseract runtime support is missing, OCR pages fail closed with a precise ingestion error instead of creating guessed or empty source units.
+
+Windows local OCR setup:
+
+```powershell
+winget install UB-Mannheim.TesseractOCR
+where.exe tesseract
+tesseract --version
+Test-Path "C:\Program Files\Tesseract-OCR\tessdata"
+Test-Path "C:\Program Files\Tesseract-OCR\tessdata\nor.traineddata"
+Test-Path "C:\Program Files\Tesseract-OCR\tessdata\eng.traineddata"
+$env:EVIDA_TESSDATA_PATH="C:\Program Files\Tesseract-OCR\tessdata"
+$env:EVIDA_OCR_LANGUAGES="nor+eng"
+$env:EVIDA_TESSERACT_PATH="C:\Program Files\Tesseract-OCR\tesseract.exe"
+```
+
+Restart the backend after changing OCR environment variables. The startup probe reports whether OCR is enabled, which Tesseract executable/version was found, whether `nor` and `eng` traineddata are present, and why OCR is not usable when any requirement is missing.
 
 ## Default policy
 

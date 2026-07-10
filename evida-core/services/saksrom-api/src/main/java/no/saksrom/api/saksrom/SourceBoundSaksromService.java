@@ -2,10 +2,12 @@ package no.saksrom.api.saksrom;
 
 import no.saksrom.api.document.DocumentSourceUnit;
 import no.saksrom.api.document.DocumentSourceUnitRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -13,11 +15,19 @@ import java.util.UUID;
 @Service
 public class SourceBoundSaksromService {
     private static final int SEARCH_LIMIT = 20;
+    private static final int SUMMARY_SOURCE_LIMIT = 8;
 
     private final DocumentSourceUnitRepository sourceUnitRepository;
+    private final SourceCoverageService sourceCoverageService;
 
     public SourceBoundSaksromService(DocumentSourceUnitRepository sourceUnitRepository) {
+        this(sourceUnitRepository, null);
+    }
+
+    @Autowired
+    public SourceBoundSaksromService(DocumentSourceUnitRepository sourceUnitRepository, SourceCoverageService sourceCoverageService) {
         this.sourceUnitRepository = sourceUnitRepository;
+        this.sourceCoverageService = sourceCoverageService;
     }
 
     @Transactional(readOnly = true)
@@ -49,19 +59,78 @@ public class SourceBoundSaksromService {
                 .findFirst()
                 .map(text -> text.length() > 240 ? text.substring(0, 240) + "..." : text)
                 .orElse("Kilden er registrert, men mangler lesbart tekstutdrag.");
+        UUID reqCaseId = parseUuidOrNull(request.caseId());
+        SourceCoverageService.SourceCoverageResponse coverage = reqCaseId == null || sourceCoverageService == null
+                ? null
+                : sourceCoverageService.coverage(tenantId, reqCaseId);
+        List<String> warnings = coverageWarnings(coverage);
 
         return new SaksromAnswerResponse(
-                "Kildebundet vurdering basert på valgt kildegrunnlag: " + sourceSummary,
+                coveragePrefix(coverage, request.question()) + "Kildebundet vurdering basert pa valgt kildegrunnlag: " + sourceSummary,
                 sources,
                 true,
-                List.of()
+                warnings
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public SaksromSummaryResponse summarize(UUID tenantId, SaksromSummaryRequest request) {
+        UUID caseId = parseRequiredUuid(request.caseId(), "caseId er pakrevd.");
+        SourceCoverageService.SourceCoverageResponse coverage = sourceCoverageService == null
+                ? null
+                : sourceCoverageService.coverage(tenantId, caseId);
+        List<DocumentSourceUnit> units = sourceUnitRepository.findReadyTextByTenantIdAndCaseId(
+                tenantId,
+                caseId,
+                PageRequest.of(0, SUMMARY_SOURCE_LIMIT)
+        );
+
+        if (units.isEmpty()) {
+            return new SaksromSummaryResponse(
+                    caseId.toString(),
+                    "Ingen kildeklar oppsummering",
+                    "Saksrommet har ikke ferdige kildeenheter aa oppsummere ennaa.",
+                    List.of(),
+                    List.of(),
+                    false,
+                    List.of("NO_SOURCE_BASIS"),
+                    coverage
+            );
+        }
+
+        List<SourceReference> sources = units.stream()
+                .sorted(Comparator.comparing(DocumentSourceUnit::getPageNumber).thenComparing(DocumentSourceUnit::getSourceUnitId))
+                .map(SourceReference::from)
+                .toList();
+        List<String> warnings = coverageWarnings(coverage);
+        boolean partial = coverage != null && coverage.totalPages() > 0 && coverage.readyPages() < coverage.totalPages();
+        String title = partial ? "Forelopig kildebundet saksoppsummering" : "Kildebundet saksoppsummering";
+        String summary = buildSummaryText(coverage, units);
+        List<SummaryFinding> findings = units.stream()
+                .limit(5)
+                .map(unit -> new SummaryFinding(
+                        "Side " + unit.getPageNumber(),
+                        quote(unit.getTextContent()),
+                        List.of(SourceReference.from(unit))
+                ))
+                .toList();
+
+        return new SaksromSummaryResponse(
+                caseId.toString(),
+                title,
+                summary,
+                findings,
+                sources,
+                true,
+                warnings,
+                coverage
         );
     }
 
     private List<DocumentSourceUnit> selectedUnits(UUID tenantId, SaksromQuestionRequest request) {
         UUID reqCaseId = parseUuidOrNull(request.caseId());
         List<String> selectedIds = request.selectedSourceUnitIds() == null ? List.of() : request.selectedSourceUnitIds();
-        
+
         List<DocumentSourceUnit> units;
         if (!selectedIds.isEmpty()) {
             units = sourceUnitRepository.findByTenantIdAndSourceUnitIdInOrderByPageNumberAscSourceUnitIdAsc(tenantId, selectedIds);
@@ -75,7 +144,6 @@ public class SourceBoundSaksromService {
             units = sourceUnitRepository.findByTenantIdAndSourceUnitIdInOrderByPageNumberAscSourceUnitIdAsc(tenantId, foundIds);
         }
 
-        // Filter by requested caseId to ensure case isolation
         if (reqCaseId != null) {
             units = units.stream()
                     .filter(unit -> reqCaseId.equals(unit.getCaseId()))
@@ -90,11 +158,100 @@ public class SourceBoundSaksromService {
 
     private SaksromAnswerResponse noSourceBasis() {
         return new SaksromAnswerResponse(
-                "Jeg har ikke nok kildegrunnlag til å svare kildebundet. Last opp og klargjør kilder først, eller velg relevante kilder.",
+                "Jeg har ikke nok kildegrunnlag til aa svare kildebundet. Last opp og klargjor kilder forst, eller velg relevante kilder.",
                 List.of(),
                 false,
                 List.of("NO_SOURCE_BASIS")
         );
+    }
+
+    private List<String> coverageWarnings(SourceCoverageService.SourceCoverageResponse coverage) {
+        if (coverage == null || coverage.totalPages() <= 0 || coverage.readyPages() >= coverage.totalPages()) {
+            return List.of();
+        }
+        List<String> warnings = new ArrayList<>();
+        warnings.add("PARTIAL_SOURCE_COVERAGE");
+        if (coverage.missingOcrPages() > 0) {
+            warnings.add("MISSING_OCR_PAGES=" + coverage.missingOcrPageRanges());
+        }
+        if (coverage.belowThresholdPages() > 0) {
+            warnings.add("BELOW_THRESHOLD_PAGES=" + coverage.belowThresholdPageRanges());
+        }
+        return warnings;
+    }
+
+    private String buildSummaryText(SourceCoverageService.SourceCoverageResponse coverage, List<DocumentSourceUnit> units) {
+        StringBuilder text = new StringBuilder();
+        if (coverage != null && coverage.totalPages() > 0 && coverage.readyPages() < coverage.totalPages()) {
+            text.append("Forelopig kildegrunnlag: oppsummeringen bygger kun paa ")
+                    .append(coverage.readyPages())
+                    .append(" av ")
+                    .append(coverage.totalPages())
+                    .append(" sider med ferdige kildeenheter. ");
+        } else {
+            text.append("Oppsummeringen bygger paa ferdige kildeenheter i saken. ");
+        }
+        text.append("De forste tilgjengelige kildeenhetene viser: ");
+        text.append(units.stream()
+                .limit(3)
+                .map(unit -> "side " + unit.getPageNumber() + ": " + quote(unit.getTextContent()))
+                .toList()
+                .stream()
+                .reduce((left, right) -> left + " " + right)
+                .orElse("ingen lesbare utdrag."));
+        return text.toString();
+    }
+
+    private String quote(String value) {
+        if (value == null || value.isBlank()) {
+            return "Kildeenhet uten lesbart tekstutdrag.";
+        }
+        String normalized = value.replaceAll("\\s+", " ").trim();
+        return normalized.length() > 260 ? normalized.substring(0, 260) + "..." : normalized;
+    }
+
+    private String coveragePrefix(SourceCoverageService.SourceCoverageResponse coverage, String question) {
+        if (coverage == null || coverage.totalPages() <= 0 || coverage.readyPages() >= coverage.totalPages()) {
+            return "";
+        }
+        StringBuilder prefix = new StringBuilder("Forelopig kildegrunnlag: Svaret bygger pa ")
+                .append(coverage.readyPages())
+                .append(" av ")
+                .append(coverage.totalPages())
+                .append(" sider. ");
+        if (coverage.missingOcrPages() > 0) {
+            prefix.append(coverage.missingOcrPages())
+                    .append(" sider krever OCR");
+            if (!coverage.missingOcrPageRanges().isBlank()) {
+                prefix.append(" (side ").append(coverage.missingOcrPageRanges()).append(")");
+            }
+            prefix.append(" og er ikke brukt som kilder. ");
+        }
+        if (coverage.belowThresholdPages() > 0) {
+            prefix.append(coverage.belowThresholdPages())
+                    .append(" sider krever kontroll");
+            if (!coverage.belowThresholdPageRanges().isBlank()) {
+                prefix.append(" (side ").append(coverage.belowThresholdPageRanges()).append(")");
+            }
+            prefix.append(". ");
+        }
+        if (questionTargetsMissingPages(question, coverage)) {
+            prefix.append("Dette kan ikke vurderes fullt ut fordi sporsmalet kan gjelde sider som mangler lesbart kildegrunnlag. ");
+        }
+        return prefix.toString();
+    }
+
+    private boolean questionTargetsMissingPages(String question, SourceCoverageService.SourceCoverageResponse coverage) {
+        if (question == null || question.isBlank()) {
+            return false;
+        }
+        String normalized = question.toLowerCase();
+        if (normalized.contains("ocr") || normalized.contains("skannet") || normalized.contains("rettsbok")) {
+            return true;
+        }
+        return coverage.documentCoverage().stream()
+                .flatMap(document -> document.missingOcrPageNumbers().stream())
+                .anyMatch(page -> normalized.contains("side " + page) || normalized.contains("s. " + page));
     }
 
     private UUID parseUuidOrNull(String value) {
@@ -105,6 +262,14 @@ public class SourceBoundSaksromService {
             return UUID.fromString(value);
         } catch (RuntimeException e) {
             return null;
+        }
+    }
+
+    private UUID parseRequiredUuid(String value, String message) {
+        try {
+            return UUID.fromString(value);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException(message, e);
         }
     }
 
@@ -133,6 +298,29 @@ public class SourceBoundSaksromService {
             String question,
             List<String> selectedSourceUnitIds,
             String mode
+    ) {}
+
+    public record SaksromSummaryRequest(
+            String caseId,
+            Boolean includePartial,
+            String sourceBasis
+    ) {}
+
+    public record SummaryFinding(
+            String heading,
+            String text,
+            List<SourceReference> sources
+    ) {}
+
+    public record SaksromSummaryResponse(
+            String caseId,
+            String title,
+            String summary,
+            List<SummaryFinding> findings,
+            List<SourceReference> sources,
+            boolean sourceBound,
+            List<String> warnings,
+            SourceCoverageService.SourceCoverageResponse coverage
     ) {}
 
     public record SaksromAnswerResponse(

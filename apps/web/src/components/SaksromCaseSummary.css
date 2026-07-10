@@ -66,9 +66,14 @@
 .summary-preliminary-marker {
   display: grid;
   gap: var(--evida-space-2);
-  border: 1px solid color-mix(in srgb, var(--evida-status-warning) 32%, transparent);
-  background: color-mix(in srgb, var(--evida-status-warning) 10%, transparent);
-  color: var(--evida-status-warning);
+  border: 1px solid rgba(255, 204, 120, 0.16);
+  background:
+    linear-gradient(135deg, rgba(255, 204, 120, 0.055), rgba(0, 212, 163, 0.025));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 18px 60px rgba(0, 0, 0, 0.22);
+  color: rgba(245, 241, 232, 0.9);
+  backdrop-filter: blur(18px);
 }
 
 .summary-preliminary-marker dl {
@@ -84,14 +89,15 @@
 }
 
 .summary-preliminary-marker dt {
-  color: var(--evida-text-muted);
+  color: rgba(255, 211, 143, 0.88);
   font-size: 0.72rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .summary-preliminary-marker dd {
   margin: 0;
-  color: var(--evida-text-primary);
+  color: rgba(255, 232, 190, 0.96);
   font-weight: 700;
 }
 
@@ -105,6 +111,22 @@
   color: var(--evida-status-info);
 }
 
+.summary-copy-toast {
+  justify-self: start;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, transparent);
+  border-radius: var(--evida-radius-sm);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    color-mix(in srgb, var(--primary) 9%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 16px 36px rgba(0, 0, 0, 0.18);
+  color: var(--evida-text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.48rem 0.72rem;
+}
+
 .summary-empty-state {
   border: 1px solid var(--evida-glass-border);
   color: var(--evida-text-secondary);
@@ -115,32 +137,145 @@
   gap: var(--evida-space-3);
 }
 
-.summary-sections section {
+.saksrom-summary-body {
+  max-width: 78ch;
+  color: rgba(245, 245, 240, 0.88);
+  font-size: 15.5px;
+  line-height: 1.68;
+}
+
+.summary-sections section,
+.saksrom-summary-section {
   display: grid;
   gap: var(--evida-space-2);
-  padding-top: var(--evida-space-3);
+  padding-block: 1.15rem;
   border-top: 1px solid var(--evida-glass-border);
 }
 
 .summary-sections h4 {
   margin: 0;
-  color: var(--evida-text-primary);
-  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.9rem;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.summary-sections ul {
+.summary-sections ul,
+.saksrom-summary-list {
   display: grid;
-  gap: var(--evida-space-1);
+  gap: 0.7rem;
   margin: 0;
   padding-left: 1rem;
   color: var(--evida-text-secondary);
-  font-size: 0.82rem;
-  line-height: 1.5;
+  line-height: 1.65;
 }
 
 .summary-sections strong {
   color: var(--evida-text-primary);
+}
+
+.summary-body-text {
+  margin: 0;
+  color: var(--evida-text-secondary);
+  font-size: 15.5px;
+  line-height: 1.68;
+}
+
+.summary-theme-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.summary-theme-card {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0.95rem;
+}
+
+.summary-theme-card h5 {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary-disclosure-button {
+  justify-self: start;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--evida-text-secondary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.42rem 0.74rem;
+}
+
+.summary-disclosure-button:hover {
+  border-color: rgba(0, 212, 163, 0.36);
+  color: var(--primary);
+}
+
+.summary-technical-details {
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--evida-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.55;
+  padding: 0.9rem;
+}
+
+.summary-technical-details dl {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.summary-technical-details div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.summary-technical-details dt {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary-technical-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.summary-source-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+
+.summary-source-pill-row button {
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--evida-text-primary);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.32rem 0.58rem;
+}
+
+.summary-source-pill-row button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 @media (max-width: 720px) {

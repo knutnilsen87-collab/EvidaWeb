@@ -44,7 +44,7 @@ function mockDoc(id = "doc_1", filename = "bevis_a.pdf", status = "quarantine", 
     sha256: `hash_${id}`,
     status: status === "quarantine" ? "QUARANTINE" : status.toUpperCase(),
     message,
-    ingestionError: status === "ingestion_failed" ? message : null,
+    ingestionError: status === "ingestion_failed" || status === "partial_source_ready" ? message : null,
     pageCount: 10
   };
 }
@@ -58,7 +58,11 @@ function mockJob(documentId = "doc_1", status = "PENDING", pagesProcessed = 0, p
     status,
     pagesProcessed,
     pagesTotal,
-    errorMessage: status === "FAILED" ? "OCR error on page 3" : null,
+    errorMessage: status === "FAILED"
+      ? "OCR error on page 3"
+      : status === "COMPLETED_WITH_WARNINGS"
+      ? "PARTIAL_OCR_RUNTIME_MISSING pages=1-5 text_below_threshold=75 parsed_pages=72/78"
+      : null,
     attemptCount: 1,
     createdAt: "2026-07-06T12:00:00Z",
     updatedAt: "2026-07-06T12:00:00Z"
@@ -224,6 +228,46 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     await waitFor(() => {
       expect(screen.getByText("Klar som kildegrunnlag")).toBeInTheDocument();
     });
+  });
+
+  it("shows partial source-ready page coverage for mixed PDFs", async () => {
+    const warning = "PARTIAL_OCR_RUNTIME_MISSING pages=1-5 text_below_threshold=75 parsed_pages=72/78";
+
+    fetchMock.mockImplementation(async (url: any) => {
+      const urlStr = String(url);
+      if (urlStr.includes("/api/auth/me")) {
+        return {
+          ok: true,
+          json: async () => ({
+            id: "00000000-0000-0000-0000-000000000102",
+            email: "jurist@firma.no",
+            name: "Advokat Hansen",
+            tenantId: "00000000-0000-0000-0000-000000000101",
+            roles: ["USER"]
+          })
+        };
+      }
+      if (urlStr.includes("/api/documents")) {
+        return {
+          ok: true,
+          json: async () => [mockDoc("doc_1", "masterdoc.pdf", "partial_source_ready", warning)]
+        };
+      }
+      if (urlStr.includes("/api/ingestion-jobs")) {
+        return {
+          ok: true,
+          json: async () => [mockJob("doc_1", "COMPLETED_WITH_WARNINGS", 72, 78)]
+        };
+      }
+      return { ok: false };
+    });
+
+    renderImport();
+
+    expect(await screen.findByText("Delvis kildeklart")).toBeInTheDocument();
+    expect(screen.getByText(/72\/78 sider klare/i)).toBeInTheDocument();
+    expect(screen.getByText(/5 sider krever OCR/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 side krever kontroll/i)).toBeInTheDocument();
   });
 
   it("pauses polling when visibility state is hidden, and resumes when visible", async () => {

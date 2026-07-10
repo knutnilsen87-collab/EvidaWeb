@@ -178,7 +178,16 @@ export function Bevismatrise() {
               <article
                 className="evidence-card"
                 draggable
+                onClick={() => jumpToSource(source.id)}
                 onDragStart={(event) => handleDragStart(event, source.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    jumpToSource(source.id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <div>
                   <strong>{source.filename}</strong>

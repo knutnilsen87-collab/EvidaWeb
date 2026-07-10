@@ -115,6 +115,62 @@ export interface SaksromAnswer {
   warnings: string[];
 }
 
+export interface SaksromSummaryFinding {
+  heading: string;
+  text: string;
+  sources: SourceReference[];
+}
+
+export interface SaksromSummary {
+  caseId: string;
+  title: string;
+  summary: string;
+  findings: SaksromSummaryFinding[];
+  sources: SourceReference[];
+  sourceBound: boolean;
+  warnings: string[];
+  coverage?: SourceCoverage | null;
+}
+
+export interface DocumentSourceCoverage {
+  id: string;
+  filename: string;
+  status: string;
+  totalPages: number;
+  readyPages: number;
+  ocrReadyPages: number;
+  textReadyPages: number;
+  missingOcrPages: number;
+  belowThresholdPages: number;
+  failedPages: number;
+  missingOcrPageRanges: string;
+  belowThresholdPageRanges: string;
+  missingOcrPageNumbers: number[];
+  belowThresholdPageNumbers: number[];
+  warning?: string | null;
+  sourceReady: boolean;
+  partialSourceReady: boolean;
+  failed: boolean;
+}
+
+export interface SourceCoverage {
+  totalDocuments: number;
+  sourceReadyDocuments: number;
+  partialDocuments: number;
+  failedDocuments: number;
+  totalPages: number;
+  readyPages: number;
+  ocrReadyPages: number;
+  textReadyPages: number;
+  missingOcrPages: number;
+  belowThresholdPages: number;
+  failedPages: number;
+  coveragePercent: number;
+  missingOcrPageRanges: string;
+  belowThresholdPageRanges: string;
+  documentCoverage: DocumentSourceCoverage[];
+}
+
 export interface ClientAuditEvent {
   eventType: "USER_LOGOUT" | "CITATION_OPENED" | "EXPORT_CREATED" | "ADMIN_ACTION";
   caseId?: string;
@@ -612,6 +668,31 @@ export const searchSourceUnits = async (
   return (await response.json()) as SourceSearchResult[];
 };
 
+export const fetchSourceCoverage = async (
+  tenantId: string,
+  caseId?: string
+): Promise<SourceCoverage> => {
+  if (!tenantId.trim()) {
+    throw new Error("tenantId mangler");
+  }
+
+  const params = new URLSearchParams();
+  const mappedCaseId = toUuid(caseId);
+  if (mappedCaseId && isUuid(mappedCaseId)) {
+    params.set("caseId", mappedCaseId);
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  const response = await fetch(`${apiBaseUrl()}/api/saksrom/source-coverage${suffix}`, {
+    headers: authService.getHeaders(tenantId)
+  });
+
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+
+  return (await response.json()) as SourceCoverage;
+};
+
 export const askSaksromQuestion = async (
   tenantId: string,
   payload: {
@@ -636,6 +717,31 @@ export const askSaksromQuestion = async (
   }
 
   return (await response.json()) as SaksromAnswer;
+};
+
+export const fetchSaksromSummary = async (
+  tenantId: string,
+  payload: {
+    caseId: string;
+    includePartial: boolean;
+    sourceBasis: "READY_PAGE_UNITS_ONLY";
+  }
+): Promise<SaksromSummary> => {
+  const mappedPayload = {
+    ...payload,
+    caseId: toUuid(payload.caseId) || payload.caseId
+  };
+  const response = await fetch(`${apiBaseUrl()}/api/saksrom/summary`, {
+    method: "POST",
+    headers: getHeaders(tenantId),
+    body: JSON.stringify(mappedPayload)
+  });
+
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+
+  return (await response.json()) as SaksromSummary;
 };
 
 export const auditClientEvent = async (

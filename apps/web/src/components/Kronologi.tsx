@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { citationStore } from "../lib/CitationManager";
 import "./Kronologi.css";
 
 type TimelineStatus = "Faktum" | "Usikkert" | "Mangler kilde";
@@ -8,8 +9,10 @@ type TimelineEvent = {
   date: string;
   event: string;
   sourceId: string;
+  sourceUnitId: string;
   source: string;
   excerpt: string;
+  page: number;
   status: TimelineStatus;
 };
 
@@ -17,10 +20,12 @@ const timelineEvents: TimelineEvent[] = [
   {
     id: "t1",
     date: "12.01.2026",
-    event: "Kontraktsinngåelse",
+    event: "Kontraktsinngaaelse",
     sourceId: "doc_001",
+    sourceUnitId: "doc_001_p1",
     source: "Signert_Avtale.pdf (s. 1)",
     excerpt: "Signert avtale viser dato og parter.",
+    page: 1,
     status: "Faktum"
   },
   {
@@ -28,8 +33,10 @@ const timelineEvents: TimelineEvent[] = [
     date: "15.02.2026",
     event: "Varsel om mislighold",
     sourceId: "doc_014",
+    sourceUnitId: "doc_014_p2",
     source: "Epost_Vedlegg_A.docx",
     excerpt: "E-post beskriver forsinkelse og varsler mislighold.",
+    page: 2,
     status: "Usikkert"
   },
   {
@@ -37,8 +44,10 @@ const timelineEvents: TimelineEvent[] = [
     date: "01.03.2026",
     event: "Tapspost krever dokumentasjon",
     sourceId: "doc_missing",
+    sourceUnitId: "doc_missing_p0",
     source: "Kilde mangler",
-    excerpt: "Beløp og årsakssammenheng må knyttes til et verifisert dokument.",
+    excerpt: "Belop og aarsakssammenheng maa knyttes til et verifisert dokument.",
+    page: 0,
     status: "Mangler kilde"
   }
 ];
@@ -53,6 +62,20 @@ export function Kronologi() {
     () => timelineEvents.find((event) => event.sourceId === activeSourceId) ?? timelineEvents[0],
     [activeSourceId]
   );
+
+  function selectSource(item: TimelineEvent) {
+    setActiveSourceId(item.sourceId);
+    if (item.status === "Mangler kilde") {
+      return;
+    }
+    citationStore.jumpToSource({
+      documentId: item.sourceId,
+      sourceUnitId: item.sourceUnitId,
+      page: item.page,
+      paragraph: "timeline",
+      rect: { top: 120, left: 48, width: 360, height: 42 }
+    });
+  }
 
   return (
     <section className="kronologi-workspace" aria-labelledby="kronologi-title">
@@ -78,7 +101,7 @@ export function Kronologi() {
                 <p>{item.excerpt}</p>
                 <button
                   className="source-link"
-                  onClick={() => setActiveSourceId(item.sourceId)}
+                  onClick={() => selectSource(item)}
                   type="button"
                 >
                   Kilde: {item.source}

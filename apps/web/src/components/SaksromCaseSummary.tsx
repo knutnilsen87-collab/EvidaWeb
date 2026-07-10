@@ -1,5 +1,13 @@
-import { useMemo, useState } from "react";
-import type { EvidaDocument } from "../lib/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  EvidaDocument,
+  fetchSaksromSummary,
+  SaksromSummary,
+  SaksromSummaryFinding,
+  SourceCoverage,
+  SourceReference
+} from "../lib/api";
+import { citationStore } from "../lib/CitationManager";
 import "./SaksromCaseSummary.css";
 
 interface SaksromCaseSummaryProps {
@@ -7,16 +15,12 @@ interface SaksromCaseSummaryProps {
   coverage: number;
   pendingCount: number;
   failedCount: number;
+  caseId?: string;
+  tenantId?: string;
+  sourceCoverage?: SourceCoverage | null;
+  onGoToMissingDocuments?: () => void;
+  onShowSourceBasis?: () => void;
 }
-
-type SummarySnapshot = {
-  createdAt: string;
-  coverage: number;
-  readyDocuments: EvidaDocument[];
-  pendingCount: number;
-  failedCount: number;
-  fingerprint: string;
-};
 
 const notDocumented = "Ikke dokumentert i tilgjengelig kildegrunnlag.";
 
@@ -24,137 +28,191 @@ function isSourceReady(document: EvidaDocument) {
   return document.status === "source_ready" || document.status === "verified";
 }
 
-function sourceReference(document: EvidaDocument) {
-  return `[${document.filename}]`;
+function isPartialSourceReady(document: EvidaDocument) {
+  return document.status === "partial_source_ready";
 }
 
-function fingerprintFor(documents: EvidaDocument[]) {
-  return documents
-    .filter(isSourceReady)
-    .map((document) => `${document.id}:${document.status}:${document.pages}`)
+function readyDocuments(documents: EvidaDocument[]) {
+  return documents.filter((document) => isSourceReady(document) || isPartialSourceReady(document));
+}
+
+function fingerprintFor(documents: EvidaDocument[], sourceCoverage?: SourceCoverage | null) {
+  const documentFingerprint = documents
+    .map((document) => `${document.id}:${document.status}:${document.pages}:${document.ingestionError ?? ""}`)
     .sort()
     .join("|");
+  const coverageFingerprint = sourceCoverage
+    ? `${sourceCoverage.readyPages}/${sourceCoverage.totalPages}:${sourceCoverage.missingOcrPageRanges}:${sourceCoverage.belowThresholdPageRanges}`
+    : "";
+  return `${documentFingerprint}::${coverageFingerprint}`;
 }
 
-function createSnapshot(
-  documents: EvidaDocument[],
-  coverage: number,
-  pendingCount: number,
-  failedCount: number
-): SummarySnapshot {
-  return {
-    createdAt: new Date().toISOString(),
-    coverage,
-    readyDocuments: documents.filter(isSourceReady),
-    pendingCount,
-    failedCount,
-    fingerprint: fingerprintFor(documents)
-  };
+function sourceLabel(source: SourceReference) {
+  return `Side ${source.pageNumber}`;
 }
 
-function documentOverview(documents: EvidaDocument[]) {
-  if (!documents.length) {
-    return notDocumented;
-  }
-
-  return documents.map((document) => `${document.filename} ${sourceReference(document)}`).join("; ");
+function technicalSourceLabel(source: SourceReference) {
+  return `${source.documentId.slice(0, 8)} · ${source.sourceUnitId} · side ${source.pageNumber}`;
 }
 
-export interface CompactedInfo {
-  total: number;
-  typeText: string;
-  dateText: string;
-  idText: string;
-  subsetText: string;
-}
-
-export function getCompactedInfo(documents: EvidaDocument[]): CompactedInfo {
-  const total = documents.length;
-  if (total === 0) {
-    return {
-      total: 0,
-      typeText: notDocumented,
-      dateText: notDocumented,
-      idText: notDocumented,
-      subsetText: notDocumented
-    };
-  }
-
-  let reports = 0;
-  let contracts = 0;
-  let emails = 0;
-  let economy = 0;
-  let others = 0;
-
-  documents.forEach((doc) => {
-    const fn = doc.filename.toLowerCase();
-    if (fn.includes("rapport") || fn.includes("report")) {
-      reports++;
-    } else if (fn.includes("kontrakt") || fn.includes("avtale") || fn.includes("contract") || fn.includes("agreement")) {
-      contracts++;
-    } else if (fn.includes("epost") || fn.includes("e-post") || fn.includes("mail") || fn.includes("korrespondanse")) {
-      emails++;
-    } else if (fn.includes("faktura") || fn.includes("regnskap") || fn.includes("økonomi") || fn.includes("invoice")) {
-      economy++;
-    } else {
-      others++;
-    }
+function jumpToSource(source: SourceReference) {
+  citationStore.jumpToSource({
+    documentId: source.documentId,
+    sourceUnitId: source.sourceUnitId,
+    page: source.pageNumber,
+    paragraph: "saksrom-summary",
+    rect: { top: 120, left: 48, width: 360, height: 42 }
   });
+}
 
-  const typesList: string[] = [];
-  if (reports > 0) typesList.push(`${reports} rapport${reports > 1 ? "er" : ""}`);
-  if (contracts > 0) typesList.push(`${contracts} kontrakt${contracts > 1 ? "er" : "/klientavtaler"}`);
-  if (economy > 0) typesList.push(`${economy} økonomidokument${economy > 1 ? "er" : ""}`);
-  if (emails > 0) typesList.push(`${emails} e-post${emails > 1 ? "er" : ""}`);
-  if (others > 0) typesList.push(`${others} andre/ukjente`);
+function compactText(value: string, maxLength = 360) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
+}
 
-  const typeText = typesList.length > 0 ? typesList.join(", ") : "Ikke sikkert klassifisert i tilgjengelig kildegrunnlag.";
-  const dateText = "Ikke dokumentert i tilgjengelig kildegrunnlag.";
-  const idText = `Dokument-ID-er finnes for ${total} dokumenter, men er skjult fra hovedoppsummeringen. Ingen eksterne Bates- eller Exhibit-identifikatorer funnet.`;
-
-  const maxExamples = 5;
-  const subset = documents.slice(0, maxExamples).map(d => d.filename);
-  let subsetText = subset.join("; ");
-  if (total > maxExamples) {
-    subsetText += ` (og ${total - maxExamples} andre)`;
+function legalOverviewBullets(summary: SaksromSummary | null, pageCoverageText: string, missingText: string) {
+  if (!summary?.summary) {
+    return [
+      "Kildegrunnlaget er ikke tilstrekkelig til en juridisk oversikt ennå.",
+      `Kildedekning: ${pageCoverageText}.`,
+      `Mangler: ${missingText}.`
+    ];
   }
 
-  return {
-    total,
-    typeText,
-    dateText,
-    idText,
-    subsetText
-  };
+  const primary = compactText(summary.summary, 520);
+  return [
+    primary,
+    `Kildegrunnlaget omfatter ${pageCoverageText}.`,
+    `Uferdige sider eller dokumenter brukes ikke som kilde: ${missingText}.`
+  ];
+}
+
+function themeForFinding(finding: SaksromSummaryFinding) {
+  const text = `${finding.heading} ${finding.text}`.toLowerCase();
+  if (text.includes("rettsbok") || text.includes("retten") || text.includes("prosess")) {
+    return "Rettsbok og prosess";
+  }
+  if (text.includes("avtale") || text.includes("kontrakt") || text.includes("leietaker") || text.includes("utleier")) {
+    return "Avtale, ansvar og dokumentasjon";
+  }
+  if (text.includes("motstrid") || text.includes("usikker") || text.includes("bestrid")) {
+    return "Motstrid og usikkerhet";
+  }
+  return "Øvrige kildeutdrag";
+}
+
+function groupedFindings(findings: SaksromSummaryFinding[]) {
+  const groups = new Map<string, SaksromSummaryFinding[]>();
+  findings.forEach((finding) => {
+    const theme = themeForFinding(finding);
+    groups.set(theme, [...(groups.get(theme) ?? []), finding]);
+  });
+  return Array.from(groups.entries()).map(([theme, items]) => ({ theme, items }));
 }
 
 export function SaksromCaseSummary({
   documents,
   coverage,
   pendingCount,
-  failedCount
+  failedCount,
+  caseId,
+  tenantId,
+  sourceCoverage,
+  onGoToMissingDocuments,
+  onShowSourceBasis
 }: SaksromCaseSummaryProps) {
-  const [snapshot, setSnapshot] = useState(() => createSnapshot(documents, coverage, pendingCount, failedCount));
-  const currentFingerprint = useMemo(() => fingerprintFor(documents), [documents]);
-  const isStale = snapshot.fingerprint !== currentFingerprint;
-  const isPreliminary = snapshot.coverage < 100 || snapshot.pendingCount > 0 || snapshot.failedCount > 0;
-  const missingCount = Math.max(0, documents.length - snapshot.readyDocuments.length);
-  const title = isPreliminary ? "Foreløpig saksoppsummering" : "Saksoppsummering";
-  const compactedInfo = getCompactedInfo(snapshot.readyDocuments);
+  const [summary, setSummary] = useState<SaksromSummary | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showAllFindings, setShowAllFindings] = useState(false);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+  const [generatedFingerprint, setGeneratedFingerprint] = useState(() => fingerprintFor(documents, sourceCoverage));
+  const currentFingerprint = useMemo(() => fingerprintFor(documents, sourceCoverage), [documents, sourceCoverage]);
+  const readyDocs = useMemo(() => readyDocuments(documents), [documents]);
 
-  function regenerateSummary() {
-    setSnapshot(createSnapshot(documents, coverage, pendingCount, failedCount));
+  const readyPageCount = sourceCoverage?.readyPages ?? 0;
+  const totalPageCount = sourceCoverage?.totalPages ?? 0;
+  const hasReadySourceUnits = sourceCoverage ? readyPageCount > 0 : readyDocs.length > 0;
+  const hasNoSourceBasis = !hasReadySourceUnits;
+  const isPreliminary = sourceCoverage?.totalPages
+    ? sourceCoverage.readyPages < sourceCoverage.totalPages
+    : coverage < 100 || pendingCount > 0 || failedCount > 0 || documents.some(isPartialSourceReady);
+  const isStale = generatedFingerprint !== currentFingerprint;
+  const summarySources = summary?.sources ?? [];
+  const summaryFindings = summary?.findings ?? [];
+  const visibleFindings = showAllFindings ? summaryFindings : summaryFindings.slice(0, 5);
+  const findingGroups = groupedFindings(visibleFindings);
+  const summaryWarnings = summary?.warnings ?? [];
+  const title = summary?.title ?? (isPreliminary ? "Foreløpig saksoppsummering" : "Saksoppsummering");
+  const pageCoverageText = totalPageCount > 0 ? `${readyPageCount} av ${totalPageCount} sider` : `${readyDocs.length} dokumenter`;
+  const missingText = sourceCoverage?.missingOcrPages
+    ? `${sourceCoverage.missingOcrPages} sider krever OCR`
+    : `${Math.max(0, documents.length - readyDocs.length)} dokumenter`;
+  const controlText = sourceCoverage?.belowThresholdPages
+    ? `${sourceCoverage.belowThresholdPages} sider krever kontroll`
+    : `${failedCount} dokumenter`;
+  const overviewBullets = legalOverviewBullets(summary, pageCoverageText, missingText);
+
+  const loadSummary = useCallback(async () => {
+    if (!caseId || !tenantId || !hasReadySourceUnits) {
+      setSummary(null);
+      setSummaryError(null);
+      setGeneratedFingerprint(currentFingerprint);
+      return;
+    }
+
+    setIsLoading(true);
+    setSummaryError(null);
+    try {
+      const nextSummary = await fetchSaksromSummary(tenantId, {
+        caseId,
+        includePartial: true,
+        sourceBasis: "READY_PAGE_UNITS_ONLY"
+      });
+      setSummary(nextSummary);
+      setGeneratedFingerprint(currentFingerprint);
+    } catch (error) {
+      setSummary(null);
+      setSummaryError(error instanceof Error ? error.message : "Kunne ikke hente kildebundet oppsummering.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [caseId, currentFingerprint, hasReadySourceUnits, tenantId]);
+
+  useEffect(() => {
+    void loadSummary();
+  }, [loadSummary]);
+
+  function showSourceBasis() {
+    const firstSource = summarySources[0];
+    if (firstSource) {
+      jumpToSource(firstSource);
+      return;
+    }
+    onShowSourceBasis?.();
   }
 
   function copySummary() {
     const text = [
       title,
-      `Analysert nå: ${snapshot.readyDocuments.length} dokumenter`,
-      `Mangler fortsatt: ${missingCount} dokumenter`,
-      `Feilet / krever kontroll: ${snapshot.failedCount} dokumenter`,
-      `Dokumenter analysert: ${compactedInfo.subsetText}`
+      ...overviewBullets,
+      `Kildegrunnlag: ${pageCoverageText}`,
+      `Mangler: ${missingText}`,
+      `Krever kontroll: ${controlText}`
     ].join("\n");
-    void navigator.clipboard?.writeText(text);
+    if (!navigator.clipboard?.writeText) {
+      setCopyStatus("Kunne ikke kopiere oppsummeringen.");
+      window.setTimeout(() => setCopyStatus(null), 3200);
+      return;
+    }
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopyStatus("Oppsummeringen er kopiert.");
+      window.setTimeout(() => setCopyStatus(null), 2400);
+    }).catch(() => {
+      setCopyStatus("Kunne ikke kopiere oppsummeringen.");
+      window.setTimeout(() => setCopyStatus(null), 3200);
+    });
   }
 
   return (
@@ -163,189 +221,164 @@ export function SaksromCaseSummary({
         <div>
           <span className="pane-kicker">Kildebundet oppstart</span>
           <h3 id="case-summary-title">{title}</h3>
-          <p>Oppsummeringen er bundet til kildegrunnlaget som var klart da panelet ble laget.</p>
+          <p>Oppsummeringen produseres fra ferdige PageUnits. Uferdige sider brukes ikke som kilde.</p>
         </div>
         <div className="case-summary-actions" aria-label="Oppsummeringshandlinger">
-          <button onClick={regenerateSummary} type="button">Oppsummer saken på nytt</button>
-          <button type="button">Vis kildegrunnlag</button>
-          <button type="button">Gå til manglende dokumenter</button>
-          <button onClick={copySummary} type="button">Kopier oppsummering</button>
+          <button disabled={isLoading} onClick={() => void loadSummary()} type="button">
+            Oppsummer saken på nytt
+          </button>
+          <button disabled={summarySources.length === 0} onClick={showSourceBasis} type="button">
+            Vis kildegrunnlag
+          </button>
+          <button onClick={onGoToMissingDocuments} type="button">
+            Gå til manglende dokumenter
+          </button>
+          <button onClick={copySummary} type="button">
+            Kopier oppsummering
+          </button>
         </div>
       </header>
 
       {isPreliminary ? (
         <div className="summary-preliminary-marker" role="status">
-          <strong>Produsert med foreløpig kildegrunnlag.</strong>
-          <span>Ikke alle dokumenter eller sider var ferdig behandlet på genereringstidspunktet.</span>
+          <strong>Foreløpig kildegrunnlag</strong>
+          <span>Oppsummeringen bygger på {pageCoverageText}. {controlText !== "0 dokumenter" ? `${controlText}.` : ""}</span>
           <dl>
             <div>
               <dt>Analysert nå</dt>
-              <dd>{snapshot.readyDocuments.length} dokumenter</dd>
+              <dd>{pageCoverageText}</dd>
             </div>
             <div>
               <dt>Mangler fortsatt</dt>
-              <dd>{missingCount} dokumenter</dd>
+              <dd>{missingText}</dd>
             </div>
             <div>
-              <dt>Feilet / krever kontroll</dt>
-              <dd>{snapshot.failedCount} dokumenter</dd>
+              <dt>Krever kontroll</dt>
+              <dd>{controlText}</dd>
             </div>
           </dl>
         </div>
       ) : null}
 
-      {snapshot.readyDocuments.length === 0 ? (
+      {hasNoSourceBasis ? (
         <p className="summary-empty-state">
           Saksrommet er åpnet, men det finnes ennå ikke ferdig behandlet kildegrunnlag å oppsummere.
         </p>
       ) : null}
 
-      {isStale ? (
+      {summaryError ? (
         <div className="summary-stale-warning" role="status">
-          <span>Kildegrunnlaget er oppdatert siden denne oppsummeringen ble laget.</span>
-          <button onClick={regenerateSummary} type="button">Oppsummer saken på nytt</button>
+          <span>{summaryError}</span>
+          <button onClick={() => void loadSummary()} type="button">Prøv igjen</button>
         </div>
       ) : null}
 
-      <div className="summary-sections">
-        <section>
-          <h4>Kort sammendrag</h4>
-          <ul>
-            <li><strong>Sakstype:</strong> {notDocumented}</li>
-            <li><strong>Hovedtema:</strong> {notDocumented}</li>
-            <li><strong>De viktigste spørsmålene dokumentene omhandler:</strong> {notDocumented}</li>
+      {isStale ? (
+        <div className="summary-stale-warning" role="status">
+          <span>Kildegrunnlaget er oppdatert siden denne oppsummeringen ble laget.</span>
+          <button onClick={() => void loadSummary()} type="button">Oppsummer saken på nytt</button>
+        </div>
+      ) : null}
+
+      {isLoading ? <p className="summary-empty-state">Henter kildebundet oppsummering...</p> : null}
+
+      {copyStatus ? (
+        <div className="summary-copy-toast" role="status">
+          {copyStatus}
+        </div>
+      ) : null}
+
+      <div className="summary-sections saksrom-summary-body">
+        <section className="saksrom-summary-section">
+          <h4>Hovedoversikt</h4>
+          <ul className="saksrom-summary-list">
+            {overviewBullets.map((bullet) => (
+              <li key={bullet}>{bullet}</li>
+            ))}
           </ul>
         </section>
 
-        <section>
-          <h4>Dokumentoversikt</h4>
-          <ul>
-            <li><strong>Hvilke dokumenter som er analysert:</strong> {compactedInfo.subsetText}</li>
-            <li><strong>Dokumenttype:</strong> {compactedInfo.typeText}</li>
-            <li><strong>Dato:</strong> {compactedInfo.dateText}</li>
-            <li><strong>Dokument-ID / Bates / Exhibit:</strong> {compactedInfo.idText}</li>
-          </ul>
-          {snapshot.readyDocuments.length > 0 && (
-            <div className="summary-list-disclosure" style={{ marginTop: '0.75rem' }}>
-              <details className="summary-full-list-details">
-                <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--primary)' }}>
-                  Vis full dokumentliste ({snapshot.readyDocuments.length})
-                </summary>
-                <ul style={{ marginTop: '0.5rem', maxHeight: '150px', overflowY: 'auto', paddingLeft: '1.25rem', color: 'var(--evida-text-secondary)' }}>
-                  {snapshot.readyDocuments.map((doc) => {
-                    const type = doc.filename.toLowerCase().includes("rapport") || doc.filename.toLowerCase().includes("report")
-                      ? "Rapport"
-                      : doc.filename.toLowerCase().includes("kontrakt") || doc.filename.toLowerCase().includes("avtale") || doc.filename.toLowerCase().includes("contract") || doc.filename.toLowerCase().includes("agreement")
-                      ? "Kontrakt"
-                      : doc.filename.toLowerCase().includes("epost") || doc.filename.toLowerCase().includes("e-post") || doc.filename.toLowerCase().includes("mail") || doc.filename.toLowerCase().includes("korrespondanse")
-                      ? "E-post"
-                      : doc.filename.toLowerCase().includes("faktura") || doc.filename.toLowerCase().includes("regnskap") || doc.filename.toLowerCase().includes("økonomi") || doc.filename.toLowerCase().includes("invoice")
-                      ? "Økonomidokument"
-                      : "Ukjent type";
-                    const pages = doc.pages ? `${doc.pages} sider` : "Ukjent sidetall";
-                    return (
-                      <li key={doc.id} style={{ marginBottom: "0.25rem" }}>
-                        <strong>{doc.filename}</strong> — {type} · {pages}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </details>
-              <details className="summary-tech-details" style={{ marginTop: '0.5rem', opacity: 0.8 }}>
-                <summary style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--evida-text-secondary)' }}>
-                  Tekniske detaljer
-                </summary>
-                <ul style={{ marginTop: '0.25rem', fontSize: '0.8rem', paddingLeft: '1.25rem', color: 'var(--evida-text-muted)' }}>
-                  {snapshot.readyDocuments.map((doc) => (
-                    <li key={doc.id}>
-                      {doc.filename}: ID={doc.id} {doc.sha256 ? `· Hash=${doc.sha256}` : ""}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </div>
-          )}
-        </section>
-
-        <section>
+        <section className="saksrom-summary-section">
           <h4>Faktiske funn</h4>
-          <ul>
-            <li><strong>Vesentlige fakta dokumentene underbygger:</strong> {notDocumented}</li>
-            <li><strong>Hvem som har skrevet eller signert dokumentene:</strong> {notDocumented}</li>
-            <li><strong>Viktige datoer og hendelser:</strong> {notDocumented}</li>
-            <li><strong>Direkte dokumenthenvisninger:</strong> Henvisninger vises som kildepiller under relevante funn.</li>
-          </ul>
+          {findingGroups.length ? (
+            <div className="summary-theme-grid">
+              {findingGroups.map((group) => (
+                <article className="summary-theme-card" key={group.theme}>
+                  <h5>{group.theme}</h5>
+                  <ul className="saksrom-summary-list">
+                    {group.items.map((finding) => (
+                      <li key={`${finding.heading}-${finding.text}`}>
+                        <strong>{finding.heading}:</strong> {compactText(finding.text, 280)}
+                        <div className="summary-source-pill-row">
+                          {(finding.sources ?? []).map((source) => (
+                            <button key={source.sourceUnitId} onClick={() => jumpToSource(source)} type="button">
+                              {sourceLabel(source)}
+                            </button>
+                          ))}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="summary-body-text">{notDocumented}</p>
+          )}
+          {summaryFindings.length > 5 ? (
+            <button className="summary-disclosure-button" onClick={() => setShowAllFindings((value) => !value)} type="button">
+              {showAllFindings ? "Vis færre funn" : `Vis flere funn (${summaryFindings.length - 5})`}
+            </button>
+          ) : null}
         </section>
 
-        <section>
-          <h4>Kronologi</h4>
-          <ul>
-            <li><strong>Tidslinje over hendelser:</strong> {notDocumented}</li>
-            <li><strong>Sammenheng mellom dokumentene:</strong> {notDocumented}</li>
-            <li><strong>Perioder hvor dokumentasjon mangler:</strong> {missingCount > 0 ? `${missingCount} dokumenter er ikke med i denne oppsummeringen.` : notDocumented}</li>
-          </ul>
-        </section>
-
-        <section>
+        <section className="saksrom-summary-section">
           <h4>Sentrale bevis</h4>
-          <ul>
-            <li><strong>Hvilke dokumenter som støtter hvilke påstander:</strong> {notDocumented}</li>
-            <li><strong>Bevisstyrke: sterk / moderat / svak</strong> {notDocumented}</li>
-            <li><strong>Kryssreferanser mellom dokumenter:</strong> {notDocumented}</li>
-          </ul>
+          <div className="summary-source-pill-row">
+            {summarySources.slice(0, showAllFindings ? summarySources.length : 8).map((source) => (
+              <button key={source.sourceUnitId} onClick={() => jumpToSource(source)} type="button">
+                {sourceLabel(source)}
+              </button>
+            ))}
+          </div>
+          {summarySources.length === 0 ? <p className="summary-body-text">{notDocumented}</p> : null}
         </section>
 
-        <section>
-          <h4>Motstridende opplysninger</h4>
-          <ul>
-            <li><strong>Uoverensstemmelser mellom dokumenter:</strong> {notDocumented}</li>
-            <li><strong>Endringer i forklaringer:</strong> {notDocumented}</li>
-            <li><strong>Manglende samsvar mellom datoer eller innhold:</strong> {notDocumented}</li>
-          </ul>
-        </section>
-
-        <section>
-          <h4>Juridisk relevante forhold</h4>
-          <ul>
-            <li><strong>Rettslige problemstillinger dokumentene ser ut til å berøre:</strong> {notDocumented}</li>
-            <li><strong>Fakta som kan være sentrale for disse spørsmålene:</strong> {notDocumented}</li>
-            <li><strong>Skille mellom dokumenterte fakta og juridiske vurderinger:</strong> Juridiske vurderinger er ikke etablert uten kildehenvisning.</li>
-          </ul>
-        </section>
-
-        <section>
+        <section className="saksrom-summary-section">
           <h4>Mangler og usikkerhet</h4>
-          <ul>
-            <li><strong>Forhold som ikke kan dokumenteres ut fra materialet:</strong> {notDocumented}</li>
-            <li><strong>Dokumenter som ser ut til å mangle:</strong> {missingCount > 0 ? `${missingCount} dokumenter mangler fortsatt i kildegrunnlaget.` : notDocumented}</li>
-            <li><strong>Punkter hvor ytterligere bevis kan være nødvendig:</strong> {notDocumented}</li>
+          <ul className="saksrom-summary-list">
+            <li>Analysen omfatter {isPreliminary ? "bare ferdig behandlet kildegrunnlag" : "gjeldende kildegrunnlag"}.</li>
+            <li>Mangler fortsatt: {missingText}.</li>
+            <li>Krever kontroll: {controlText}.</li>
           </ul>
         </section>
 
-        <section>
-          <h4>Risikovurdering</h4>
-          <ul>
-            <li><strong>Svake punkter i dokumentasjonen:</strong> {isPreliminary ? "Kildegrunnlaget er ufullstendig." : notDocumented}</li>
-            <li><strong>Potensielle utfordringer ved forhandling eller rettssak:</strong> {notDocumented}</li>
-            <li><strong>Mulige motargumenter basert på foreliggende materiale:</strong> {notDocumented}</li>
-          </ul>
-        </section>
-
-        <section>
-          <h4>Konklusjon</h4>
-          <ul>
-            <li><strong>Hva dokumentene samlet sett støtter:</strong> {notDocumented}</li>
-            <li><strong>Hva dokumentene ikke støtter:</strong> {notDocumented}</li>
-            <li><strong>Spørsmål som fortsatt står åpne:</strong> {notDocumented}</li>
-          </ul>
-        </section>
-
-        <section>
-          <h4>Kontrollstatus</h4>
-          <ul>
-            <li><strong>Hvilke dokumenter som er analysert:</strong> {compactedInfo.subsetText}</li>
-            <li><strong>Om analysen omfatter hele dokumentgrunnlaget eller bare deler:</strong> {isPreliminary ? "Analysen omfatter bare ferdig behandlet kildegrunnlag." : "Analysen omfatter gjeldende kildegrunnlag."}</li>
-          </ul>
+        <section className="saksrom-summary-section summary-technical-section">
+          <button className="summary-disclosure-button" onClick={() => setShowTechnicalDetails((value) => !value)} type="button">
+            {showTechnicalDetails ? "Skjul tekniske detaljer" : "Vis tekniske detaljer"}
+          </button>
+          {showTechnicalDetails ? (
+            <div className="summary-technical-details">
+              <dl>
+                <div>
+                  <dt>Kildebundet</dt>
+                  <dd>{summary?.sourceBound ? "Ja" : "Nei"}</dd>
+                </div>
+                <div>
+                  <dt>Source basis</dt>
+                  <dd>READY_PAGE_UNITS_ONLY</dd>
+                </div>
+                <div>
+                  <dt>Varsler</dt>
+                  <dd>{summaryWarnings.length ? summaryWarnings.join(", ") : "Ingen"}</dd>
+                </div>
+                <div>
+                  <dt>Kilder</dt>
+                  <dd>{summarySources.map(technicalSourceLabel).join("; ") || "Ingen"}</dd>
+                </div>
+              </dl>
+            </div>
+          ) : null}
         </section>
       </div>
     </section>

@@ -1,7 +1,6 @@
 package no.saksrom.api.document;
 
 import jakarta.annotation.PostConstruct;
-import net.sourceforge.tess4j.Tesseract;
 import no.saksrom.api.config.EvidaProperties;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.io.IOUtils;
@@ -17,6 +16,7 @@ import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
@@ -43,40 +43,61 @@ public class PdfBoxDocumentParser implements DocumentParser {
     private static final String PARSER_NAME = "pdfbox-tess4j";
 
     private final EvidaProperties.Parser parserProperties;
-    private volatile boolean tessdataAvailable;
+    private final OcrRuntimeProbe ocrRuntimeProbe;
+    private final OcrEngine ocrEngine;
+    private volatile OcrRuntimeStatus ocrRuntimeStatus;
 
-    public PdfBoxDocumentParser() {
+    PdfBoxDocumentParser() {
         this(new EvidaProperties.Parser());
     }
 
-    public PdfBoxDocumentParser(EvidaProperties properties) {
-        this(properties.parser());
+    @Autowired
+    public PdfBoxDocumentParser(EvidaProperties properties, OcrRuntimeProbe ocrRuntimeProbe, OcrEngine ocrEngine) {
+        this(properties == null ? new EvidaProperties.Parser() : properties.parser(), ocrRuntimeProbe, ocrEngine);
+    }
+
+    PdfBoxDocumentParser(EvidaProperties properties) {
+        this(properties == null ? new EvidaProperties.Parser() : properties.parser());
     }
 
     PdfBoxDocumentParser(EvidaProperties.Parser parserProperties) {
         this.parserProperties = parserProperties == null ? new EvidaProperties.Parser() : parserProperties;
+        this.ocrRuntimeProbe = new OcrRuntimeProbe(this.parserProperties);
+        this.ocrEngine = new Tess4jOcrEngine(this.parserProperties);
+        this.ocrRuntimeStatus = OcrRuntimeStatus.unprobed(this.parserProperties);
+    }
+
+    PdfBoxDocumentParser(EvidaProperties.Parser parserProperties, OcrRuntimeProbe ocrRuntimeProbe, OcrEngine ocrEngine) {
+        this.parserProperties = parserProperties == null ? new EvidaProperties.Parser() : parserProperties;
+        this.ocrRuntimeProbe = ocrRuntimeProbe == null ? new OcrRuntimeProbe(this.parserProperties) : ocrRuntimeProbe;
+        this.ocrEngine = ocrEngine == null ? new Tess4jOcrEngine(this.parserProperties) : ocrEngine;
+        this.ocrRuntimeStatus = OcrRuntimeStatus.unprobed(this.parserProperties);
     }
 
     @PostConstruct
     void validateOcrRuntime() {
-        Path tessdataPath = Path.of(parserProperties.tessdataPath());
-        tessdataAvailable = Files.isDirectory(tessdataPath)
-                && Files.isRegularFile(tessdataPath.resolve("nor.traineddata"))
-                && Files.isRegularFile(tessdataPath.resolve("eng.traineddata"));
-        if (!tessdataAvailable) {
+        OcrRuntimeStatus status = ocrRuntimeProbe.probe();
+        ocrRuntimeStatus = status;
+        if (!status.usable()) {
             log.warn(
-                    "OCR tessdata is not fully configured at {}. Expected nor.traineddata and eng.traineddata. OCR pages will fail closed.",
-                    tessdataPath.toAbsolutePath()
+                    "OCR runtime is not usable. enabled={} tesseractAvailable={} tesseract={} tessdata={} languages={} reason={}. OCR pages will fail closed.",
+                    status.enabled(),
+                    status.tesseractAvailable(),
+                    status.tesseractPath().isBlank() ? "PATH" : status.tesseractPath(),
+                    status.tessdataPath(),
+                    status.languages(),
+                    status.safeFailureReason()
             );
+            return;
         }
 
-        try {
-            Tesseract tesseract = newTesseract();
-            tesseract.setLanguage("nor+eng");
-        } catch (UnsatisfiedLinkError | RuntimeException e) {
-            log.warn("Tesseract native runtime could not be initialized. OCR pages will fail closed: {}", e.toString());
-            tessdataAvailable = false;
-        }
+        log.info(
+                "OCR runtime usable. tesseract={} version={} tessdata={} languages={}",
+                status.tesseractPath().isBlank() ? "PATH" : status.tesseractPath(),
+                status.tesseractVersion(),
+                status.tessdataPath(),
+                status.languages()
+        );
     }
 
     @Override
@@ -252,8 +273,13 @@ public class PdfBoxDocumentParser implements DocumentParser {
     }
 
     private String ocrPage(PDFRenderer renderer, int pageNumber) {
-        if (!tessdataAvailable) {
-            throw new DocumentParsingException("OCR_RUNTIME_UNAVAILABLE page=" + pageNumber + " tessdata=" + parserProperties.tessdataPath());
+        OcrRuntimeStatus status = ocrRuntimeStatus;
+        if (status == null || !status.usable()) {
+            String reason = status == null ? "OCR_RUNTIME_NOT_PROBED" : status.safeFailureReason();
+            String tessdataPath = status == null ? parserProperties.tessdataPath() : status.tessdataPath();
+            throw new DocumentParsingException("OCR_RUNTIME_UNAVAILABLE page=" + pageNumber
+                    + " reason=" + reason
+                    + " tessdata=" + tessdataPath);
         }
 
         BufferedImage image = null;
@@ -267,9 +293,7 @@ public class PdfBoxDocumentParser implements DocumentParser {
                 return thread;
             });
             Future<String> future = executor.submit(() -> {
-                Tesseract tesseract = newTesseract();
-                tesseract.setLanguage("nor+eng");
-                return tesseract.doOCR(ocrImage);
+                return ocrEngine.doOcr(ocrImage);
             });
             return normalize(future.get(parserProperties.ocrTimeoutSeconds(), TimeUnit.SECONDS));
         } catch (TimeoutException e) {
@@ -280,7 +304,7 @@ public class PdfBoxDocumentParser implements DocumentParser {
         } catch (ExecutionException e) {
             Throwable cause = e.getCause() == null ? e : e.getCause();
             throw new DocumentParsingException("OCR_FAILED page=" + pageNumber + " " + safeMessage(cause), cause);
-        } catch (IOException | UnsatisfiedLinkError e) {
+        } catch (IOException | UnsatisfiedLinkError | RuntimeException e) {
             throw new DocumentParsingException("OCR_FAILED page=" + pageNumber + " " + safeMessage(e), e);
         } finally {
             if (executor != null) {
@@ -290,13 +314,6 @@ public class PdfBoxDocumentParser implements DocumentParser {
                 image.flush();
             }
         }
-    }
-
-    private Tesseract newTesseract() {
-        Tesseract tesseract = new Tesseract();
-        tesseract.setDatapath(parserProperties.tessdataPath());
-        tesseract.setLanguage("nor+eng");
-        return tesseract;
     }
 
     private String normalize(String text) {

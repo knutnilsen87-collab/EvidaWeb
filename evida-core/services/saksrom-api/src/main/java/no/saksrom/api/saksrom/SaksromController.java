@@ -21,11 +21,18 @@ import java.util.UUID;
 public class SaksromController {
     private final CurrentUserService currentUserService;
     private final SourceBoundSaksromService saksromService;
+    private final SourceCoverageService sourceCoverageService;
     private final AuditService auditService;
 
-    public SaksromController(CurrentUserService currentUserService, SourceBoundSaksromService saksromService, AuditService auditService) {
+    public SaksromController(
+            CurrentUserService currentUserService,
+            SourceBoundSaksromService saksromService,
+            SourceCoverageService sourceCoverageService,
+            AuditService auditService
+    ) {
         this.currentUserService = currentUserService;
         this.saksromService = saksromService;
+        this.sourceCoverageService = sourceCoverageService;
         this.auditService = auditService;
     }
 
@@ -38,6 +45,16 @@ public class SaksromController {
         AuthenticatedUser user = currentUserService.currentUser();
         UUID tenantId = requireMatchingTenant(tenantHeader, user);
         return saksromService.search(tenantId, parseUuidOrNull(caseId), query);
+    }
+
+    @GetMapping("/saksrom/source-coverage")
+    public SourceCoverageService.SourceCoverageResponse sourceCoverage(
+            @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader,
+            @RequestParam(value = "caseId", required = false) String caseId
+    ) {
+        AuthenticatedUser user = currentUserService.currentUser();
+        UUID tenantId = requireMatchingTenant(tenantHeader, user);
+        return sourceCoverageService.coverage(tenantId, parseUuidOrNull(caseId));
     }
 
     @PostMapping("/saksrom/ask")
@@ -67,6 +84,36 @@ public class SaksromController {
                 "{\"sourceBound\":" + answer.sourceBound() + ",\"sourceCount\":" + answer.sources().size() + "}"
         );
         return answer;
+    }
+
+    @PostMapping("/saksrom/summary")
+    public SourceBoundSaksromService.SaksromSummaryResponse summary(
+            @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader,
+            @RequestBody SourceBoundSaksromService.SaksromSummaryRequest request
+    ) {
+        AuthenticatedUser user = currentUserService.currentUser();
+        UUID tenantId = requireMatchingTenant(tenantHeader, user);
+        UUID caseId = parseUuid(request.caseId(), "CASE_ID_INVALID");
+        auditService.record(
+                tenantId,
+                caseId,
+                user.userId(),
+                "SAKSROM_SUMMARY_REQUESTED",
+                "SAKSROM",
+                null,
+                "{\"sourceBasis\":\"" + safe(request.sourceBasis()) + "\",\"includePartial\":" + Boolean.TRUE.equals(request.includePartial()) + "}"
+        );
+        SourceBoundSaksromService.SaksromSummaryResponse summary = saksromService.summarize(tenantId, request);
+        auditService.record(
+                tenantId,
+                caseId,
+                user.userId(),
+                "SAKSROM_SUMMARY_CREATED",
+                "SAKSROM",
+                null,
+                "{\"sourceBound\":" + summary.sourceBound() + ",\"sourceCount\":" + summary.sources().size() + "}"
+        );
+        return summary;
     }
 
     private UUID requireMatchingTenant(String tenantHeader, AuthenticatedUser user) {

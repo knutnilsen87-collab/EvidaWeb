@@ -29,6 +29,54 @@ const chunkArray = <T,>(arr: T[], size: number): T[][] => {
   return chunks;
 };
 
+const countPagesInSpec = (spec: string | null | undefined): number => {
+  if (!spec?.trim()) {
+    return 0;
+  }
+  return spec.split(",").reduce((count, token) => {
+    const trimmed = token.trim();
+    if (!trimmed) {
+      return count;
+    }
+    if (trimmed.includes("-")) {
+      const [startRaw, endRaw] = trimmed.split("-", 2);
+      const start = Number.parseInt(startRaw, 10);
+      const end = Number.parseInt(endRaw, 10);
+      return Number.isFinite(start) && Number.isFinite(end) && end >= start
+        ? count + end - start + 1
+        : count;
+    }
+    return Number.isFinite(Number.parseInt(trimmed, 10)) ? count + 1 : count;
+  }, 0);
+};
+
+const warningValue = (warning: string, key: string): string | null => {
+  const match = warning.match(new RegExp(`(?:^|\\s)${key}=([0-9,\\-]+)`));
+  return match?.[1] ?? null;
+};
+
+const formatPartialCoverageDetails = (
+  doc: EvidaDocument,
+  job?: IngestionJobResponse
+): string => {
+  const warning = job?.errorMessage || doc.ingestionError || "";
+  const missingOcrPages = countPagesInSpec(warningValue(warning, "pages"));
+  const belowThresholdPages = countPagesInSpec(warningValue(warning, "text_below_threshold"));
+  const readyPages = job?.pagesProcessed ?? Math.max(0, (doc.pages || 0) - missingOcrPages - belowThresholdPages);
+  const totalPages = job?.pagesTotal || doc.pages || readyPages + missingOcrPages + belowThresholdPages;
+  const parts = [`${readyPages}/${totalPages || "?"} sider klare`];
+  if (missingOcrPages > 0) {
+    parts.push(`${missingOcrPages} sider krever OCR`);
+  }
+  if (belowThresholdPages > 0) {
+    parts.push(`${belowThresholdPages} side${belowThresholdPages === 1 ? "" : "r"} krever kontroll`);
+  }
+  if (parts.length === 1) {
+    parts.push("Noen sider krever OCR");
+  }
+  return `${parts.join(". ")}.`;
+};
+
 export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSaksrom, pollIntervalMs = 3000 }: DocumentImportProps) {
   const { user, loading } = useAuth();
   const tenantId = user?.tenantId || "";
@@ -736,10 +784,8 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
                     detailsText = translateError(doc.ingestionError || job?.errorMessage);
                     showRetry = true;
                   } else if (doc.status === "partial_source_ready") {
-                    displayStatus = "Delvis kildegrunnlag";
-                    detailsText = job?.pagesTotal
-                      ? `${job.pagesProcessed} av ${job.pagesTotal} sider behandlet. Noen sider krever OCR.`
-                      : translateError(doc.ingestionError);
+                    displayStatus = "Delvis kildeklart";
+                    detailsText = formatPartialCoverageDetails(doc, job);
                     showRetry = Boolean(job?.id);
                   } else if (doc.status === "source_ready") {
                     displayStatus = "Klar som kildegrunnlag";
@@ -761,8 +807,8 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
                     showRetry = true;
                     showStart = false;
                   } else if (job && job.status === "COMPLETED_WITH_WARNINGS") {
-                    displayStatus = "Delvis kildegrunnlag";
-                    detailsText = `${job.pagesProcessed} av ${job.pagesTotal || "?"} sider behandlet. Noen sider krever OCR.`;
+                    displayStatus = "Delvis kildeklart";
+                    detailsText = formatPartialCoverageDetails(doc, job);
                     showRetry = true;
                     showStart = false;
                   }

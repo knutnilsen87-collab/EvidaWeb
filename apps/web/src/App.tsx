@@ -15,7 +15,7 @@ import { useAuth } from "./context/AuthContext";
 import type { AnalysisStatus } from "./engine/types";
 import { uploadQueue } from "./lib/uploadQueue";
 import { navigationGroups, viewTitles, WorkspaceView } from "./navigation";
-import { ensureBackendCaseId, fetchCaseDocuments, EvidaDocument } from "./lib/api";
+import { ensureBackendCaseId, fetchCaseDocuments, fetchSourceCoverage, EvidaDocument, SourceCoverage } from "./lib/api";
 import { SaksromReadinessModal } from "./components/SaksromReadinessModal";
 import "./styles/global.css";
 import "./App.css";
@@ -49,6 +49,7 @@ function App() {
   
   // Preliminary kildegrunnlag states
   const [documents, setDocuments] = useState<EvidaDocument[]>([]);
+  const [readinessCoverage, setReadinessCoverage] = useState<SourceCoverage | null>(null);
   const [readinessModalOpen, setReadinessModalOpen] = useState(false);
   const [pendingView, setPendingView] = useState<WorkspaceView | null>(null);
   const [acknowledgedFingerprints, setAcknowledgedFingerprints] = useState<Record<string, string>>({});
@@ -131,14 +132,27 @@ function App() {
         setDocuments(docs);
 
         if (view === "saksrom") {
+          let liveCoverage: SourceCoverage | null = null;
+          try {
+            liveCoverage = await fetchSourceCoverage(currentUser.tenantId, activeCaseId);
+            setReadinessCoverage(liveCoverage);
+          } catch (coverageError) {
+            console.error("Error fetching live source coverage:", coverageError);
+            setReadinessCoverage(null);
+          }
           const total = docs.length;
           const verified = docs.filter(
-            (d) => d.status === "verified" || d.status === "source_ready"
+            (d) => d.status === "verified" || d.status === "source_ready" || d.status === "partial_source_ready"
           ).length;
-          const cov = total > 0 ? Math.round((verified / total) * 100) : 0;
-          const currentFingerprint = docs.map((d) => `${d.id}:${d.status}`).join(",");
+          const cov = liveCoverage?.totalPages
+            ? liveCoverage.coveragePercent ?? Math.round(((liveCoverage.readyPages ?? 0) / liveCoverage.totalPages) * 100)
+            : total > 0
+            ? Math.round((verified / total) * 100)
+            : 0;
+          const currentFingerprint = docs.map((d) => `${d.id}:${d.status}`).join(",")
+            + `:${liveCoverage?.readyPages ?? "x"}/${liveCoverage?.totalPages ?? "x"}`;
           const isAcked = acknowledgedFingerprints[activeCaseId] === currentFingerprint;
-          const hasOcrWarning = docs.some((d) => d.ocrRequired);
+          const hasOcrWarning = docs.some((d) => d.ocrRequired) || Boolean(liveCoverage && ((liveCoverage.missingOcrPages ?? 0) > 0 || (liveCoverage.belowThresholdPages ?? 0) > 0));
 
           if ((cov < 100 || hasOcrWarning) && !isAcked) {
             setPendingView(view);
@@ -156,7 +170,8 @@ function App() {
   }
 
   function handleConfirmReadiness() {
-    const currentFingerprint = documents.map((d) => `${d.id}:${d.status}`).join(",");
+    const currentFingerprint = documents.map((d) => `${d.id}:${d.status}`).join(",")
+      + `:${readinessCoverage?.readyPages ?? "x"}/${readinessCoverage?.totalPages ?? "x"}`;
     setAcknowledgedFingerprints((prev) => ({
       ...prev,
       [activeCaseId]: currentFingerprint
@@ -218,8 +233,8 @@ function App() {
     []
   );
 
-  const verifiedCount = documents.filter(
-    (d) => d.status === "verified" || d.status === "source_ready"
+  const verifiedCount = readinessCoverage?.readyPages ?? documents.filter(
+    (d) => d.status === "verified" || d.status === "source_ready" || d.status === "partial_source_ready"
   ).length;
   const pendingCount = documents.filter(
     (d) => d.status === "quarantine" || d.status === "approved_for_ingestion" || d.status === "ingesting" || d.status === "processing"
@@ -227,8 +242,14 @@ function App() {
   const failedCount = documents.filter(
     (d) => d.status === "ingestion_failed" || d.status === "rejected"
   ).length;
-  const ocrWarningCount = documents.filter((d) => d.ocrRequired).length;
-  const coverage = documents.length > 0 ? Math.round((verifiedCount / documents.length) * 100) : 0;
+  const ocrWarningCount = readinessCoverage
+    ? (readinessCoverage.missingOcrPages ?? 0) + (readinessCoverage.belowThresholdPages ?? 0)
+    : documents.filter((d) => d.ocrRequired).length;
+  const coverage = readinessCoverage?.totalPages
+    ? readinessCoverage.coveragePercent ?? Math.round(((readinessCoverage.readyPages ?? 0) / readinessCoverage.totalPages) * 100)
+    : documents.length > 0
+    ? Math.round((verifiedCount / documents.length) * 100)
+    : 0;
 
   function renderWorkroom() {
     const needsBackendCase = activeView === "quarantine" || activeView === "saksrom" || activeView === "import";
@@ -261,6 +282,7 @@ function App() {
             tenantId={currentUser?.tenantId || ""}
             documents={documents}
             onDocumentsChange={setDocuments}
+            onOpenMissingDocuments={() => void openView("import")}
           />
         );
       case "import":

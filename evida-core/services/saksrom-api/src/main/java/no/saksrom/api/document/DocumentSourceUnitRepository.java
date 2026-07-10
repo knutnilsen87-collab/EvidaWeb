@@ -46,6 +46,17 @@ public interface DocumentSourceUnitRepository extends JpaRepository<DocumentSour
             @Param("parserVersion") String parserVersion
     );
 
+    @Query("""
+            select distinct u.pageNumber from DocumentSourceUnit u
+            where u.tenantId = :tenantId
+              and u.documentId = :documentId
+            order by u.pageNumber asc
+            """)
+    List<Integer> findDistinctPageNumbersByTenantIdAndDocumentId(
+            @Param("tenantId") UUID tenantId,
+            @Param("documentId") UUID documentId
+    );
+
     void deleteByTenantIdAndDocumentId(UUID tenantId, UUID documentId);
 
     @Query("""
@@ -62,6 +73,20 @@ public interface DocumentSourceUnitRepository extends JpaRepository<DocumentSour
     List<DocumentSourceUnit> findByTenantIdAndDocumentIdInOrderByDocumentIdAscPageNumberAscSourceUnitIdAsc(
             UUID tenantId,
             Collection<UUID> documentIds
+    );
+
+    @Query("""
+            select u from DocumentSourceUnit u
+            where u.tenantId = :tenantId
+              and u.caseId = :caseId
+              and u.textContent is not null
+              and length(trim(u.textContent)) > 0
+            order by u.documentId asc, u.pageNumber asc, u.sourceUnitId asc
+            """)
+    List<DocumentSourceUnit> findReadyTextByTenantIdAndCaseId(
+            @Param("tenantId") UUID tenantId,
+            @Param("caseId") UUID caseId,
+            Pageable pageable
     );
 
     @Query("""

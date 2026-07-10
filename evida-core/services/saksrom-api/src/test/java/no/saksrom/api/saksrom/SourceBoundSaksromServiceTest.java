@@ -72,6 +72,156 @@ class SourceBoundSaksromServiceTest {
     }
 
     @Test
+    void askWithPartialCoverageDisclosesMissingPagesButOnlyReferencesRealUnits() {
+        var repository = mock(DocumentSourceUnitRepository.class);
+        var coverageService = mock(SourceCoverageService.class);
+        var service = new SourceBoundSaksromService(repository, coverageService);
+        var unit = unit("doc_00000000_p0006_b0001", "Skriftlig varsling maa dokumenteres.", 6);
+        var documentCoverage = new SourceCoverageService.DocumentCoverage(
+                DOCUMENT_ID,
+                "masterdoc.pdf",
+                "PARTIAL_SOURCE_READY",
+                78,
+                72,
+                0,
+                72,
+                5,
+                1,
+                0,
+                "1-5",
+                "75",
+                List.of(1, 2, 3, 4, 5),
+                List.of(75),
+                "PARTIAL_OCR_RUNTIME_MISSING pages=1-5 text_below_threshold=75 parsed_pages=72/78",
+                false,
+                true,
+                false
+        );
+        var coverage = new SourceCoverageService.SourceCoverageResponse(
+                1,
+                0,
+                1,
+                0,
+                78,
+                72,
+                0,
+                72,
+                5,
+                1,
+                0,
+                92,
+                "1-5",
+                "75",
+                List.of(documentCoverage)
+        );
+        when(repository.findByTenantIdAndSourceUnitIdInOrderByPageNumberAscSourceUnitIdAsc(
+                TENANT_ID,
+                List.of("doc_00000000_p0006_b0001")
+        )).thenReturn(List.of(unit));
+        when(coverageService.coverage(TENANT_ID, CASE_ID)).thenReturn(coverage);
+        var request = new SourceBoundSaksromService.SaksromQuestionRequest(
+                CASE_ID.toString(),
+                "Hva sier side 1 om rettsbok?",
+                List.of("doc_00000000_p0006_b0001"),
+                "sporre"
+        );
+
+        var answer = service.answer(TENANT_ID, request);
+
+        assertTrue(answer.sourceBound());
+        assertTrue(answer.answer().contains("72 av 78 sider"));
+        assertTrue(answer.answer().contains("Dette kan ikke vurderes fullt ut"));
+        assertTrue(answer.warnings().contains("PARTIAL_SOURCE_COVERAGE"));
+        assertTrue(answer.warnings().contains("MISSING_OCR_PAGES=1-5"));
+        assertEquals(1, answer.sources().size());
+        assertEquals(6, answer.sources().get(0).pageNumber());
+    }
+
+    @Test
+    void summarizePartialReadyCaseUsesOnlyReadySourceUnits() {
+        var repository = mock(DocumentSourceUnitRepository.class);
+        var coverageService = mock(SourceCoverageService.class);
+        var service = new SourceBoundSaksromService(repository, coverageService);
+        var unit = unit("doc_00000000_p0001_b0001", "UTSKRIFT AV RETTSBOK viser rettens behandling.", 1);
+        var coverage = new SourceCoverageService.SourceCoverageResponse(
+                1,
+                0,
+                1,
+                0,
+                78,
+                77,
+                5,
+                72,
+                0,
+                1,
+                0,
+                99,
+                "",
+                "75",
+                List.of()
+        );
+        when(coverageService.coverage(TENANT_ID, CASE_ID)).thenReturn(coverage);
+        when(repository.findReadyTextByTenantIdAndCaseId(eq(TENANT_ID), eq(CASE_ID), any(Pageable.class)))
+                .thenReturn(List.of(unit));
+
+        var response = service.summarize(
+                TENANT_ID,
+                new SourceBoundSaksromService.SaksromSummaryRequest(
+                        CASE_ID.toString(),
+                        true,
+                        "READY_PAGE_UNITS_ONLY"
+                )
+        );
+
+        assertTrue(response.sourceBound());
+        assertEquals(1, response.sources().size());
+        assertEquals(1, response.sources().get(0).pageNumber());
+        assertTrue(response.summary().contains("77 av 78 sider"));
+        assertTrue(response.summary().contains("UTSKRIFT AV RETTSBOK"));
+        assertTrue(response.warnings().contains("PARTIAL_SOURCE_COVERAGE"));
+        assertTrue(response.warnings().contains("BELOW_THRESHOLD_PAGES=75"));
+    }
+
+    @Test
+    void summarizeWithoutReadyUnitsReturnsNoSourceBasis() {
+        var repository = mock(DocumentSourceUnitRepository.class);
+        var coverageService = mock(SourceCoverageService.class);
+        var service = new SourceBoundSaksromService(repository, coverageService);
+        when(coverageService.coverage(TENANT_ID, CASE_ID)).thenReturn(new SourceCoverageService.SourceCoverageResponse(
+                1,
+                0,
+                1,
+                0,
+                78,
+                0,
+                0,
+                0,
+                78,
+                0,
+                0,
+                0,
+                "1-78",
+                "",
+                List.of()
+        ));
+        when(repository.findReadyTextByTenantIdAndCaseId(eq(TENANT_ID), eq(CASE_ID), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        var response = service.summarize(
+                TENANT_ID,
+                new SourceBoundSaksromService.SaksromSummaryRequest(
+                        CASE_ID.toString(),
+                        true,
+                        "READY_PAGE_UNITS_ONLY"
+                )
+        );
+
+        assertFalse(response.sourceBound());
+        assertTrue(response.sources().isEmpty());
+        assertTrue(response.warnings().contains("NO_SOURCE_BASIS"));
+    }
+
+    @Test
     void crossTenantSelectedSourceUnitsAreIgnoredByTenantLookup() {
         var repository = mock(DocumentSourceUnitRepository.class);
         var service = new SourceBoundSaksromService(repository);
@@ -127,13 +277,17 @@ class SourceBoundSaksromServiceTest {
     }
 
     private DocumentSourceUnit unit(String sourceUnitId, String text) {
+        return unit(sourceUnitId, text, 1);
+    }
+
+    private DocumentSourceUnit unit(String sourceUnitId, String text, int pageNumber) {
         return new DocumentSourceUnit(
                 UUID.randomUUID(),
                 TENANT_ID,
                 CASE_ID,
                 DOCUMENT_ID,
                 sourceUnitId,
-                1,
+                pageNumber,
                 "TEXT_BLOCK",
                 text,
                 0,

@@ -63,14 +63,17 @@ public record EvidaProperties(
     }
 
     public record Parser(
+            boolean ocrEnabled,
             int ocrTextThresholdChars,
             int ocrDpi,
             int ocrTimeoutSeconds,
             String tessdataPath,
+            String tesseractPath,
+            String ocrLanguages,
             int maxPagesPerDocument
     ) {
         public Parser() {
-            this(40, 300, 60, "./data/tessdata", 20_000);
+            this(true, 40, 300, 60, "./data/tessdata", "", "nor+eng", 20_000);
         }
 
         public Parser {
@@ -85,6 +88,12 @@ public record EvidaProperties(
             }
             if (tessdataPath == null || tessdataPath.isBlank()) {
                 tessdataPath = "./data/tessdata";
+            }
+            if (tesseractPath == null) {
+                tesseractPath = "";
+            }
+            if (ocrLanguages == null || ocrLanguages.isBlank()) {
+                ocrLanguages = "nor+eng";
             }
             if (maxPagesPerDocument <= 0) {
                 maxPagesPerDocument = 20_000;

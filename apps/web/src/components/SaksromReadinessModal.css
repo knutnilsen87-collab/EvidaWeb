@@ -4,9 +4,15 @@
 }
 
 .readiness-metrics-card {
-  background: var(--evida-bg-workspace);
-  border: 1px solid var(--evida-glass-border);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.025)),
+    color-mix(in srgb, var(--evida-bg-workspace) 74%, transparent);
+  border: 1px solid color-mix(in srgb, var(--evida-glass-border) 70%, rgba(255, 255, 255, 0.16));
   border-radius: var(--evida-radius-lg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 24px 64px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(20px) saturate(1.28);
   padding: var(--evida-space-4);
   display: flex;
   flex-direction: column;

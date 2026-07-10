@@ -11,10 +11,13 @@ evida:
   storage:
     quarantine-root: ${EVIDA_QUARANTINE_ROOT:./data/quarantine}
   parser:
+    ocr-enabled: ${EVIDA_OCR_ENABLED:true}
     ocr-text-threshold-chars: ${EVIDA_PARSER_OCR_TEXT_THRESHOLD_CHARS:40}
     ocr-dpi: ${EVIDA_PARSER_OCR_DPI:300}
     ocr-timeout-seconds: ${EVIDA_PARSER_OCR_TIMEOUT_SECONDS:60}
     tessdata-path: ${EVIDA_TESSDATA_PATH:./data/tessdata}
+    tesseract-path: ${EVIDA_TESSERACT_PATH:C:/PROGRA~1/TESSER~1/TESSER~1.EXE}
+    ocr-languages: ${EVIDA_OCR_LANGUAGES:nor+eng}
     max-pages-per-document: ${EVIDA_PARSER_MAX_PAGES:20000}
 
 spring:
