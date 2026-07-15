@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { EvidaDocument, fetchCaseDocuments, fetchSourceCoverage, SourceCoverage } from "../lib/api";
 import { Citation, CitationComparison, citationStore } from "../lib/CitationManager";
+import type { WorkspaceView } from "../navigation";
 import { PDFViewer } from "./PDFViewer";
-import { SaksromCaseSummary } from "./SaksromCaseSummary";
 import { SaksromChat } from "./SaksromChat";
+import { SaksromLiveOpeningSummary } from "./SaksromLiveOpeningSummary";
 import "./SaksromView.css";
 
 interface SaksromViewProps {
@@ -12,6 +13,7 @@ interface SaksromViewProps {
   tenantId: string;
   documents?: EvidaDocument[];
   onDocumentsChange?: (docs: EvidaDocument[]) => void;
+  onNavigate?: (view: WorkspaceView) => void;
   onOpenMissingDocuments?: () => void;
 }
 
@@ -28,6 +30,7 @@ export function SaksromView({
   tenantId,
   documents = [],
   onDocumentsChange,
+  onNavigate,
   onOpenMissingDocuments
 }: SaksromViewProps) {
   const [chatCollapsed, setChatCollapsed] = useState(false);
@@ -216,10 +219,10 @@ export function SaksromView({
               <button
                 className="pane-close-btn"
                 onClick={() => citationStore.clear()}
-                aria-label="Lukk preview"
+                aria-label="Tilbake til Saksrom"
                 type="button"
               >
-                Lukk preview
+                Tilbake til Saksrom
               </button>
             </div>
           </header>
@@ -246,18 +249,6 @@ export function SaksromView({
 
         {chatCollapsed ? null : (
           <>
-            <SaksromCaseSummary
-              key={`summary-${caseId}`}
-              caseId={caseId}
-              coverage={coverage}
-              documents={localDocs}
-              failedCount={failedCount}
-              tenantId={tenantId || user?.tenantId}
-              pendingCount={pendingCount}
-              sourceCoverage={sourceCoverage}
-              onGoToMissingDocuments={onOpenMissingDocuments}
-              onShowSourceBasis={() => setNotification("Kildegrunnlaget vises i oppsummeringens kildepiller og dokumentpanelet.")}
-            />
             <SaksromChat
               key={`chat-${caseId}`}
               caseId={caseId}
@@ -265,6 +256,16 @@ export function SaksromView({
               isPreliminary={isPreliminary}
               sourceCoverage={sourceCoverage}
               verifiedCount={verifiedCount}
+              openingSummary={
+                <SaksromLiveOpeningSummary
+                  caseId={caseId}
+                  tenantId={tenantId || user?.tenantId}
+                  documents={localDocs}
+                  sourceCoverage={sourceCoverage}
+                  onNavigate={onNavigate}
+                  onShowDocumentStatus={onOpenMissingDocuments}
+                />
+              }
             />
           </>
         )}

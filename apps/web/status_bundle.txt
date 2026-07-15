@@ -2,7 +2,7 @@
 
 ## 0. Bundle Metadata
 - generated_at: 2026-07-03T08:12:30+02:00
-- last_updated: 2026-07-10 (Status 5 lagt til for Saksrom readability, partial chat unlock, provenance navigation og premium warning polish)
+- last_updated: 2026-07-14 (Morten Gate 1 Upload Security og Gate 2 Format Contract closure-status lagt til; global pilotstatus fortsatt NO)
 - repo_root: F:\prosjekter_MAIN\EVIDA
 - web_root: F:\prosjekter_MAIN\EVIDA\apps\web
 - branch: calm-surface-readiness-document-control
@@ -1890,3 +1890,733 @@ $env:EVIDA_TESSERACT_PATH="C:\Program Files\Tesseract-OCR\tesseract.exe"
 - frontend_build_green: yes
 - full_ocr_workflow_green: no
 - first_user_release_gate_green: no; separate first-user readiness artifact/gate still required
+
+## Runtime Fix Status - Saksrom Partial Chat NO_SOURCE_BASIS Regression
+
+### Metadata
+- generated_at: 2026-07-10T17:38:31+02:00
+- scope: frontend ask payload + backend source-basis guard for partial Saksrom cases
+- branch_context: travel-checkpoint-evida-web-court-engine
+
+### Root Cause
+- backend_root_cause: source-bound ask treated an empty retrieval result as no source basis, so a partial case with ready PageUnits could incorrectly return `NO_SOURCE_BASIS`.
+- frontend_root_cause: Saksrom chat did not explicitly send the partial source-basis contract in the ask payload.
+- encoding_root_cause: touched Saksrom strings still contained mojibake from earlier non-UTF-8 text.
+
+### Runtime Behavior
+- ready_pages_gt_zero_has_source_basis: yes
+- partial_source_basis_sent_by_frontend: yes; ask payload now sends `includePartial: true` and `sourceBasis: READY_PAGE_UNITS_ONLY`.
+- retrieval_empty_with_ready_units: returns source-bound soft fallback with `NO_RELEVANT_SOURCE_MATCH`, not `NO_SOURCE_BASIS`.
+- zero_ready_units: still returns `NO_SOURCE_BASIS` and blocks as before.
+- partial_warnings_preserved: yes; `PARTIAL_SOURCE_COVERAGE` and `BELOW_THRESHOLD_PAGES=...` remain non-blocking.
+- mojibake_fixed_in_touched_strings: yes; Norwegian strings now render `spørsmål`, `på`, `kilder`, and `ferdig behandlede`.
+
+### Verification
+- frontend_focused_tests: PASS (`npx vitest run --environment jsdom src/components/SaksromChat.test.tsx src/lib/api.test.ts --pool=threads --maxWorkers=1`; 2 files, 27 tests, 0 failures)
+- frontend_full_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 25 files, 113 tests, 0 failures)
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build completed)
+- backend_focused_tests: PASS (`.\mvnw.cmd -Dtest=SourceBoundSaksromServiceTest -DforkCount=0 test`; 9 tests, 0 failures)
+- backend_full_tests: FAIL unrelated OCR regression/environment issue (`.\mvnw.cmd -DforkCount=0 test`; 126 tests, 1 failure: `PdfBoxDocumentParserTest.imagePdfWithoutTessdataFailsClosedOnOcrPath`)
+- backend_full_test_note: the failing OCR test picks up usable real tessdata at `evida-core/services/saksrom-api/data/tessdata` during a test named `WithoutTessdata`; Saksrom service tests pass and the failure is outside this chat-source change.
+- diff_check: PASS (`git diff --check` on touched source/test files)
+
+### Files Updated
+- apps/web/src/components/SaksromChat.tsx
+- apps/web/src/components/SaksromChat.test.tsx
+- apps/web/src/lib/api.ts
+- apps/web/src/lib/api.test.ts
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/DocumentSourceUnitRepository.java
+- evida-core/services/saksrom-api/src/main/java/no/saksrom/api/saksrom/SourceBoundSaksromService.java
+- evida-core/services/saksrom-api/src/test/java/no/saksrom/api/saksrom/SourceBoundSaksromServiceTest.java
+- apps/web/status_bundle.txt
+
+### Readiness
+- partial_source_chat_green: yes
+- source_bound_partial_fallback_green: yes
+- zero_source_blocking_preserved: yes
+- full_ocr_workflow_green: no
+- commercial_release_ready: no; backend full suite still has one OCR test failure and first-user readiness gate is separate
+- repo_health_verdict: improved
+
+## UX Milestone Status - First-User Guided Legal Workflow
+
+### Metadata
+- generated_at: 2026-07-10T23:54:37+02:00
+- scope: frontend-only first-user UX simplification and guided legal workflow
+- backend_ingestion_ocr_source_semantics_changed: no
+
+### Delivered
+- navigation_progressive_disclosure: yes; sidebar groups are now `Kilder`, `Analyse`, and `Leveranse`.
+- locked_modules_accessible: yes; locked workrooms remain focusable with `aria-disabled`, visible locked state, and explanatory help text.
+- command_portal_simplified: yes; no active case now shows one primary CTA: `Opprett sak og last opp dokumenter`.
+- no_case_specific_metrics_before_case: yes; right-side risk/source widgets are hidden until a case exists.
+- document_intake_stepper: yes; intake now shows `Lastet opp -> Kontrolleres -> Kilder klare -> Oppsummering klar`.
+- intake_user_language: yes; visible intake copy avoids `karantene-slusen` and explains duplicate/readability checks.
+- preliminary_modal_consequence_copy: yes; modal title is `Oppsummeringen kan brukes nå`, uses live coverage/page data, and has no acknowledgement checkbox.
+- preliminary_modal_actions: yes; primary opens summary, secondary routes to control, tertiary cancels.
+- claim_near_citations: yes; finding-level source pills render inline beside sourced claims and continue to use `CitationManager`.
+- fake_citations_added: no
+- single_next_action_card: yes; Saksrom summary now shows one dominant contextual next action with real handlers.
+- canonical_view_ids_used: `import`, `quarantine`, `saksrom`, `chronology`, `evidence`, `arguments`, `risk`, `draft`, `export`.
+- accessibility_focus_baseline: yes; global `:focus-visible` ring uses EVIDA primary green with offset glow.
+
+### Verification
+- focused_frontend_tests: PASS (`npx vitest run --environment jsdom src/components/Sidebar.test.tsx src/components/Dashboard.test.tsx src/components/DocumentImport.test.tsx src/components/SaksromReadinessModal.test.tsx src/components/SaksromCaseSummary.test.tsx --pool=threads --maxWorkers=1`; 5 files, 32 tests)
+- full_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 25 files, 117 tests)
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build completed)
+- diff_check: PASS (`git diff --check`)
+- mojibake_scan_touched_files: PASS for `Ã`, `Â`, `â€”`, `â€¢` in touched frontend files
+
+### Residual Risk
+- claim_structure_contract: frontend still depends on existing `SaksromSummaryFinding.sources`; no new backend structured `SummaryClaim` contract was introduced.
+- document_intake_auto_start: not forced; existing safe approval/batch processing APIs remain authoritative.
+- backend_full_suite: not rerun in this frontend milestone; prior unrelated OCR full-suite failure remains recorded above.
+- first_user_release_gate_green: no; this is a UX/readability milestone, not final first-user readiness approval.
+
+### Repo Health
+- repo_health_verdict: improved
+- ownership_fit: routing stays on existing `WorkspaceView`/`activeView`; provenance stays on `CitationManager`; source basis stays on existing Saksrom summary contract.
+- rollback_path: revert the listed frontend files and this status entry.
+
+## UX Polish Status - Norwegian Text and Sidebar Readability
+
+### Metadata
+- generated_at: 2026-07-11T00:15:04+02:00
+- scope: frontend text rendering, font fallback, and sidebar readability polish
+
+### Delivered
+- norwegian_text_rendering: fixed in touched UI files; visible sidebar helper copy now renders `å`, `ø`, and `æ` correctly.
+- mojibake_guard: checked touched UI files for common mojibake sequences (`Ã`, `Â`, `â€”`, `â€¢`) with no matches.
+- font_fallback_stack: improved; UI font now keeps `Plus Jakarta Sans` first and adds `Inter`, `Segoe UI`, `Helvetica Neue`, and `Arial` fallbacks.
+- sidebar_readability: improved; section titles, module titles, descriptions, and locked helper text have larger font sizes and line-height.
+- locked_label_presentation: fixed; `Låst` is rendered as a separate badge/sublabel, not concatenated with module titles.
+
+### Verification
+- sidebar_test: PASS (`npx vitest run --environment jsdom src/components/Sidebar.test.tsx --pool=threads --maxWorkers=1`; 4 tests)
+- frontend_build: PASS (`npm run build`)
+- diff_check: PASS (`git diff --check`)
+
+### Repo Health
+- repo_health_verdict: improved
+- residual_risk: visual screenshot verification not rerun in this polish pass; automated text/build checks are green.
+
+## Hotfix Status - Restore Document Uploader and Sidebar Readability
+
+### Metadata
+- generated_at: 2026-07-11T17:13:30+02:00
+- scope: frontend-only document intake routing, case-resolution recovery state, sidebar locked-label readability
+- backend_ingestion_ocr_source_semantics_changed: no
+
+### Root Cause
+- document_intake_root_cause: case-scoped workrooms were gated only on `activeCaseId`; if backend case registration failed or stalled, the Dokumenter view stayed on the generic `Saken klargjøres` placeholder with no recovery action.
+- first_user_cta_root_cause: the no-case dashboard CTA opened the case modal path instead of directly entering the document intake flow after backend case resolution.
+- sidebar_root_cause: locked item copy and small typography made titles and `Låst` appear cramped and visually concatenated.
+
+### Delivered
+- uploader_restored_when_case_resolved: yes; the import workroom renders `DocumentImport` only after `ensureBackendCaseId` returns a real backend case id.
+- pending_state_temporary: yes; `Saken klargjøres` is now tied to explicit case-resolution pending state.
+- retry_on_case_resolution_failure: yes; failed or timed-out case resolution renders `Saken kunne ikke klargjøres` with `Prøv igjen`.
+- primary_cta_routes_to_intake: yes; `Opprett sak og last opp dokumenter` starts backend case resolution and opens the document intake uploader when resolved.
+- no_fake_case_id_or_uploads: yes; the frontend still uses `ensureBackendCaseId` and never fabricates upload/source identifiers.
+- sidebar_locked_label_fixed: yes; module title and `Låst` badge render as separate elements with helper text.
+- sidebar_readability_fixed: yes; module titles, helper text, and section labels use larger readable sizing and line-height.
+- norwegian_text_rendering_preserved: yes; touched UI files scan clean for common mojibake sequences.
+
+### Verification
+- focused_frontend_tests: PASS (`npm run test -- src/App.test.tsx src/components/Sidebar.test.tsx --pool=threads --maxWorkers=1`; 2 files, 16 tests)
+- full_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 25 files, 120 tests)
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build completed)
+- diff_check: PASS (`git diff --check`)
+- mojibake_scan_touched_files: PASS for `Ã`, `Â`, `â`, and concatenated locked labels in touched UI files
+
+### Readiness
+- document_uploader_hotfix_green: yes
+- sidebar_readability_hotfix_green: yes
+- first_user_release_gate_green: no; this hotfix restores the P0 upload entry path but does not close the full first-user readiness gate by itself
+- repo_health_verdict: improved
+- rollback_path: revert the frontend hotfix files and this status entry
+
+## Prototype Delivery Gate Runtime Smoke - Browser Verified
+
+### Metadata
+- generated_at: 2026-07-11T19:55:00+02:00
+- scope: frontend runtime UX, document-intake delivery path, Saksrom source-bound smoke, global source navigation, backend test isolation
+- result: MANUAL_REQUIRED
+- screenshot_artifact: `.codex-runtime/delivery-gate-runtime-smoke.png`
+
+### Root Causes Found
+- runtime_cta_blocked: at 1280px viewport the AppShell breakpoint moved ControlPanel under main without defining a usable main row; `main-work-area` collapsed to 48px and the sticky chatbar covered the primary CTA.
+- stale_source_basis_state: `DocumentImport` maintained its own document state but did not report refreshed source-ready documents back to `App`, so Sidebar kept Saksrom locked after a document became source-ready.
+- non_saksrom_provenance_dead: Bevismatrise and Kronologi used `CitationManager`, but only Saksrom rendered the source preview listener, so source jumps outside Saksrom had no visible effect.
+- backend_test_flake: `PdfBoxDocumentParserTest.imagePdfWithoutTessdataFailsClosedOnOcrPath` used the default parser and could pick up real machine tessdata, making a negative OCR test fail in OCR-enabled developer environments.
+
+### Runtime Results
+- browser_runtime_smoke_result: PARTIAL; browser flow from empty portal through case creation, intake, processing, Saksrom chat, and source navigation passed; native file-picker selection could not be automated by the available browser API.
+- document_uploader_visible_result: PASS; `Opprett sak og last opp dokumenter` leads to active `Dokumenter` with visible dropzone.
+- first_user_cta_to_upload_result: PASS; CTA creates/resolves a real backend case id and routes directly to Document Intake.
+- sidebar_readability_runtime_result: PASS; runtime CSS showed 15px module title, 13px helper text, separate `Låst` badge, and no horizontal overflow.
+- norwegian_text_runtime_result: PASS; browser text rendered `å`, `ø`, `æ`, `Anførselstavle`, `Kildedekning`, `åpne`, and `spørsmål`; no mojibake observed.
+- upload_runtime_result: MANUAL_REQUIRED; true backend upload succeeded for active case `524cab87-191a-45ad-80a7-13dc7fa9ada7`, UI refreshed and showed `fasit_sak_test.txt` as `I karantene`; browser-native file chooser needs one manual confirmation.
+- processing_runtime_result: PASS; `Start behandling` moved the TXT fixture to `Klar som kildegrunnlag`, `1/1`, `Klar for AI-analyse`.
+- saksrom_chat_runtime_result: PASS; Saksrom answered from ready PageUnit text and did not return false `NO_SOURCE_BASIS`.
+- source_navigation_runtime_result: PASS; Saksrom citation opened active source side 1; Bevismatrise and Kronologi source clicks now open global source preview through `CitationManager`.
+- backend_health_result: PASS (`curl http://127.0.0.1:18080/actuator/health`; `{"status":"UP","groups":["liveness","readiness"]}`).
+
+### Verification Commands
+- frontend_tests_result: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 25 files, 120 tests).
+- frontend_build_result: PASS (`npm run build`; TypeScript and Vite production build completed).
+- backend_tests_result: PASS (`.\mvnw.cmd test`; 126 tests, 0 failures, 0 errors, 2 skipped).
+- backend_runtime_start_result: PASS after starting repo-local Postgres with `docker compose -f evida-core/services/saksrom-api/docker-compose.yml up -d postgres`; backend then started on 18080 and logged OCR runtime usable.
+- diff_check_result: PASS (`git diff --check`).
+- mojibake_scan_result: PASS for touched delivery-gate files.
+
+### Delivery Decision
+- delivery_decision: MANUAL_BROWSER_VERIFICATION_REQUIRED
+- ready_for_morten_testing: not yet; one manual check remains for selecting a file through the visible browser/OS file picker.
+- automated_runtime_confidence: high for case creation, uploader visibility, case-scoped backend upload, processing, Saksrom chat, and source navigation.
+- first_user_release_gate_green: no; this is a prototype delivery smoke, not the full first-user readiness approval bundle.
+- repo_health_verdict: improved
+- rollback_path: revert the listed frontend/backend test files and this status entry.
+
+## Auto-Process Upload and Best Next Step Status - Frontend Verified
+
+### Metadata
+- generated_at: 2026-07-11T20:32:30+02:00
+- scope: frontend document intake auto-processing, user-facing upload status copy, shared best-next-step logic, ControlPanel mirroring, Norwegian text cleanup
+- backend_ingestion_ocr_source_semantics_changed: no
+- result: MANUAL_BROWSER_FILE_PICKER_REQUIRED
+
+### Root Cause
+- post_upload_stall_root_cause: upload queue stopped at real backend `QUARANTINE`; the safe approval/ingestion action existed, but happy-path uploads did not automatically invoke it.
+- next_step_mismatch_root_cause: DocumentImport and ControlPanel used separate hardcoded action logic, so empty, partial, processing, and ready states could disagree.
+- partial_unlock_ordering_root_cause: processing state could dominate the CTA even when ready pages existed; the invariant is now readyPages > 0 unlocks Saksrom with partial disclosure.
+
+### Delivered
+- auto_process_after_upload: yes; completed queue items with `uploadedDocId` auto-call the existing safe `approveDocumentForIngestion` path.
+- no_fake_source_readiness: yes; frontend never sets `SOURCE_READY`, PageUnits, or source coverage.
+- manual_fallback_preserved: yes; if auto-start fails, the row shows recoverable error copy and `Kontroller dokumentet`.
+- single_main_next_step: yes; DocumentImport renders one dominant `Anbefalt neste steg` CTA from shared state.
+- control_panel_mirrors_next_step: yes; ControlPanel uses the same helper and real document state for action and source metrics.
+- partial_source_unlock_preserved: yes; ready pages above zero choose `Fortsett til Saksrom med foreløpig kildegrunnlag` before processing wait states.
+- user_facing_status_copy: updated for upload, received/control, processing, partial, full-ready, and failed states.
+- norwegian_text_cleanup: fixed touched document-control strings; mojibake scan for touched frontend source returned no matches except older status history.
+
+### Verification
+- frontend_tests_result: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 26 files, 124 tests).
+- frontend_build_result: PASS (`npm run build`; TypeScript and Vite production build completed).
+- browser_smoke_result: PARTIAL; `Opprett sak og last opp dokumenter` resolved a backend case and opened visible Document Intake with dropzone, single main next step, and matching right-panel next step.
+- native_file_picker_result: MANUAL_REQUIRED; current in-app browser API could not provide a file through the OS picker, so true post-selection upload remains a manual browser step.
+- backend_tests_result: NOT_RUN; backend code was not changed in this mission.
+- diff_check_result: PASS (`git diff --check`).
+
+### Readiness
+- auto_process_upload_tests_green: yes
+- best_next_step_state_green: yes
+- browser_native_upload_green: no; manual picker verification remains.
+- delivery_decision: MANUAL_BROWSER_VERIFICATION_REQUIRED
+- repo_health_verdict: improved
+- rollback_path: revert `apps/web/src/lib/bestNextStep.ts`, touched DocumentImport/ControlPanel/AppShell/App/QuarantineGate/test files, and this status entry.
+
+## Document Control Preview and Live Summary UX Status
+
+### Metadata
+- generated_at: 2026-07-12T10:30:00+02:00
+- scope: frontend document-control preview/actions, action feedback, stale button cleanup, Saksrom summary generation states
+- backend_ingestion_ocr_source_semantics_changed: no
+- result: PARTIAL_BROWSER_SMOKE
+
+### Delivered
+- document_control_preview_clickable: yes; document cards and batch sections open preview/detail panels before action.
+- keyboard_accessible_preview: yes; preview triggers are real buttons with explicit labels where document identity matters.
+- shared_action_handler: yes; row/card actions and preview primary actions call the same control handlers.
+- immediate_action_feedback: yes; preview/open, submitting, queued/completed, and failed messages are rendered per document/section.
+- duplicate_submission_guard: yes; active document actions disable while submitting.
+- stale_buttons_cleaned: yes; quarantine approves, approved/failed can start ingestion, processing has no destructive shortcut, partial/source-ready shows Saksrom CTA.
+- best_next_step_submitting_state: yes; right panel can show `Registrerer handling ...` while control actions submit.
+- saksrom_live_summary_states: yes; summary generation uses `reading_sources`, `extracting_findings`, `linking_citations`, `composing_summary`, `complete`, and `failed`.
+- legal_content_not_faked: yes; summary text, findings, source pills, and citations still come from backend response only.
+
+### Verification
+- focused_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1 QuarantineGate BatchApprovalPanel SaksromCaseSummary ControlPanel`; 4 files, 22 tests).
+- full_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 26 files, 127 tests).
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build completed).
+- diff_check: PASS (`git diff --check`).
+- browser_document_control_preview: PASS; in-app browser opened Kildekontroll, clicked `Masterdoc_001_Kompleks_Saksbehandling.pdf`, and verified `Dokumentkontroll` preview with status, warning, and action explanation.
+- browser_partial_source_action: PASS; `partial_source_ready` rendered `Åpne Saksrom` and did not render stale `Arkiver`.
+- browser_saksrom_partial_modal: PASS; preview CTA opened Saksrom flow and the preliminary source modal with 72/78 page coverage.
+- browser_live_summary_result: BLOCKED; backend runtime returned `EVIDA API-feil 403` from `/api/saksrom/summary`, so full browser verification of completed live summary rendering could not be truthfully marked green.
+
+### Readiness
+- document_control_preview_green: yes
+- stale_action_buttons_green: yes
+- saksrom_live_summary_automated_tests_green: yes
+- saksrom_live_summary_browser_green: no
+- delivery_decision: NOT_READY_FOR_MORTEN_TESTING
+- repo_health_verdict: improved
+- residual_risk: runtime summary endpoint authorization/tenant policy must be fixed or configured before final browser smoke can pass.
+- rollback_path: revert QuarantineGate, BatchApprovalPanel, SaksromCaseSummary, App/AppShell/ControlPanel/bestNextStep changes and this status entry.
+
+## Saksrom Real-Time Streaming Summary Status
+
+### Metadata
+- generated_at: 2026-07-12T11:00:00+02:00
+- scope: backend NDJSON summary streaming endpoint, frontend streaming consumer, progressive Saksrom summary rendering, source pill preservation, partial-source chat transport fallback
+- backend_ingestion_ocr_source_semantics_changed: no
+- result: AUTOMATED_GREEN_BROWSER_PARTIAL
+
+### Delivered
+- streaming_endpoint_added: yes; `POST /api/saksrom/summary/stream`.
+- existing_summary_endpoint_preserved: yes; `POST /api/saksrom/summary` remains non-streaming JSON fallback.
+- streaming_format: NDJSON over `StreamingResponseBody`.
+- frontend_streaming_consumer: yes; `fetch`, `response.body.getReader()`, `TextDecoder`, split-line safe parser, `AbortController`.
+- progressive_summary_rendering: yes; stage, section, text_delta, citation, finding, warning, complete, and error events are handled.
+- source_pills_preserved: yes; pills render only from complete structured citation objects.
+- citation_manager_path_preserved: yes; source clicks still route through `CitationManager.jumpToSource`.
+- retry_cancel_regenerate: yes; regenerate aborts active streams, cancel preserves received content, retry restarts after failure, copy handles partial/complete state.
+- partial_chat_transport_fallback: fixed; transport failures with ready pages no longer render `NO_SOURCE_BASIS`.
+- legal_content_not_faked: yes; stream events are built from existing `SourceBoundSaksromService` summary/source data.
+
+### Runtime Evidence
+- direct_stream_probe: PASS; case `cd225629-5f74-4e42-99d2-ac156ba966ab` had 77/78 ready pages and `/api/saksrom/summary/stream` returned HTTP 200.
+- chunk_timing_evidence: PASS; first `stage` event observed before completion, with events including `text_delta`, complete `citation` objects with real `sourceUnitId`, partial warnings, and final `complete`.
+- stream_source_integrity: PASS; citation events referenced real units such as `doc_74ebd86e_p0001_b0001` through `doc_74ebd86e_p0008_b0001`.
+- partial_warnings_preserved: PASS; stream emitted `PARTIAL_SOURCE_COVERAGE` and `BELOW_THRESHOLD_PAGES=75`.
+- direct_chat_partial_guard: PASS; 77/78 case returned `sourceBound=true` with `NO_RELEVANT_SOURCE_MATCH`, not `NO_SOURCE_BASIS`, for an unmatched question.
+
+### Verification
+- focused_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1 SaksromChat SaksromCaseSummary api`; 3 files, 43 tests).
+- full_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 26 files, 131 tests).
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build completed).
+- focused_backend_tests: PASS (`.\mvnw.cmd "-Dtest=SourceBoundSaksromServiceTest,SaksromControllerStreamTest" test`; 10 tests).
+- full_backend_tests: PASS (`.\mvnw.cmd test`; 127 tests, 0 failures, 0 errors, 2 skipped).
+- encoding_scan: PASS for touched streaming/chat files (`rg "Ã|â|�"` returned no matches).
+- browser_partial_source_navigation: PASS; in-app browser opened the 77/78 Masterdoc case, showed partial coverage, opened the preliminary modal, and navigated to Saksrom.
+- browser_summary_stream_ui: BLOCKED; visible Saksrom summary panel still rendered `EVIDA API-feil 403` in the browser runtime despite direct backend/proxy stream calls passing.
+- browser_chat_ui: PARTIAL; UI kept chat enabled for 77/78 partial coverage, and a new test prevents transport failures from displaying `NO_SOURCE_BASIS`; the current browser runtime still hit `Failed to fetch` during live chat POST.
+
+### Readiness
+- streaming_api_green: yes
+- streaming_frontend_tests_green: yes
+- source_integrity_green: yes
+- browser_stream_summary_green: no
+- browser_chat_live_green: no
+- delivery_decision: NOT_READY_FOR_MORTEN_TESTING
+- repo_health_verdict: improved
+- residual_risk: browser/dev-server runtime still returns 403/transport failure for live Saksrom summary/chat POSTs even though direct API and proxy probes pass; this must be resolved before final first-user smoke can be marked green.
+- rollback_path: revert `SaksromController`, `SaksromControllerStreamTest`, `apps/web/src/lib/api.ts`, `api.test.ts`, `SaksromCaseSummary`, `SaksromChat`, related tests, and this status entry.
+
+## P0 Runtime Regression Status - New Case Naming and Document Uploader
+
+### Metadata
+- generated_at: 2026-07-12T11:37:32+02:00
+- scope: frontend first-user new-case flow, backend case UUID resolution guardrails, document intake uploader visibility, upload case-id safety
+- backend_ingestion_ocr_source_semantics_changed: no
+- result: MANUAL_BROWSER_FILE_PICKER_REQUIRED
+
+### Root Cause
+- dashboard_cta_root_cause: `Opprett sak og last opp dokumenter` generated a hidden timestamp case name instead of opening the case naming flow.
+- stale_startup_root_cause: startup could resolve the generic `case_web_demo` fallback even when the user had not chosen or named an active case.
+- upload_case_id_root_cause: upload context helpers could derive deterministic UUIDs from non-UUID case names, which made it possible to upload against a fake frontend-derived id instead of a backend-resolved case UUID.
+- visibility_root_cause: the active case title was not shown in the top bar after reload, making the resolved state ambiguous during browser smoke.
+
+### Delivered
+- named_case_required: yes; the dashboard CTA opens the new-case modal and submit is disabled until the user enters a real title.
+- custom_title_preserved: yes; runtime smoke created and displayed `Morten test sak`.
+- backend_uuid_required_for_upload: yes; `uploadDocument` rejects non-UUID case ids and `uploadHeaders` no longer converts names into deterministic ids.
+- upload_queue_uuid_guard: yes; queued uploads keep `caseId` null until a real backend UUID is available.
+- document_intake_route_restored: yes; after case resolution the app routes to `Dokumenter` and renders `Dokumentinntak`.
+- uploader_visible: yes; browser smoke verified `Slipp filer eller mapper her`, `Velg filer`, and two file inputs in the resolved case view.
+- pending_state_bounded: yes; `Saken klargjores` is used only while case backend registration is pending, with retry/back recovery on failure.
+- reload_persistence: yes; browser reload preserved `Morten test sak`, `Aktiv sak`, and visible uploader state.
+- sidebar_new_case_entry: yes; browser smoke verified `Opprett ny sak` opens a modal with `Navn pa saken` input.
+- locked_label_formatting_preserved: yes; runtime text showed `Saksrom`, separate `LAST`, and helper text on separate lines.
+
+### Runtime Evidence
+- browser_dashboard_flow: PASS; clean browser state opened Dashboard, clicked `Opprett sak og last opp dokumenter`, required title input, created `Morten test sak`, and navigated to Document Intake.
+- backend_case_resolution: PASS; backend returned case UUID `04ef43ac-994e-4e19-b74b-0632367f39a5` for tenant `00000000-0000-0000-0000-000000000101`.
+- active_case_documents_before_upload: PASS; `GET /api/documents?caseId=04ef43ac-994e-4e19-b74b-0632367f39a5` returned 0 documents before file selection.
+- browser_reload_state: PASS; visible top bar showed `Morten test sak`, `Aktiv sak`, and no `Failed to fetch`.
+- native_file_picker_click: PASS_LIMITED; `Velg filer` was clickable and produced no JavaScript error, but the in-app browser runtime exposes no file injection API for the native OS picker.
+- file_selection_and_upload: MANUAL_REQUIRED; real OS file selection and post-selection upload appearance must be verified manually in the browser.
+
+### Verification
+- focused_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1 App NewCaseModal NewCaseWizard DocumentImport api uploadQueue`; 8 files, 62 tests).
+- full_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 26 files, 133 tests).
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build completed).
+- backend_tests: NOT_RUN; backend code was not changed in this mission.
+- browser_smoke: PARTIAL_PASS; green through named case creation, backend UUID resolution, route to Document Intake, visible uploader, reload persistence, and sidebar new-case modal.
+
+### Readiness
+- new_case_naming_green: yes
+- custom_title_green: yes
+- backend_uuid_resolution_green: yes
+- uploader_visibility_green: yes
+- upload_uses_real_case_id_green: yes
+- browser_native_file_selection_green: no
+- uploaded_document_appears_in_active_case_green: no
+- delivery_decision: MANUAL_BROWSER_VERIFICATION_REQUIRED
+- repo_health_verdict: improved
+- residual_risk: native file picker and real file upload completion require manual browser verification because this automation surface cannot provide a local file to the OS picker.
+- rollback_path: revert `apps/web/src/App.tsx`, `apps/web/src/App.test.tsx`, `apps/web/src/lib/api.ts`, `apps/web/src/lib/api.test.ts`, `apps/web/src/lib/uploadQueue.ts`, `apps/web/src/lib/uploadQueue.test.ts`, `apps/web/src/components/NewCaseModal.tsx`, `apps/web/src/components/NewCaseModal.test.tsx`, `apps/web/src/components/NewCaseWizard.tsx`, `apps/web/src/components/layout/TopBar.tsx`, and this status entry.
+
+## P0 Startup Case Overview and Document Intake Flow Status
+
+### Metadata
+- generated_at: 2026-07-12T12:55:10+02:00
+- scope: frontend startup state, real backend case overview, explicit case selection/creation, document intake gating, no-case right panel
+- backend_ingestion_ocr_source_semantics_changed: no
+- result: MANUAL_BROWSER_FILE_PICKER_REQUIRED
+
+### Root Cause
+- startup_state_root_cause: the app restored `activeView`/`activeCaseName` and auto-resolved a backend case on load, so stale local state could start the user inside `Dokumenter` and show `Saken kunne ikke klargjøres` before any user action.
+- state_model_root_cause: `no active case selected` and `case resolution failed` were represented by the same practical path.
+- overview_gap_root_cause: startup had no real case/folder overview surface using `GET /api/v1/cases`.
+- right_panel_root_cause: no-case guidance still shared case-specific source/risk surfaces and could look like fake `0%` source coverage.
+
+### Delivered
+- startup_defaults_to_saksoversikt: yes; no localStorage auto-entry into Document Intake.
+- explicit_resolution_state_model: yes; `none_selected`, `creating`, `resolving`, `resolved`, and `failed`.
+- real_case_overview: yes; `CaseOverview` lists backend cases from `GET /api/v1/cases`.
+- overview_empty_state: yes; shows `Ingen saker er opprettet ennå`.
+- overview_api_error_state: yes; shows `Sakslisten kunne ikke hentes` with retry while staying on Saksoversikt.
+- existing_case_open: yes; opens listed backend case UUID and routes to Dokumenter.
+- named_case_creation: yes; modal requires a non-empty case name and routes to Dokumenter after backend UUID resolution.
+- uploader_gated_by_real_uuid: yes; DocumentImport renders only after `activeCaseId` is a backend UUID.
+- no_fake_case_metrics_before_selection: yes; right panel shows `Opprett eller åpne sak` and hides source/risk metrics until a case is active.
+
+### Runtime Evidence
+- backend_runtime: PASS; backend listening on 18080 and OCR runtime logged usable.
+- frontend_runtime: PASS; Vite listening on 5173.
+- browser_startup: PASS; fresh open/reload showed `Saksoversikt`, listed started cases, and did not show `Saken kunne ikke klargjøres`.
+- browser_no_case_metrics: PASS; no fake `Kildedekning 0%`, `Risikohull`, or `Mangler kildegrunnlag` before case selection.
+- browser_new_case: PASS; `Opprett ny sak` opened modal, submit was disabled before title, `Morten test sak` submitted successfully.
+- backend_uuid_resolution: PASS; API confirmed `Morten test sak` as `04ef43ac-994e-4e19-b74b-0632367f39a5`.
+- browser_document_intake_after_create: PASS; title visible, route opened `Dokumentinntak`, dropzone visible, two file inputs present.
+- browser_refresh: PASS; reload returned to stable Saksoversikt and listed `Morten test sak`; no broken Document Intake state.
+- browser_existing_case_open: PASS; clicking `Åpne sak` for `Morten test sak` opened Dokumenter with visible dropzone.
+- native_file_picker_click: PASS_LIMITED; visible `Velg filer` label was clickable and the page remained responsive.
+- file_selection_and_upload: MANUAL_REQUIRED; the in-app browser automation surface cannot provide a local file to the native OS picker.
+
+### Verification
+- focused_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1 App ControlPanel api`; 4 files, 43 tests).
+- full_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 26 files, 139 tests).
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build completed).
+- backend_tests: NOT_RUN; backend code was not changed in this mission.
+
+### Readiness
+- startup_saksoversikt_green: yes
+- existing_cases_listed_green: yes
+- existing_case_open_green: yes
+- new_case_naming_green: yes
+- backend_uuid_green: yes
+- route_to_dokumenter_green: yes
+- uploader_visibility_green: yes
+- no_fake_metrics_before_case_green: yes
+- browser_native_file_selection_green: no
+- uploaded_document_appears_in_active_case_green: no
+- delivery_decision: MANUAL_BROWSER_VERIFICATION_REQUIRED
+- repo_health_verdict: improved
+- residual_risk: real OS file selection and uploaded-document appearance still require manual browser verification because this browser automation API cannot populate the native file picker.
+- rollback_path: revert `apps/web/src/App.tsx`, `apps/web/src/App.test.tsx`, `apps/web/src/components/CaseOverview.tsx`, `apps/web/src/components/Dashboard.css`, `apps/web/src/components/layout/ControlPanel.test.tsx`, `apps/web/src/lib/api.ts`, `apps/web/src/lib/api.test.ts`, `apps/web/src/lib/bestNextStep.ts`, and this status entry.
+
+## Morten Pilot Release Gate Status
+
+### Metadata
+- generated_at: 2026-07-13T00:00:00+02:00
+- scope: authoritative Morten pilot readiness gate
+- artifact: `MORTEN_PILOT_RELEASE_GATE.md`
+- result: NOT_READY_FOR_MORTEN_TESTING
+
+### Decision
+- morten_pilot_ready: no
+- real_client_data_allowed: false
+- commercial_release_ready: false
+- allowed_data_policy: synthetic_or_anonymized_only
+- repo_health_verdict: improved
+
+### Blocking Gates
+- native_file_picker_upload_signed_off: no
+- uploaded_document_appears_in_active_case_signed_off: no
+- saksrom_summary_browser_green: no
+- saksrom_stream_browser_green: no
+- saksrom_chat_browser_green: no
+- one_click_pilot_start_green: no
+- final_first_user_status_bundle_green: no
+
+### Notes
+- The new gate file is the authoritative go/no-go checklist for `morten-pilot-v0.1`.
+- Do not use older partial PASS/FAIL entries as the delivery decision unless they are reflected in the gate file.
+- Current approved posture remains controlled synthetic/anonymized pilot candidate only, not Morten handoff.
+
+## Runtime Capability Status - Full Court Engine OCR Ingestion and Morten Pilot Gate
+
+### Metadata
+- generated_at: 2026-07-13T13:05:00+02:00
+- scope: final runtime verification after OCR, Saksrom, startup, upload visibility, and pilot launcher fixes
+- gate_file: `MORTEN_PILOT_RELEASE_GATE.md`
+- commit_sha_at_gate_update: fc1360b plus local working tree changes
+
+### Decision
+- full_ocr_workflow_green: yes
+- saksrom_browser_chat_green: yes
+- saksrom_summary_green: yes
+- startup_case_overview_green: yes
+- document_intake_uploader_visibility_green: yes
+- one_click_pilot_runtime_green: yes
+- commercial_release_ready: staging_candidate
+- real_client_data_allowed: false
+- production_legal_work_allowed: false
+- repo_health_verdict: improved
+
+### Runtime Evidence
+- backend_runtime: PASS on `http://127.0.0.1:18080` with OCR enabled and `OcrRuntimeProbe` usable.
+- frontend_runtime: PASS on `http://127.0.0.1:5173`.
+- masterdoc_case_id: `44e42081-f3ff-45fe-ad19-daf180fdd0b8`
+- masterdoc_document_id: `cd5670f9-3f3f-417f-9f27-d201e62e7b39`
+- masterdoc_status: SOURCE_READY
+- masterdoc_job_status: COMPLETED
+- masterdoc_ready_pages: 78/78
+- masterdoc_page_count: 78
+- pages_1_5_ocr_pageunits: yes
+- page75_blank_unit: yes
+- ocr_runtime_unavailable_pages_1_5: no
+- saksrom_rettsbok_question_source_bound: yes
+- saksrom_rettsbok_source_pills_include_pages_1_or_2: yes
+- zero_source_no_source_basis_guard: preserved
+- norwegian_text_rendering: PASS; no mojibake observed in final browser smoke.
+
+### Verification
+- frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 26 files, 139 tests).
+- frontend_build: PASS (`npm run build`).
+- backend_tests: PASS (`.\mvnw.cmd test`; 132 tests, 0 failures, 2 skipped).
+- pilot_health: PASS (`.\scripts\pilot\test-evida-pilot-health.ps1`).
+- browser_smoke: PASS for startup overview, uploader visibility, Saksrom source coverage, and source-bound chat.
+
+### Remaining Manual Item
+- native_file_picker_upload_signed_off: manual_required
+- reason: the in-app browser automation can verify the uploader and backend ingestion flow, but cannot provide a file to the Windows native file picker.
+- impact: controlled synthetic/redacted Morten technical pilot is green; real client data remains blocked.
+
+## Morten Gate 1/2 Closure Status - Upload Security and Format Contract
+
+### Metadata
+- generated_at: 2026-07-14T11:05:00+02:00
+- scope: Gate 1 upload security and Gate 2 upload format contract only
+- closure_report: `docs/release/MORTEN_GATE_1_2_CLOSURE.md`
+- backend_ingestion_ocr_source_semantics_changed: no
+- global_pilot_status: NO
+
+### Decision
+- gate_1_upload_security_status: PARTIAL
+- gate_2_format_contract_status: PASS
+- morten_pilot_ready: no
+- real_client_data_allowed: false
+- production_legal_work_allowed: false
+- repo_health_verdict: improved
+
+### Gate 1 - Upload Security
+- apache_tika_content_detection: implemented
+- extension_declared_mime_detected_mime_comparison: implemented
+- pilot_accepts_only_pdf_txt: implemented
+- spoofed_exe_renamed_pdf_or_txt_rejected: tested
+- pdf_renamed_txt_rejected: tested
+- txt_renamed_pdf_rejected: tested
+- docx_zip_renamed_pdf_or_txt_rejected: covered by content mismatch/extension rejection tests
+- no_extension_unsupported_extension_empty_file_rejected: implemented
+- pdf_structure_validation_not_magic_byte_only: implemented with PDFBox
+- txt_utf8_binary_nul_guard: implemented
+- rejected_files_reach_parser_ocr_pageunits_source_ready: no
+- safe_domain_error_codes_no_expected_500: yes
+- safe_rejection_audit: yes; `DOCUMENT_UPLOAD_REJECTED` records only domain code, tenant, case and actor
+- malware_port_states: CLEAN, INFECTED, SCAN_UNAVAILABLE, SCAN_FAILED
+- clamav_adapter: implemented for clamd INSTREAM
+- malware_fail_closed_when_scan_unavailable_or_failed: tested
+- real_eicar_runtime_verification: BLOCKED
+- block_reason: local ClamAV service was not available; `Test-NetConnection 127.0.0.1 -Port 3310` returned `TcpTestSucceeded=False`
+- gate_1_pass_declared: no
+
+### Gate 2 - Format Contract
+- frontend_upload_policy_pdf_txt_only: yes
+- backend_upload_policy_pdf_txt_only: yes
+- legacy_api_files_upload_uses_same_policy: yes
+- document_intake_help_text_pdf_txt_only: yes
+- file_input_accept_pdf_txt_only: yes
+- upload_queue_docx_doc_png_jpg_jpeg_rejected: yes
+- direct_docx_to_backend_controlled_rejection: yes
+- backend_security_codes_mapped_to_safe_norwegian_ui_messages: yes
+- gate_2_pass_declared: yes
+
+### Verification
+- baseline_frontend_targeted: PASS (`npm run test -- --pool=threads --maxWorkers=1 uploadQueue DocumentImport FileUpload`; 3 files, 24 tests)
+- baseline_backend_targeted: PASS (`.\mvnw.cmd "-Dtest=*Document*Test,*Upload*Test,*Storage*Test" test`; 57 tests, 2 skipped)
+- focused_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1 uploadQueue api DocumentImport`; 4 files, 48 tests)
+- full_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 26 files, 141 tests)
+- frontend_build: PASS (`npm run build`)
+- focused_backend_tests: PASS (`.\mvnw.cmd "-Dtest=DocumentControllerTest,LocalDocumentStorageServiceTest" test`; 33 tests)
+- full_backend_tests: PASS (`.\mvnw.cmd test`; 140 tests, 2 skipped)
+- clamav_runtime_probe: BLOCKED (`TcpTestSucceeded=False` on 127.0.0.1:3310)
+
+### Readiness
+- upload_security_automated_green: yes
+- upload_security_runtime_malware_green: no
+- format_contract_green: yes
+- global_morten_pilot_green: no
+- remaining_blockers: real ClamAV/EICAR runtime verification, Gate 3, Gate 4, Gate 5 and native file picker verification
+- rollback_path: revert `UploadSecurityService`, malware scanner adapter/status changes, upload controller wiring, frontend `uploadPolicy`, upload queue/API mappings, related tests, closure report, and this status entry.
+
+## Runtime Capability Status - Real Client Data Gate Pass
+
+### Metadata
+- generated_at: 2026-07-14T20:20:00+02:00
+- scope: all six Morten-ready follow-up phases for real-client-data readiness
+- report: `docs/release/EVIDA_REAL_CLIENT_DATA_GATE_2026-07-14.md`
+- consolidated_gate_artifact: `artifacts/first-user/real_client_data_gate_2026-07-14.json`
+- repo_health_verdict: improved
+
+### Phase Results
+- phase_1_malware_upload_security: PARTIAL; implementation exists and fails closed, but runtime ClamAV is blocked because `clamd` is not reachable on `127.0.0.1:3310`.
+- phase_2_native_upload_flow: PARTIAL; browser/file-input uploader tests exist and pass, native Windows file picker signoff artifact now exists but remains `manual_required`.
+- phase_3_data_privacy_storage_logs_reset: PARTIAL; runtime log marker scan passed with 0 findings across 1715 scanned files, and controlled reset dry-run is available; production backup/restore, encryption and deletion-retention evidence still block real data.
+- phase_4_audit_provenance: PASS for this change; audit verification is now tenant-bound and records `AUDIT_VERIFICATION_RUN`, with focused backend tests passing.
+- phase_5_legal_safety_policy: PASS for this change; TopBar now shows visible `Pilot` and `Testdata only` policy boundary, with focused frontend test passing.
+- phase_6_release_candidate_restart_smoke: BLOCKED; local gate artifact produced, but clean-machine/managed-workstation/signing/approval gates are not complete.
+
+### Evidence
+- clamav_runtime_result: BLOCKED (`artifacts/first-user/clamav_runtime_result.json`; `tcp_reachable=false`, `eicar_detected=false`).
+- clamav_start_attempt: BLOCKED; Docker is installed but Docker daemon is not running, and no local `clamd` service is reachable.
+- runtime_sensitive_log_scan: PASS (`artifacts/first-user/runtime_sensitive_log_scan.json`; 1715 files, 0 findings).
+- deletion_reset_method: AVAILABLE_DRY_RUN (`artifacts/first-user/deletion_retention_result.json`; destructive reset requires `-ConfirmReset`).
+- native_file_picker_signoff: MANUAL_REQUIRED (`artifacts/first-user/native_file_picker_upload_signoff.json`).
+- audit_controller_focused_test: PASS (`.\mvnw.cmd -Dtest=AuditControllerTest test`; 2 tests).
+- topbar_policy_focused_test: PASS (`npm run test -- TopBar.test.tsx --pool=threads --maxWorkers=1`; 1 test).
+- full_frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 27 files, 142 tests).
+- frontend_build: PASS (`npm run build`).
+- full_backend_tests: PASS (`.\mvnw.cmd test`; 142 tests, 0 failures, 2 skipped).
+- real_data_gate_runner: BLOCKED (`.\scripts\pilot\test-evida-real-data-gate.ps1 -AllowBlockedExit`).
+
+### Decision
+- controlled_synthetic_redacted_pilot_ready: preserved
+- commercial_release_ready: staging_candidate
+- full_ocr_workflow_green: unchanged from prior runtime OCR gate
+- real_client_data_allowed: false
+- production_legal_work_allowed: false
+- full_real_data_workflow_green: no
+- blocking_reason: real malware runtime is not verified, native picker signoff is manual_required, release signing/managed workstation/backup-restore/approval gates remain incomplete.
+
+### Rollback
+- rollback_path: revert new pilot gate scripts, native picker signoff artifact/docs, TopBar policy chip/test, AuditController tenant-bound verification audit/test, `docs/release/EVIDA_REAL_CLIENT_DATA_GATE_2026-07-14.md`, generated artifacts, and this status entry.
+
+## Runtime Capability Status - Mobile Responsive Frontend
+
+### Metadata
+- generated_at: 2026-07-14T21:05:00+02:00
+- scope: frontend-only mobile/tablet responsive shell and first-user UI flows
+- report: `docs/release/EVIDA_MOBILE_RESPONSIVE_CLOSURE.md`
+- evidence_dir: `docs/release/mobile-screenshots/`
+- backend_ingestion_ocr_pageunit_ai_semantics_changed: no
+- repo_health_verdict: improved
+
+### Decision
+- mobile_responsive_shell_green: yes
+- tablet_compact_shell_green: yes
+- desktop_regression_status: preserved
+- document_intake_mobile_uploader_visible: yes
+- saksrom_mobile_chat_first: yes
+- saksrom_mobile_source_overlay: yes
+- commercial_release_ready: staging_candidate
+- real_client_data_allowed: false
+- production_legal_work_allowed: false
+
+### Verification
+- frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 28 files, 147 tests).
+- frontend_lint_typecheck: PASS (`npm run lint`; `tsc --noEmit`).
+- frontend_build: PASS (`npm run build`; `tsc && vite build`).
+- browser_runtime_smoke: PASS via local Chrome DevTools Protocol fallback.
+- note: bundled in-app browser connector was unavailable in this thread because setup failed with `Cannot redefine property: process`; CDP fallback was used for screenshots and DOM assertions.
+
+### Runtime Matrix
+- 320x568: PASS, mobile shell, no Sidebar/ControlPanel, no horizontal overflow.
+- 360x800: PASS, mobile shell, no horizontal overflow.
+- 375x667: PASS, mobile shell, no horizontal overflow.
+- 390x844: PASS, mobile shell, no horizontal overflow.
+- 412x915: PASS, mobile shell, no horizontal overflow.
+- 430x932: PASS, mobile shell, no horizontal overflow.
+- 768x1024: PASS, tablet compact shell, no desktop three-column squeeze.
+- 1440x900: PASS, desktop Sidebar and ControlPanel preserved.
+
+### Interaction Evidence
+- document_intake_mobile: PASS (`document-intake-verified-390x844.png`; uploader visible).
+- status_bottom_sheet_mobile: PASS (`mobile-status-sheet-verified-390x844.png`).
+- more_sheet_mobile: PASS (`mobile-more-sheet-verified-390x844.png`).
+- saksrom_chat_first_mobile: PASS (`saksrom-chat-first-verified-390x844.png`).
+- citation_source_overlay_mobile: PASS (`saksrom-source-overlay-verified-390x844.png`; bottom nav/status row hidden while source overlay is active).
+- viewport_matrix_json: `docs/release/mobile-screenshots/viewport-matrix.json`.
+- interaction_matrix_json: `docs/release/mobile-screenshots/interaction-matrix.json`.
+
+### Limit
+- Runtime smoke used a local fixture API for layout verification only. Backend OCR, PageUnits, tenant isolation, ingestion, malware scanning and source-bound AI semantics were not changed or re-certified by this mobile frontend pass.
+
+## Runtime Capability Status - Pilot Launcher Recovery
+
+### Metadata
+- generated_at: 2026-07-15T09:10:00+02:00
+- scope: Windows pilot start/stop launchers and local runtime health
+- files_changed: `scripts/pilot/start-evida-pilot.ps1`, `scripts/pilot/stop-evida-pilot.ps1`
+- frontend_backend_product_semantics_changed: no
+- repo_health_verdict: improved
+
+### Root Cause
+- Start launcher attempted backend startup before ensuring local Postgres was available on `127.0.0.1:5432`, so Spring failed Flyway/Hikari initialization and the frontend could be left showing `API utilgjengelig`.
+- The backend run command did not force Spring local profile/local-dev property through Maven, so the post-start proxy health check could receive `401 Unauthorized`.
+- Stop launcher did not recognize Spring Boot Java argfile command lines and could skip the EVIDA backend process.
+
+### Fix
+- start_launcher_starts_postgres: yes; uses `docker compose up -d postgres` from `evida-core/services/saksrom-api` when port `5432` is not listening.
+- start_launcher_waits_for_postgres: yes.
+- start_launcher_local_dev_backend: yes; passes `-Devida.security.local-dev-mode=true` and `spring-boot.run.profiles=local`.
+- stop_launcher_backend_detection: yes; recognizes `no.saksrom.api.SaksromApiApplication`.
+
+### Verification
+- postgres_container: PASS (`evida-postgres` running, `0.0.0.0:5432->5432/tcp`).
+- backend_health: PASS (`http://127.0.0.1:18080/actuator/health`).
+- frontend_health: PASS (`http://127.0.0.1:5173/`).
+- frontend_api_proxy: PASS (`GET http://127.0.0.1:5173/api/v1/cases` returned `200` with tenant header).
+- pilot_health_script: PASS (`scripts/pilot/test-evida-pilot-health.ps1 -BackendPort 18080 -WebPort 5173`).
+- ocr_runtime_probe: PASS in backend log (`OCR runtime usable`, `nor+eng`).
+
+### Decision
+- start_file_green: yes
+- stop_file_backend_detection_green: yes
+- real_client_data_allowed: false
+- production_legal_work_allowed: false
+
+## Runtime Capability Status - Clean Startup Gateway and Live Saksrom Opening
+
+### Metadata
+- generated_at: 2026-07-15T11:46:00+02:00
+- scope: frontend-only startup routing and Saksrom first assistant experience
+- files_changed: `apps/web/src/App.tsx`, `apps/web/src/components/StartupGateway.tsx`, `apps/web/src/components/StartupGateway.css`, `apps/web/src/components/SaksromLiveOpeningSummary.tsx`, `apps/web/src/components/SaksromLiveOpeningSummary.css`, `apps/web/src/components/SaksromChat.tsx`, `apps/web/src/components/SaksromView.tsx`
+- backend_ingestion_ocr_pageunit_ai_semantics_changed: no
+- repo_health_verdict: improved
+
+### Decision
+- clean_startup_gateway_without_appshell: yes
+- startup_sidebar_topbar_controlpanel_absent: yes
+- startup_case_list_from_api: yes
+- startup_retry_error_state: yes
+- active_case_renders_appshell: yes
+- saksrom_live_opening_summary_green: yes
+- summary_endpoint_used: `POST /api/saksrom/summary`
+- fake_summary_content_added: no
+- source_ready_partial_ready_auto_summary: yes
+- real_client_data_allowed: false
+- production_legal_work_allowed: false
+
+### Verification
+- frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 29 files, 141 tests).
+- frontend_build: PASS (`npm run build`; `tsc && vite build`).
+- startup_tests: PASS (`src/App.test.tsx`; clean Saksoversikt, no AppShell, case open restores AppShell, pending/error states).
+- saksrom_live_tests: PASS (`src/components/SaksromLiveOpeningSummary.test.tsx`, `src/components/SaksromView.test.tsx`; progressive steps, POST call, source chips, retry failure state).
+
+### Limit
+- Runtime browser screenshot smoke was not rerun in this pass. Backend summary quality and OCR/PageUnit semantics were not changed or re-certified.

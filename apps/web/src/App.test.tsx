@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
-import { citationStore } from "./lib/CitationManager";
+import { clearBackendCaseIdCacheForTests } from "./lib/api";
 
 function renderApp() {
   return render(
@@ -26,213 +26,203 @@ function authResponse() {
 function backendCases() {
   return [
     {
-      id: "cccccccc-1111-4222-8333-444444444444",
-      tenantId: "00000000-0000-0000-0000-000000000101",
-      title: "case_web_demo",
-      status: "OPEN",
-      localFirst: true
-    },
-    {
       id: "dddddddd-1111-4222-8333-444444444444",
       tenantId: "00000000-0000-0000-0000-000000000101",
       title: "Holands Hage",
       status: "OPEN",
-      localFirst: true
+      localFirst: true,
+      updatedAt: "2026-07-11T10:00:00Z",
+      documentCount: 2
     }
   ];
 }
 
-describe("App workroom router", () => {
-  beforeEach(() => {
-    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
-      if (url.includes("/api/auth/me")) {
-        return { ok: true, json: async () => authResponse() };
-      }
-      if (url.includes("/api/v1/cases")) {
-        return { ok: true, json: async () => backendCases() };
-      }
-      if (url.includes("/api/documents")) {
+function sourceCoverage() {
+  return {
+    totalDocuments: 1,
+    sourceReadyDocuments: 1,
+    partialDocuments: 0,
+    failedDocuments: 0,
+    totalPages: 12,
+    readyPages: 12,
+    ocrReadyPages: 0,
+    textReadyPages: 12,
+    missingOcrPages: 0,
+    belowThresholdPages: 0,
+    failedPages: 0,
+    coveragePercent: 100,
+    documentCoverage: []
+  };
+}
+
+function installDefaultFetchMock() {
+  const fetchMock = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+    if (url.includes("/api/auth/me")) {
+      return { ok: true, json: async () => authResponse() };
+    }
+    if (url.includes("/api/v1/cases")) {
+      if (init?.method === "POST") {
+        const body = JSON.parse(String(init.body ?? "{}")) as { title?: string };
         return {
           ok: true,
-          json: async () => [
-            {
-              id: "doc_001",
-              tenantId: "00000000-0000-0000-0000-000000000101",
-              filename: "Holands_Hage_Kontrakt_2026.pdf",
-              status: "SOURCE_READY",
-              sha256: "somehash"
-            }
-          ]
+          json: async () => ({
+            id: "eeeeeeee-1111-4222-8333-444444444444",
+            tenantId: "00000000-0000-0000-0000-000000000101",
+            title: body.title ?? "Ny sak",
+            status: "OPEN",
+            localFirst: true
+          })
         };
       }
-      return { ok: true, json: async () => [] };
-    });
-    vi.stubGlobal("fetch", fetchMock);
+      return { ok: true, json: async () => backendCases() };
+    }
+    if (url.includes("/api/documents")) {
+      return {
+        ok: true,
+        json: async () => [
+          {
+            id: "doc_001",
+            tenantId: "00000000-0000-0000-0000-000000000101",
+            filename: "Holands_Hage_Kontrakt_2026.pdf",
+            status: "source_ready",
+            sha256: "somehash"
+          }
+        ]
+      };
+    }
+    if (url.includes("/api/saksrom/source-coverage")) {
+      return { ok: true, json: async () => sourceCoverage() };
+    }
+    if (url.includes("/api/saksrom/summary")) {
+      return {
+        ok: true,
+        json: async () => ({
+          caseId: "eeeeeeee-1111-4222-8333-444444444444",
+          title: "Første saksforståelse",
+          summary: "Kort kildebasert oppsummering.",
+          findings: [],
+          sources: [{ documentId: "doc_001", sourceUnitId: "unit_1", pageNumber: 2 }],
+          sourceBound: true,
+          warnings: [],
+          coverage: sourceCoverage()
+        })
+      };
+    }
+    return { ok: true, json: async () => [] };
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+describe("App startup and shell routing", () => {
+  beforeEach(() => {
+    clearBackendCaseIdCacheForTests();
+    window.localStorage.clear();
+    installDefaultFetchMock();
   });
 
-  it("opens on the case vitality dashboard", () => {
+  it("startup without active case renders Saksoversikt without AppShell", async () => {
     renderApp();
 
-    expect(screen.getByRole("heading", { name: "Juridisk analyse, forenklet." })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Oversikt/i })).toHaveAttribute("aria-current", "page");
+    expect(await screen.findByRole("heading", { name: "Saksoversikt" })).toBeInTheDocument();
+    expect(screen.getByText("EVIDA")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Opprett ny sak" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Søk i saker")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Arbeidsrom")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Kontrollpanel")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Mobil bunnnavigasjon")).not.toBeInTheDocument();
+    expect(screen.queryByText("Saksrom")).not.toBeInTheDocument();
+    expect(screen.queryByText("Kronologi")).not.toBeInTheDocument();
+    expect(screen.queryByText("Risiko")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/Spør om saken/i)).not.toBeInTheDocument();
   });
 
-  it("creates a new case from the sidebar and continues to document intake", async () => {
+  it("startup renders the backend case list", async () => {
+    renderApp();
+
+    expect(await screen.findByText("Holands Hage")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Åpne sak" })).toBeInTheDocument();
+  });
+
+  it("opening a case renders AppShell and document intake", async () => {
     const user = userEvent.setup();
     renderApp();
 
-    const sidebar = screen.getByLabelText("Arbeidsrom");
-    await user.click(within(sidebar).getByRole("button", { name: /Opprett ny sak/i }));
-    await user.type(screen.getByLabelText("Navn på saken"), "Holands Hage");
+    const caseTitle = await screen.findByText("Holands Hage");
+    await user.click(within(caseTitle.closest("article") as HTMLElement).getByRole("button", { name: "Åpne sak" }));
+
+    expect(await screen.findByRole("heading", { name: "Dokumentinntak" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Arbeidsrom")).toBeInTheDocument();
+    expect(screen.getByLabelText("Kontrollpanel")).toBeInTheDocument();
+    expect(screen.getByText("Slipp filer eller mapper her")).toBeInTheDocument();
+  });
+
+  it("shows case registration pending state only while backend resolution is pending", async () => {
+    const user = userEvent.setup();
+    const pendingCaseRequest = new Promise(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url.includes("/api/auth/me")) {
+          return Promise.resolve({ ok: true, json: async () => authResponse() });
+        }
+        if (url.includes("/api/v1/cases") && init?.method === "POST") {
+          return pendingCaseRequest;
+        }
+        if (url.includes("/api/v1/cases")) {
+          return Promise.resolve({ ok: true, json: async () => backendCases() });
+        }
+        return Promise.resolve({ ok: true, json: async () => [] });
+      })
+    );
+
+    renderApp();
+    await screen.findByRole("heading", { name: "Saksoversikt" });
+    await user.click(screen.getByRole("button", { name: "Opprett ny sak" }));
+    await user.type(screen.getByLabelText("Navn på saken"), "Morten test sak");
+    await user.click(screen.getByRole("button", { name: "Opprett arbeidsområde" }));
+
+    expect(await screen.findByText("Morten test sak klargjøres")).toBeInTheDocument();
+    expect(screen.getByText(/Venter på backend-registrering/i)).toBeInTheDocument();
+    expect(screen.queryByText("Slipp filer eller mapper her")).not.toBeInTheDocument();
+  });
+
+  it("shows recoverable API error state for case list failures", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes("/api/auth/me")) {
+          return { ok: true, json: async () => authResponse() };
+        }
+        if (url.includes("/api/v1/cases")) {
+          return { ok: false, json: async () => ({ message: "offline" }) };
+        }
+        return { ok: true, json: async () => [] };
+      })
+    );
+
+    renderApp();
+
+    expect(await screen.findByRole("heading", { name: "Sakslisten kunne ikke hentes." })).toBeInTheDocument();
+    expect(screen.getByText("Kontroller at API-et kjører, eller prøv igjen.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Prøv igjen" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Arbeidsrom")).not.toBeInTheDocument();
+  });
+
+  it("primary startup CTA creates a case and routes to the uploader", async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await screen.findByRole("heading", { name: "Saksoversikt" });
+    await user.click(screen.getByRole("button", { name: "Opprett ny sak" }));
+    await user.type(screen.getByLabelText("Navn på saken"), "Morten test sak");
     await user.click(screen.getByRole("button", { name: "Opprett arbeidsområde" }));
 
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Opprett ny sak" })).not.toBeInTheDocument()
     );
     expect(await screen.findByRole("heading", { name: "Dokumentinntak" })).toBeInTheDocument();
-    expect(screen.getByText(/Holands Hage er opprettet/i)).toBeInTheDocument();
-  });
-
-  it("opens the new case overlay from Command Palette", async () => {
-    const user = userEvent.setup();
-    renderApp();
-
-    await user.keyboard("{Control>}k{/Control}");
-    await user.type(screen.getByLabelText("Søk i kommandoer"), "ny sak");
-    await user.click(screen.getByRole("option", { name: /Opprett ny sak/i }));
-
-    expect(screen.getByRole("dialog", { name: "Opprett ny sak" })).toBeInTheDocument();
-  });
-
-  it("shows active identity and tenant context in the shell", async () => {
-    renderApp();
-
-    expect(await screen.findByText("Advokat Hansen")).toBeInTheDocument();
-    expect(screen.getByLabelText("Aktiv identitet")).toHaveTextContent(
-      "00000000-0000-0000-0000-000000000101"
-    );
-  });
-
-  it("routes to Saksrom split-screen from the sidebar", async () => {
-    const user = userEvent.setup();
-    renderApp();
-
-    const sidebar = screen.getByLabelText("Arbeidsrom");
-    await user.click(within(sidebar).getByRole("button", { name: /Saksrom/i }));
-
-    expect(screen.queryByRole("heading", { level: 1, name: "Signert klientavtale" })).not.toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Saksoppsummering" })).toBeInTheDocument();
-    citationStore.jumpToSource({
-      documentId: "doc_001",
-      sourceUnitId: "doc_001_p450",
-      page: 450,
-      pageNumber: 450,
-      paragraph: "p12",
-      rect: { top: 210, left: 50, width: 300, height: 30 }
-    });
-
-    expect(await screen.findByLabelText("Aktiv kilde doc_001_p450")).toBeInTheDocument();
-  });
-
-  it("routes to the interactive Bevismatrise from the sidebar", async () => {
-    const user = userEvent.setup();
-    renderApp();
-
-    const sidebar = screen.getByLabelText("Arbeidsrom");
-    await user.click(within(sidebar).getByRole("button", { name: /Bevismatrise/i }));
-
-    expect(screen.getByRole("heading", { level: 2, name: "Strafferettslig bevismatrise" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Kildeklare dokumenter")).toBeInTheDocument();
-  });
-
-  it("routes to Kronologi from the sidebar", async () => {
-    const user = userEvent.setup();
-    renderApp();
-
-    const sidebar = screen.getByLabelText("Arbeidsrom");
-    await user.click(within(sidebar).getByRole("button", { name: /Kronologi/i }));
-
-    expect(screen.getByRole("heading", { level: 2, name: "Kronologi" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Sakstidslinje")).toBeInTheDocument();
-  });
-
-  it("routes to Utkast document builder from the sidebar", async () => {
-    const user = userEvent.setup();
-    renderApp();
-
-    const sidebar = screen.getByLabelText("Arbeidsrom");
-    await user.click(within(sidebar).getByRole("button", { name: /Utkast/i }));
-
-    expect(screen.getByRole("heading", { level: 2, name: "Utkast & Eksport" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Dokumentbygger")).toBeInTheDocument();
-  });
-
-  it("intercepts Saksrom navigation when source coverage is incomplete", async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
-      if (url.includes("/api/auth/me")) {
-        return { ok: true, json: async () => authResponse() };
-      }
-      if (url.includes("/api/v1/cases")) {
-        return { ok: true, json: async () => backendCases() };
-      }
-      if (url.includes("/api/documents")) {
-        return {
-          ok: true,
-          json: async () => [
-            {
-              id: "doc_001",
-              tenantId: "00000000-0000-0000-0000-000000000101",
-              filename: "verified_doc.pdf",
-              status: "SOURCE_READY",
-              sha256: "hash1"
-            },
-            {
-              id: "doc_002",
-              tenantId: "00000000-0000-0000-0000-000000000101",
-              filename: "quarantine_doc.pdf",
-              status: "QUARANTINE",
-              sha256: "hash2"
-            }
-          ]
-        };
-      }
-      return { ok: true, json: async () => [] };
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    renderApp();
-
-    const sidebar = screen.getByLabelText("Arbeidsrom");
-    await user.click(within(sidebar).getByRole("button", { name: /Saksrom/i }));
-
-    const modal = await screen.findByRole("dialog", { name: /Fortsett med foreløpig kildegrunnlag/i });
-    expect(modal).toBeInTheDocument();
-    expect(within(modal).getByText("50%")).toBeInTheDocument();
-    expect(within(modal).getByText("Ferdig behandlet")).toBeInTheDocument();
-    expect(within(modal).getByText("I karantene / venter")).toBeInTheDocument();
-    expect(within(modal).getByText("Behandling feilet")).toBeInTheDocument();
-
-    await user.click(within(modal).getByRole("button", { name: /Avbryt/i }));
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: /Fortsett med foreløpig kildegrunnlag/i })).not.toBeInTheDocument();
-    });
-    expect(screen.queryByRole("heading", { name: "Signert klientavtale" })).not.toBeInTheDocument();
-
-    await user.click(within(sidebar).getByRole("button", { name: /Saksrom/i }));
-    const modal2 = await screen.findByRole("dialog", { name: /Fortsett med foreløpig kildegrunnlag/i });
-    const confirmButton = within(modal2).getByRole("button", { name: "Fortsett til Saksrom" });
-    expect(confirmButton).toBeDisabled();
-
-    await user.click(within(modal2).getByRole("checkbox", { name: /Jeg forstår og vil fortsette/i }));
-    await user.click(confirmButton);
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: /Fortsett med foreløpig kildegrunnlag/i })).not.toBeInTheDocument();
-    });
-
-    expect(screen.queryByRole("heading", { level: 1, name: "Signert klientavtale" })).not.toBeInTheDocument();
-    expect(screen.getAllByText("Foreløpig kildegrunnlag").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Brukes nå: 1 dokumenter/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Foreløpig saksoppsummering" })).toBeInTheDocument();
+    expect(screen.getByText("Slipp filer eller mapper her")).toBeInTheDocument();
+    expect(screen.getByLabelText("Arbeidsrom")).toBeInTheDocument();
   });
 });

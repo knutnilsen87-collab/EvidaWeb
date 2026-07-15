@@ -1,0 +1,119 @@
+.saksrom-live-summary {
+  display: grid;
+  gap: 16px;
+}
+
+.saksrom-live-summary__lead {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.saksrom-live-summary__steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saksrom-live-summary__steps li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.saksrom-live-summary__steps li.active {
+  color: #ffffff;
+}
+
+.saksrom-live-summary__steps li.complete {
+  color: rgba(17, 247, 204, 0.9);
+}
+
+.saksrom-live-summary__steps span {
+  display: inline-flex;
+  justify-content: center;
+  color: inherit;
+  font-weight: 800;
+}
+
+.saksrom-live-summary__warnings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.saksrom-live-summary__warnings span {
+  border: 1px solid rgba(255, 170, 0, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 170, 0, 0.08);
+  color: rgba(255, 218, 153, 0.92);
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 6px 10px;
+}
+
+.saksrom-live-summary__result {
+  display: grid;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.saksrom-live-summary__result h3,
+.saksrom-live-summary__section h4 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.saksrom-live-summary__result h3 {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.saksrom-live-summary__section {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 12px;
+}
+
+.saksrom-live-summary__section h4 {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.saksrom-live-summary__section p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.saksrom-live-summary__sources,
+.saksrom-live-summary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.saksrom-live-summary__actions button {
+  border: 1px solid rgba(17, 247, 204, 0.35);
+  border-radius: 999px;
+  background: rgba(17, 247, 204, 0.1);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 9px 12px;
+}
+
+.saksrom-live-summary__actions button:hover {
+  background: rgba(17, 247, 204, 0.16);
+}

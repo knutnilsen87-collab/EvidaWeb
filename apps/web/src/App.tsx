@@ -9,16 +9,23 @@ import { NewCaseModal } from "./components/NewCaseModal";
 import { NewCaseWizard } from "./components/NewCaseWizard";
 import { QuarantineGate } from "./components/QuarantineGate";
 import { SaksromView } from "./components/SaksromView";
+import { StartupGateway } from "./components/StartupGateway";
 import { UtkastModul } from "./components/UtkastModul";
 import { DocumentImport } from "./components/DocumentImport";
 import { useAuth } from "./context/AuthContext";
 import type { AnalysisStatus } from "./engine/types";
 import { uploadQueue } from "./lib/uploadQueue";
 import { navigationGroups, viewTitles, WorkspaceView } from "./navigation";
-import { ensureBackendCaseId, fetchCaseDocuments, fetchSourceCoverage, EvidaDocument, SourceCoverage } from "./lib/api";
+import { CaseFileDto, ensureBackendCaseId, fetchCaseDocuments, fetchSourceCoverage, EvidaDocument, isUuid, SourceCoverage } from "./lib/api";
 import { SaksromReadinessModal } from "./components/SaksromReadinessModal";
 import "./styles/global.css";
 import "./App.css";
+
+type ActiveCaseResolutionState = "none_selected" | "creating" | "resolving" | "resolved" | "failed";
+
+type CaseResolutionRequest =
+  | { kind: "create"; title: string }
+  | { kind: "open"; id: string; title: string };
 
 function WorkroomPlaceholder({
   title,
@@ -41,11 +48,15 @@ function WorkroomPlaceholder({
 function App() {
   const [activeView, setActiveView] = useState<WorkspaceView>("dashboard");
   const [activeCaseName, setActiveCaseName] = useState<string | null>(null);
+  const [caseResolutionState, setCaseResolutionState] = useState<ActiveCaseResolutionState>("none_selected");
+  const [caseResolutionError, setCaseResolutionError] = useState<string | null>(null);
+  const [caseResolutionRequest, setCaseResolutionRequest] = useState<CaseResolutionRequest | null>(null);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
   const [newCaseWizardOpen, setNewCaseWizardOpen] = useState(false);
-  const [lastAction, setLastAction] = useState("Ingen sak valgt.");
+  const [lastAction, setLastAction] = useState("Velg eller opprett en sak.");
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("idle");
   const [queueBusy, setQueueBusy] = useState(false);
+  const [controlActionSubmitting, setControlActionSubmitting] = useState(false);
   
   // Preliminary kildegrunnlag states
   const [documents, setDocuments] = useState<EvidaDocument[]>([]);
@@ -62,30 +73,6 @@ function App() {
   // resolving; case-scoped views are gated until it is set.
   const [activeCaseId, setActiveCaseId] = useState("");
 
-  useEffect(() => {
-    const caseName = activeCaseName ?? "case_web_demo";
-    const tenantId = currentUser?.tenantId;
-    setActiveCaseId("");
-    if (!tenantId) {
-      return;
-    }
-    let cancelled = false;
-    ensureBackendCaseId(caseName, tenantId)
-      .then((id) => {
-        if (!cancelled) {
-          setActiveCaseId(id);
-        }
-      })
-      .catch((err) => {
-        console.error("Kunne ikke klargjøre sak i backend:", err);
-        if (!cancelled) {
-          setLastAction("Saken kunne ikke klargjøres i backend. Kontroller at API-et kjører.");
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeCaseName, currentUser?.tenantId]);
 
   const refreshDocs = useCallback(async () => {
     if (activeCaseId && currentUser?.tenantId) {
@@ -197,12 +184,82 @@ function App() {
     setNewCaseWizardOpen(true);
   }
 
+  async function resolveCase(request: CaseResolutionRequest) {
+    const tenantId = currentUser?.tenantId;
+    setCaseResolutionRequest(request);
+    setCaseResolutionError(null);
+    setActiveCaseName(request.title);
+    setActiveCaseId("");
+    setDocuments([]);
+    setActiveView("import");
+    setCaseResolutionState(request.kind === "create" ? "creating" : "resolving");
+    setLastAction(
+      request.kind === "create"
+        ? `${request.title} opprettes.`
+        : `${request.title} åpnes.`
+    );
+
+    if (!tenantId) {
+      setCaseResolutionState("failed");
+      setCaseResolutionError("Saken kunne ikke klargjøres fordi tenant mangler.");
+      setLastAction("Saken kunne ikke klargjøres fordi tenant mangler.");
+      return;
+    }
+
+    try {
+      const id = request.kind === "open" ? request.id : await ensureBackendCaseId(request.title, tenantId);
+      if (!isUuid(id)) {
+        throw new Error("Backend returnerte ikke en gyldig case UUID.");
+      }
+      setActiveCaseId(id);
+      setCaseResolutionState("resolved");
+      setLastAction(
+        request.kind === "create"
+          ? `${request.title} er opprettet. Last opp dokumenter for å starte kildegrunnlaget.`
+          : `${request.title} er valgt. Last opp dokumenter for å starte kildegrunnlaget.`
+      );
+    } catch (err) {
+      console.error("Kunne ikke klargjøre sak i backend:", err);
+      setCaseResolutionState("failed");
+      setCaseResolutionError("Saken kunne ikke klargjøres i backend. Kontroller at API-et kjører.");
+      setLastAction("Saken kunne ikke klargjøres i backend. Kontroller at API-et kjører.");
+    }
+  }
+
   function createNewCase(caseName: string) {
-    setActiveCaseName(caseName);
+    const trimmedName = caseName.trim();
+    if (!trimmedName) {
+      return;
+    }
     setNewCaseOpen(false);
     setNewCaseWizardOpen(false);
-    setActiveView("import");
-    setLastAction(`${caseName} er opprettet. Last opp dokumenter for å starte kildegrunnlaget.`);
+    void resolveCase({ kind: "create", title: trimmedName });
+  }
+
+  function openExistingCase(caseFile: CaseFileDto) {
+    void resolveCase({ kind: "open", id: caseFile.id, title: caseFile.title });
+  }
+
+  function startCaseAndImport() {
+    openNewCaseModal();
+  }
+
+  function retryCaseResolution() {
+    if (caseResolutionRequest) {
+      void resolveCase(caseResolutionRequest);
+    }
+    setLastAction("Prøver å klargjøre saken på nytt.");
+  }
+
+  function returnToDashboard() {
+    setActiveView("dashboard");
+    setActiveCaseName(null);
+    setActiveCaseId("");
+    setCaseResolutionRequest(null);
+    setCaseResolutionState("none_selected");
+    setCaseResolutionError(null);
+    setDocuments([]);
+    setLastAction("Velg eller opprett en sak.");
   }
 
   const actions = useMemo<CommandPaletteAction[]>(
@@ -254,6 +311,21 @@ function App() {
   function renderWorkroom() {
     const needsBackendCase = activeView === "quarantine" || activeView === "saksrom" || activeView === "import";
     if (needsBackendCase && !activeCaseId) {
+      if (caseResolutionState === "failed") {
+        return (
+          <section className="evida-web-placeholder liquid-glass-panel" aria-live="polite">
+            <span className="status-pill status-pill--blocked">Krever handling</span>
+            <h2>Saken kunne ikke klargjøres</h2>
+            <p>{caseResolutionError ?? "Backend registrerte ikke saken. Prøv igjen før dokumenter lastes opp."}</p>
+            <button className="btn-primary" type="button" onClick={retryCaseResolution}>
+              Prøv igjen
+            </button>
+            <button className="btn-secondary" type="button" onClick={returnToDashboard}>
+              Tilbake
+            </button>
+          </section>
+        );
+      }
       return (
         <section className="evida-web-placeholder liquid-glass-panel" aria-live="polite">
           <span className="status-pill status-pill--processing">Klargjør sak</span>
@@ -268,12 +340,21 @@ function App() {
           <Dashboard
             activeCaseName={activeCaseName}
             onNavigate={openView}
-            onNewCase={openNewCaseModal}
+            onNewCase={startCaseAndImport}
             onOpenWizard={openNewCaseWizard}
           />
         );
       case "quarantine":
-        return <QuarantineGate key={activeCaseId} caseId={activeCaseId} onAnalysisStatusChange={(status) => setAnalysisStatus(status as any)} />;
+        return (
+          <QuarantineGate
+            key={activeCaseId}
+            caseId={activeCaseId}
+            onAnalysisStatusChange={(status) => setAnalysisStatus(status as any)}
+            onDocumentsChange={setDocuments}
+            onControlActionSubmitting={setControlActionSubmitting}
+            onOpenSaksrom={() => void openView("saksrom")}
+          />
+        );
       case "saksrom":
         return (
           <SaksromView
@@ -282,7 +363,8 @@ function App() {
             tenantId={currentUser?.tenantId || ""}
             documents={documents}
             onDocumentsChange={setDocuments}
-            onOpenMissingDocuments={() => void openView("import")}
+            onNavigate={openView}
+            onOpenMissingDocuments={() => void openView("quarantine")}
           />
         );
       case "import":
@@ -291,6 +373,7 @@ function App() {
             key={activeCaseId}
             caseId={activeCaseId}
             onAnalysisStatusChange={(status) => setAnalysisStatus(status as any)}
+            onDocumentsChange={setDocuments}
             onContinueToSaksrom={() => void openView("saksrom")}
           />
         );
@@ -321,6 +404,38 @@ function App() {
     }
   }
 
+  const startupModals = (
+    <>
+      <NewCaseModal
+        isOpen={newCaseOpen}
+        onClose={() => setNewCaseOpen(false)}
+        onCreate={createNewCase}
+      />
+      <NewCaseWizard
+        isOpen={newCaseWizardOpen}
+        onClose={() => setNewCaseWizardOpen(false)}
+        onCreate={createNewCase}
+      />
+    </>
+  );
+
+  if (!activeCaseId || caseResolutionState === "none_selected") {
+    return (
+      <>
+        <StartupGateway
+          activeCaseName={activeCaseName}
+          caseResolutionError={caseResolutionError}
+          caseResolutionState={caseResolutionState}
+          tenantId={currentUser?.tenantId}
+          onNewCase={startCaseAndImport}
+          onOpenCase={openExistingCase}
+          onRetryCaseResolution={retryCaseResolution}
+        />
+        {startupModals}
+      </>
+    );
+  }
+
   return (
     <AppShell
       activeCaseName={activeCaseName}
@@ -338,6 +453,13 @@ function App() {
         tenantId: currentUser?.tenantId ?? "Ingen tenant"
       }}
       lastAction={lastAction}
+      documents={documents}
+      navigationState={{
+        hasActiveCase: Boolean(activeCaseId),
+        hasReadySourceBasis: verifiedCount > 0
+      }}
+      queueBusy={queueBusy}
+      actionSubmitting={controlActionSubmitting}
       onLogin={() => login("00000000-0000-0000-0000-000000000101")}
       onNavigate={openView}
       onNewCase={openNewCaseModal}
@@ -387,8 +509,14 @@ function App() {
         pendingCount={pendingCount}
         failedCount={failedCount}
         ocrWarningCount={ocrWarningCount}
+        sourceCoverage={readinessCoverage}
         onClose={handleCloseReadiness}
         onConfirm={handleConfirmReadiness}
+        onInspectMissing={() => {
+          setReadinessModalOpen(false);
+          setPendingView(null);
+          void openView("quarantine");
+        }}
       />
     </AppShell>
   );

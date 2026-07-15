@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { askSaksromQuestion, SaksromAnswer, SourceCoverage, SourceReference } from "../lib/api";
 import { Citation } from "../lib/CitationManager";
 import { CitationChip } from "./chat/CitationChip";
@@ -18,6 +19,14 @@ const apiMode: Record<ChatMode, "sporre" | "argumentere" | "simulere"> = {
   SIMULATE: "simulere"
 };
 
+const mobilePromptSuggestions = [
+  "Oppsummer saken",
+  "Hva er de viktigste spørsmålene?",
+  "Hva mangler?",
+  "Finn motstridende opplysninger",
+  "Hva bør undersøkes videre?"
+];
+
 interface SaksromChatProps {
   caseId?: string;
   tenantId?: string;
@@ -25,6 +34,7 @@ interface SaksromChatProps {
   isPreliminary?: boolean;
   verifiedCount?: number;
   sourceCoverage?: SourceCoverage | null;
+  openingSummary?: ReactNode;
 }
 
 function placeholderForMode(mode: ChatMode) {
@@ -74,10 +84,17 @@ const noSourceAnswer: SaksromAnswer = {
 };
 
 const readySourceAnswer: SaksromAnswer = {
-  answer: "Saksrommet er klart for kildebundne spÃ¸rsmÃ¥l basert pÃ¥ ferdig behandlede kilder.",
+  answer: "Saksrommet er klart for kildebundne spørsmål basert på ferdig behandlede kilder.",
   sources: [],
   sourceBound: true,
   warnings: []
+};
+
+const requestFailedAnswer: SaksromAnswer = {
+  answer: "Kunne ikke hente svar fra Saksrom akkurat nå. Kildegrunnlaget er fortsatt tilgjengelig; prøv igjen.",
+  sources: [],
+  sourceBound: false,
+  warnings: ["REQUEST_FAILED"]
 };
 
 function blockedAnswer(): SaksromAnswer {
@@ -95,7 +112,8 @@ export function SaksromChat({
   selectedSourceUnitIds = [],
   isPreliminary = false,
   verifiedCount,
-  sourceCoverage
+  sourceCoverage,
+  openingSummary
 }: SaksromChatProps) {
   const [mode, setMode] = useState<ChatMode>("ASK");
   const [question, setQuestion] = useState("");
@@ -151,7 +169,9 @@ export function SaksromChat({
         caseId,
         question: q,
         selectedSourceUnitIds,
-        mode: apiMode[mode]
+        mode: apiMode[mode],
+        includePartial: true,
+        sourceBasis: "READY_PAGE_UNITS_ONLY"
       });
       setAnswer(resp);
       setWasAnswerPreliminary(isPreliminary);
@@ -159,7 +179,7 @@ export function SaksromChat({
       setAnswerBasisCount(currentBasisCount);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Saksrom-forespørsel feilet");
-      setAnswer(noSourceAnswer);
+      setAnswer(chatBlocked ? blockedAnswer() : requestFailedAnswer);
       setWasAnswerPreliminary(false);
     } finally {
       setIsSending(false);
@@ -170,6 +190,8 @@ export function SaksromChat({
     event.preventDefault();
     void submitQuestion(question);
   };
+
+  const showNoSourceBasis = answer.warnings.includes("NO_SOURCE_BASIS");
 
   return (
     <form className="saksrom-chat" onSubmit={(event) => void handleSubmit(event)}>
@@ -188,8 +210,9 @@ export function SaksromChat({
       </div>
 
       <div className="chat-history" aria-label="Saksrom chatlogg">
-        <div className={answer.warnings.includes("NO_SOURCE_BASIS") ? "ai-message ai-message--unbound" : "ai-message ai-message--source"}>
-          {answer.warnings.includes("NO_SOURCE_BASIS") ? <strong>Mangler kildegrunnlag</strong> : null}
+        {openingSummary}
+        <div className={showNoSourceBasis ? "ai-message ai-message--unbound" : "ai-message ai-message--source"}>
+          {showNoSourceBasis ? <strong>Mangler kildegrunnlag</strong> : null}
           <p>{answer.answer}</p>
           {answer.warnings.map((warning) => (
             <span className="source-warning" key={warning}>
@@ -214,7 +237,7 @@ export function SaksromChat({
                 <CitationChip
                   citation={citationFromSource(source)}
                   key={source.sourceUnitId}
-                  label={source.sourceUnitId}
+                  label={`Side ${source.pageNumber}`}
                 />
               ))
             : null}
@@ -233,6 +256,15 @@ export function SaksromChat({
             {readyPageCount !== null && totalPageCount !== null ? (
               <span>{readyPageCount} av {totalPageCount} sider er klare.</span>
             ) : null}
+          </div>
+        ) : null}
+        {!chatBlocked ? (
+          <div className="mobile-chat-suggestions" aria-label="Forslag til spørsmål">
+            {mobilePromptSuggestions.map((suggestion) => (
+              <button key={suggestion} type="button" onClick={() => setQuestion(suggestion)}>
+                {suggestion}
+              </button>
+            ))}
           </div>
         ) : null}
         <textarea

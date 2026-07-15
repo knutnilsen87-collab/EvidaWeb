@@ -1,27 +1,22 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { fetchSaksromSummary } from "../lib/api";
 import { citationStore } from "../lib/CitationManager";
 import { SaksromView } from "./SaksromView";
 
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
-    user: { tenantId: "tenant_123" },
+    user: { tenantId: "tenant_123" }
   }),
+  useOptionalAuth: () => ({
+    user: { tenantId: "tenant_123" }
+  })
 }));
 
-vi.mock("../lib/api", () => ({
-  fetchCaseDocuments: vi.fn().mockResolvedValue([]),
-  fetchSaksromSummary: vi.fn().mockResolvedValue({
-    caseId: "case_123",
-    title: "Forelopig saksoppsummering",
-    summary: "Forelopig kildebundet oversikt.",
-    findings: [],
-    sources: [],
-    sourceBound: true,
-    warnings: ["PARTIAL_SOURCE_COVERAGE"],
-  }),
-  fetchSourceCoverage: vi.fn().mockResolvedValue({
+vi.mock("../lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/api")>();
+  const sourceCoverage = {
     totalDocuments: 1,
     sourceReadyDocuments: 0,
     partialDocuments: 1,
@@ -36,20 +31,32 @@ vi.mock("../lib/api", () => ({
     coveragePercent: 92,
     missingOcrPageRanges: "1-5",
     belowThresholdPageRanges: "75",
-    documentCoverage: [],
-  }),
-}));
-
-vi.mock("../lib/sourceUnits", () => ({
-  fetchSourceWindow: vi.fn().mockResolvedValue({
-    units: [
-      { id: "unit_1", title: "Side 1", excerpt: "Excerpt text", hash: "hash1" },
+    documentCoverage: []
+  };
+  const summary = {
+    caseId: "case_123",
+    title: "Første saksforståelse",
+    summary: "Foreløpig kildebundet oversikt.",
+    findings: [
+      {
+        heading: "Viktigste faktum",
+        text: "Et viktig punkt er støttet i dokumentgrunnlaget.",
+        sources: [{ documentId: "doc_001", sourceUnitId: "unit_1", pageNumber: 2 }]
+      }
     ],
-    startPage: 1,
-    endPage: 1,
-    totalPages: 10,
-  }),
-}));
+    sources: [{ documentId: "doc_001", sourceUnitId: "unit_1", pageNumber: 2 }],
+    sourceBound: true,
+    warnings: ["PARTIAL_SOURCE_COVERAGE"],
+    coverage: sourceCoverage
+  };
+  return {
+    ...actual,
+    auditClientEvent: vi.fn().mockResolvedValue(undefined),
+    fetchCaseDocuments: vi.fn().mockResolvedValue([]),
+    fetchSaksromSummary: vi.fn().mockResolvedValue(summary),
+    fetchSourceCoverage: vi.fn().mockResolvedValue(sourceCoverage)
+  };
+});
 
 describe("SaksromView", () => {
   afterEach(() => {
@@ -65,7 +72,7 @@ describe("SaksromView", () => {
       status: "partial_source_ready" as const,
       sha256: "hash1",
       pages: 78,
-      ocrRequired: false,
+      ocrRequired: false
     },
     {
       id: "doc_002",
@@ -74,64 +81,49 @@ describe("SaksromView", () => {
       status: "quarantine" as const,
       sha256: "hash2",
       pages: 4,
-      ocrRequired: false,
-    },
+      ocrRequired: false
+    }
   ];
 
   it("does not render the default document pane initially", () => {
-    render(
-      <SaksromView
-        caseId="case_123"
-        tenantId="tenant_123"
-        documents={mockDocs}
-      />,
-    );
+    render(<SaksromView caseId="case_123" tenantId="tenant_123" documents={mockDocs} />);
 
     expect(screen.queryByText("DOKUMENTGRUNNLAG")).not.toBeInTheDocument();
     expect(screen.queryByText("Signert klientavtale")).not.toBeInTheDocument();
     expect(screen.queryByText("Virtualisert PDF")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Juridisk reasoning engine" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Juridisk reasoning engine" })).toBeInTheDocument();
   });
 
   it("renders preliminary banner when source basis is incomplete", async () => {
-    render(
-      <SaksromView
-        caseId="case_123"
-        tenantId="tenant_123"
-        documents={mockDocs}
-      />,
-    );
+    render(<SaksromView caseId="case_123" tenantId="tenant_123" documents={mockDocs} />);
 
-    expect(
-      screen.getAllByText("Foreløpig kildegrunnlag").length,
-    ).toBeGreaterThan(0);
-    expect(
-      (await screen.findAllByText(/72 av 78 sider/i)).length,
-    ).toBeGreaterThan(0);
-    expect(
-      (await screen.findAllByText(/5 sider krever OCR/i)).length,
-    ).toBeGreaterThan(0);
-    expect(
-      (await screen.findAllByText(/1 side krever kontroll/i)).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("Foreløpig kildegrunnlag").length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/72 av 78 sider/i)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/5 sider krever OCR/i)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/1 side krever kontroll/i)).length).toBeGreaterThan(0);
     expect(screen.getByText(/Mangler OCR: side 1-5/i)).toBeInTheDocument();
   });
 
-  it("opens the preview drawer when citation is clicked, and closes it when close is clicked", async () => {
-    const user = userEvent.setup({ delay: null });
-    render(
-      <SaksromView
-        caseId="case_123"
-        tenantId="tenant_123"
-        documents={mockDocs}
-      />,
-    );
+  it("renders live opening summary when source basis exists", async () => {
+    render(<SaksromView caseId="case_123" tenantId="tenant_123" documents={mockDocs} />);
 
-    expect(
-      screen.queryByRole("button", { name: "Lukk preview" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("Jeg går gjennom dokumentgrunnlaget nå.")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(fetchSaksromSummary).toHaveBeenCalledWith("tenant_123", {
+        caseId: "case_123",
+        includePartial: true,
+        sourceBasis: "READY_PAGE_UNITS_ONLY"
+      })
+    );
+    expect(await screen.findByText("Her er første saksforståelse basert på tilgjengelige kilder:")).toBeInTheDocument();
+    expect(await screen.findByText("Viktigste faktum")).toBeInTheDocument();
+  });
+
+  it("opens the source overlay when citation is clicked, and closes it when back is clicked", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<SaksromView caseId="case_123" tenantId="tenant_123" documents={mockDocs} />);
+
+    expect(screen.queryByRole("button", { name: "Tilbake til Saksrom" })).not.toBeInTheDocument();
 
     citationStore.jumpToSource({
       documentId: "doc_001",
@@ -139,19 +131,15 @@ describe("SaksromView", () => {
       page: 450,
       pageNumber: 450,
       paragraph: "p12",
-      rect: { top: 210, left: 50, width: 300, height: 30 },
+      rect: { top: 210, left: 50, width: 300, height: 30 }
     });
 
-    const closeBtn = await screen.findByRole("button", {
-      name: "Lukk preview",
-    });
+    const closeBtn = await screen.findByRole("button", { name: "Tilbake til Saksrom" });
     expect(closeBtn).toBeInTheDocument();
     expect(screen.getByText("doc_001_p450")).toBeInTheDocument();
 
     await user.click(closeBtn);
-    expect(
-      screen.queryByRole("button", { name: "Lukk preview" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Tilbake til Saksrom" })).not.toBeInTheDocument();
     expect(citationStore.activeCitation).toBeNull();
   });
 });

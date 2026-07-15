@@ -1,0 +1,213 @@
+.startup-gateway {
+  min-height: 100vh;
+  padding: clamp(28px, 5vw, 72px);
+  color: rgba(255, 255, 255, 0.92);
+  background:
+    radial-gradient(circle at 68% 22%, rgba(0, 214, 171, 0.14), transparent 32%),
+    linear-gradient(145deg, #05080b 0%, #071113 48%, #020405 100%);
+}
+
+.startup-gateway__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: end;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-bottom: 34px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.startup-gateway__brand,
+.startup-gateway__intro span {
+  color: #11f7cc;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.startup-gateway__brand {
+  grid-column: 1 / -1;
+}
+
+.startup-gateway__intro h1 {
+  margin: 12px 0 10px;
+  font-family: "Fraunces", "Georgia", serif;
+  font-size: clamp(46px, 7vw, 92px);
+  font-weight: 520;
+  line-height: 0.95;
+}
+
+.startup-gateway__intro p {
+  max-width: 680px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.startup-gateway button {
+  border: 1px solid rgba(17, 247, 204, 0.4);
+  border-radius: 999px;
+  background: rgba(17, 247, 204, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.startup-gateway button:hover {
+  border-color: rgba(17, 247, 204, 0.7);
+  background: rgba(17, 247, 204, 0.18);
+}
+
+.startup-gateway__primary {
+  min-width: 180px;
+  padding: 16px 24px;
+}
+
+.startup-gateway__tools,
+.startup-gateway__cases {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.startup-gateway__tools {
+  display: grid;
+  grid-template-columns: minmax(260px, 440px) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: start;
+  padding: 28px 0;
+}
+
+.startup-gateway__tools label {
+  display: grid;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.startup-gateway__tools input {
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  font: inherit;
+  padding: 0 18px;
+  outline: none;
+}
+
+.startup-gateway__tools input:focus {
+  border-color: rgba(17, 247, 204, 0.55);
+  box-shadow: 0 0 0 3px rgba(17, 247, 204, 0.1);
+}
+
+.startup-gateway__notice,
+.startup-gateway__state,
+.startup-case-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(24px);
+}
+
+.startup-gateway__notice {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+}
+
+.startup-gateway__notice strong,
+.startup-gateway__state h2,
+.startup-case-card h2 {
+  margin: 0;
+  color: #ffffff;
+}
+
+.startup-gateway__notice span,
+.startup-gateway__state p,
+.startup-case-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.5;
+}
+
+.startup-gateway__notice--error,
+.startup-gateway__state--error {
+  border-color: rgba(255, 170, 0, 0.24);
+  background: rgba(255, 170, 0, 0.08);
+}
+
+.startup-gateway__notice button,
+.startup-gateway__state button {
+  justify-self: start;
+  margin-top: 6px;
+  padding: 10px 16px;
+}
+
+.startup-gateway__state {
+  display: grid;
+  gap: 12px;
+  padding: clamp(24px, 4vw, 44px);
+}
+
+.startup-gateway__state span,
+.startup-case-card span {
+  color: #11f7cc;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.startup-gateway__state h2 {
+  font-family: "Fraunces", "Georgia", serif;
+  font-size: clamp(26px, 4vw, 38px);
+  font-weight: 520;
+}
+
+.startup-gateway__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.startup-case-card {
+  display: grid;
+  gap: 22px;
+  min-height: 180px;
+  padding: 20px;
+}
+
+.startup-case-card h2 {
+  margin-top: 8px;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.startup-case-card button {
+  justify-self: start;
+  align-self: end;
+  padding: 11px 18px;
+}
+
+@media (max-width: 760px) {
+  .startup-gateway {
+    padding: 22px;
+  }
+
+  .startup-gateway__hero,
+  .startup-gateway__tools {
+    grid-template-columns: 1fr;
+  }
+
+  .startup-gateway__primary {
+    width: 100%;
+  }
+}
