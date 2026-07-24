@@ -180,11 +180,11 @@ describe("App startup and shell routing", () => {
     await screen.findByRole("heading", { name: "Saksoversikt" });
     await user.click(screen.getByRole("button", { name: "Opprett ny sak" }));
     await user.type(screen.getByLabelText("Navn på saken"), "Morten test sak");
-    await user.click(screen.getByRole("button", { name: "Opprett arbeidsområde" }));
+    await user.click(screen.getByRole("button", { name: "Opprett uten dokumenter" }));
 
     expect(await screen.findByText("Morten test sak klargjøres")).toBeInTheDocument();
     expect(screen.getByText(/Venter på backend-registrering/i)).toBeInTheDocument();
-    expect(screen.queryByText("Slipp filer eller mapper her")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Dokumentinntak" })).not.toBeInTheDocument();
   });
 
   it("shows recoverable API error state for case list failures", async () => {
@@ -216,10 +216,10 @@ describe("App startup and shell routing", () => {
     await screen.findByRole("heading", { name: "Saksoversikt" });
     await user.click(screen.getByRole("button", { name: "Opprett ny sak" }));
     await user.type(screen.getByLabelText("Navn på saken"), "Morten test sak");
-    await user.click(screen.getByRole("button", { name: "Opprett arbeidsområde" }));
+    await user.click(screen.getByRole("button", { name: "Opprett uten dokumenter" }));
 
     await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Opprett ny sak" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("dialog", { name: "Ny sak" })).not.toBeInTheDocument()
     );
     expect(await screen.findByRole("heading", { name: "Dokumentinntak" })).toBeInTheDocument();
     expect(screen.getByText("Slipp filer eller mapper her")).toBeInTheDocument();

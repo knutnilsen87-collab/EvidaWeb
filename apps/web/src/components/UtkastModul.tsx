@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { useOptionalAuth } from "../context/AuthContext";
-import { auditClientEvent } from "../lib/api";
+import { downloadCaseSourceReport } from "../lib/api";
 import "./UtkastModul.css";
 
 type DraftSection = {
@@ -34,7 +34,13 @@ const qualityItems = [
   "Alle kilder i utkastet er verifisert som source-ready."
 ];
 
-export function UtkastModul({ isPreliminary = false }: { isPreliminary?: boolean }) {
+export function UtkastModul({
+  activeCaseId,
+  isPreliminary = false
+}: {
+  activeCaseId?: string;
+  isPreliminary?: boolean;
+}) {
   const prefersReducedMotion = useReducedMotion();
   const auth = useOptionalAuth();
   const [includedSections, setIncludedSections] = useState<Record<DraftSection["id"], boolean>>({
@@ -48,6 +54,7 @@ export function UtkastModul({ isPreliminary = false }: { isPreliminary?: boolean
   );
   const [ackPreliminaryExport, setAckPreliminaryExport] = useState(false);
   const [generatedNotice, setGeneratedNotice] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const selectedCount = useMemo(
     () => Object.values(includedSections).filter(Boolean).length,
@@ -74,19 +81,26 @@ export function UtkastModul({ isPreliminary = false }: { isPreliminary?: boolean
     setGeneratedNotice("");
   }
 
-  function generateDraft() {
-    setQualityOpen(false);
-    setGeneratedNotice("Utkastet er klargjort som DOCX med verifiserte kildehenvisninger.");
-    if (auth?.user) {
-      void auditClientEvent(auth.user.tenantId, {
-        eventType: "EXPORT_CREATED",
-        entityType: "DOCX_EXPORT",
-        metadataJson: JSON.stringify({
-          selectedSections: Object.entries(includedSections)
-            .filter(([, included]) => included)
-            .map(([section]) => section)
-        })
-      }).catch(() => undefined);
+  async function generateDraft() {
+    if (!auth?.user || !activeCaseId) {
+      setGeneratedNotice("Eksport er blokkert: aktiv sak eller bruker mangler.");
+      return;
+    }
+    setExporting(true);
+    setGeneratedNotice("");
+    try {
+      const report = await downloadCaseSourceReport(activeCaseId, auth.user.tenantId);
+      const anchor = document.createElement("a");
+      anchor.href = report.url;
+      anchor.download = report.filename;
+      anchor.click();
+      URL.revokeObjectURL(report.url);
+      setQualityOpen(false);
+      setGeneratedNotice("Kildegrunnlagsrapporten er lastet ned med saks-ID, tidsstempel og sporbare kildehenvisninger.");
+    } catch (error) {
+      setGeneratedNotice(error instanceof Error ? error.message : "Eksporten kunne ikke opprettes.");
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -258,11 +272,11 @@ export function UtkastModul({ isPreliminary = false }: { isPreliminary?: boolean
               </button>
               <button
                 className="export-cta"
-                disabled={!qualityComplete || (isPreliminary && !ackPreliminaryExport)}
-                onClick={generateDraft}
+                disabled={!qualityComplete || (isPreliminary && !ackPreliminaryExport) || exporting}
+                onClick={() => void generateDraft()}
                 type="button"
               >
-                Generer DOCX
+                {exporting ? "Generererâ€¦" : "Last ned kilderapport"}
               </button>
             </footer>
           </section>

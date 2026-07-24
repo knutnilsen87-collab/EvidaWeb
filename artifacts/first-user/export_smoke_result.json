@@ -1,14 +1,11 @@
 {
-    "generated_at":  "2026-05-19T12:29:11.9270554Z",
-    "status":  "blocked",
-    "verdict":  "blocked",
-    "name":  "export_smoke",
-    "blocker":  "Export/redaction smoke has not been captured on a release build.",
-    "required_evidence":  [
-                              "export allowed content",
-                              "redaction policy",
-                              "audit event",
-                              "no hidden source leakage"
-                          ],
-    "real_client_data_allowed":  false
+  "generated_at": "2026-07-24T15:31:22.549Z",
+  "status": "pass",
+  "verdict": "pass",
+  "synthetic_only": true,
+  "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+  "http_status": 200,
+  "ai_draft_warning_present": true,
+  "source_section_present": true,
+  "all_runtime_documents_referenced": true
 }

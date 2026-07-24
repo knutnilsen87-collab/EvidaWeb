@@ -1,241 +1,266 @@
 {
-    "artifact":  "evidence.first_user.current",
-    "generated_at":  "2026-05-13T11:38:36Z",
-    "updated_at":  "2026-05-19T14:32:05+02:00",
-    "release_candidate_id":  "evida-0.1.0-alpha-local-2026-05-13",
-    "scope":  "controlled first-user evaluation with synthetic/redacted test data only; real client data remains blocked by client-data desktop DoD",
-    "verdict":  "blocked",
-    "summary":  {
-                    "automated_desktop_gates":  "pass",
-                    "first_user_pack_integrity":  "pass",
-                    "release_artifact_integrity":  "pass",
-                    "control_plane_static_gate":  "pass",
-                    "code_signing":  "blocked_not_signed",
-                    "signed_sbom_and_ci_security_scan":  "blocked",
-                    "clean_machine_smoke":  "blocked_manual_required",
-                    "human_approval":  "blocked_manual_required",
-                    "real_client_data_allowed":  false,
-                    "managed_windows_braathe_jussys":  "blocked",
-                    "runtime_sensitive_log_scan":  "blocked",
-                    "client_data_desktop_dod":  "blocked",
-                    "production_dod_status":  "blocked_release_artifacts_failed",
-                    "backend_tests_status":  "pass",
-                    "control_plane_maven_tests":  "pass",
-                    "secret_scan_status":  "pass",
-                    "toolchain_status":  "pass"
-                },
-    "evidence_refs":  [
-                          {
-                              "id":  "EV-DESKTOP-HARDENING",
-                              "kind":  "command",
-                              "ref":  "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaHardening.ps1",
-                              "result":  "PASS",
-                              "notes":  "Includes desktop npm tests, Rust static hardening checks, release hardening checks, and frontend build."
-                          },
-                          {
-                              "id":  "EV-RUST-FULL",
-                              "kind":  "command",
-                              "ref":  "cargo test --manifest-path src-tauri/Cargo.toml --jobs 1 -- --test-threads=1",
-                              "result":  "PASS",
-                              "notes":  "26 passed, 2 ignored. Includes upload safety failure modes, extraction failure modes, prompt-injection answer validation, audit tamper test, case/document/source smoke, AI exchange persistence, and encrypted backup restore roundtrip."
-                          },
-                          {
-                              "id":  "EV-DOCUMENT-STRESS",
-                              "kind":  "command",
-                              "ref":  "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaDocumentUploadStressSuite.ps1",
-                              "result":  "PASS",
-                              "notes":  "391 files tested with 0 deviations; actual statuses duplicate=1, failed=33, ocr_required=36, partial=9, ready=308, unsupported=4; total_pages=4012; total_sources=7962."
-                          },
-                          {
-                              "id":  "EV-FRONTEND-BUILD",
-                              "kind":  "command",
-                              "ref":  "npm.cmd run build",
-                              "result":  "PASS",
-                              "notes":  "TypeScript and Vite production build completed."
-                          },
-                          {
-                              "id":  "EV-DOCUMENT-CONTROL-UX",
-                              "kind":  "command",
-                              "ref":  "npm.cmd test \u0026\u0026 npm.cmd run build",
-                              "result":  "PASS",
-                              "notes":  "Verified aggregate import outcome rules, stale processing suppression after all documents are terminal, no ETA after completion, manual-review routing/removal, document-control workspace presence, no-text manual review AI exclusion, incomplete page-count handling, in-app document preview actions, filtered document lists, scroll-neutral Saksrom import status updates with browser scroll anchoring disabled, visible sidebar action contrast in light/dark mode, limited-source Saksrom copy, and explicit external-provider policy gating."
-                          },
-                          {
-                              "id":  "EV-RELEASE",
-                              "kind":  "command",
-                              "ref":  "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaRelease.ps1",
-                              "result":  "PASS",
-                              "notes":  "Fresh Tauri release build regenerated Evida.exe, installer artifacts, release manifest, and checksums; release verification passed."
-                          },
-                          {
-                              "id":  "EV-FIRST-USER-PACK",
-                              "kind":  "command",
-                              "ref":  "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaFirstUserReadiness.ps1",
-                              "result":  "BLOCKED",
-                              "notes":  "Pack structure, zip/manifest, golden docs, and status-bundle schema pass. Approval state remains blocked."
-                          },
-                          {
-                              "id":  "EV-PRODUCTION-DOD",
-                              "kind":  "artifact",
-                              "ref":  "artifacts/production-dod/evida-production-dod-report.json",
-                              "result":  "BLOCKED",
-                              "notes":  "Fail-closed aggregate DoD report. Latest run has release-artifacts PASS, desktop hardening PASS, backend/control-plane PASS, and remains BLOCKED on first-user approval, clean-machine smoke, Windows code signing, signed SBOM/CI SCA/SAST, and client-data desktop DoD gaps."
-                          },
-                          {
-                              "id":  "EV-CLIENT-DATA-DOD-CONTRACT",
-                              "kind":  "docs",
-                              "ref":  "docs/first-user/CLIENT_DATA_DESKTOP_DOD.md",
-                              "result":  "BLOCKED",
-                              "notes":  "Client-data desktop DoD contract installed. It explicitly keeps real_client_data_allowed=false until all P0 client-data gates pass."
-                          },
-                          {
-                              "id":  "EV-CLIENT-DATA-DOD-DIAGNOSTICS",
-                              "kind":  "command",
-                              "ref":  "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaClientDataDesktopDoD.ps1",
-                              "result":  "BLOCKED",
-                              "notes":  "Generated machine-readable client-data desktop DoD phase artifacts. Phase 0 pass; Phases 1-11 blocked by signing, managed workstation, marker-flow, audit/export/security, and approval requirements."
-                          },
-                          {
-                              "id":  "EV-WINDOWS-POLICY-DIAGNOSTICS",
-                              "kind":  "artifact",
-                              "ref":  "artifacts/first-user/windows_policy_diagnostics.current.json",
-                              "result":  "BLOCKED",
-                              "notes":  "Release manifest/signing/managed policy evidence is not sufficient for real client data."
-                          },
-                          {
-                              "id":  "EV-RUNTIME-MARKER-LOG-SCAN",
-                              "kind":  "artifact",
-                              "ref":  "artifacts/first-user/runtime_sensitive_log_scan.json",
-                              "result":  "BLOCKED",
-                              "notes":  "No marker leaks found in scanned runtime artifacts, but the required synthetic marker import flow has not been run."
-                          },
-                          {
-                              "id":  "EV-CLIENT-DATA-APPROVALS",
-                              "kind":  "artifact",
-                              "ref":  "artifacts/first-user/*_approval.json",
-                              "result":  "BLOCKED",
-                              "notes":  "Approval artifacts are present as missing/blocked placeholders only; no approval is claimed."
-                          }
-                      ],
-    "first_user_pack":  {
-                            "manifest":  "casepilot_first_user_readiness_pack_manifest.json",
-                            "zip":  "casepilot_first_user_readiness_pack.zip",
-                            "zip_sha256":  "f9e0a9dd45c5d65abbb400b22d1b5d951bd9a94bab8334b1e8432f64121ba338",
-                            "file_count":  24,
-                            "integrity":  "pass"
-                        },
-    "client_data_desktop_dod":  {
-                                    "status":  "blocked",
-                                    "result_ref":  "artifacts/first-user/client_data_desktop_dod_result.json",
-                                    "generated_artifacts":  [
-                                                                "artifacts/first-user/client_data_desktop_dod_result.json",
-                                                                "artifacts/first-user/windows_policy_diagnostics.current.json",
-                                                                "artifacts/first-user/signature_verification.json",
-                                                                "artifacts/first-user/runtime_sensitive_log_scan.json",
-                                                                "artifacts/first-user/raw_storage_inspection.json",
-                                                                "artifacts/first-user/encryption_verification.json",
-                                                                "artifacts/first-user/audit_coverage_result.json",
-                                                                "artifacts/first-user/export_smoke_result.json"
-                                                            ],
-                                    "real_client_data_allowed":  false
-                                },
-    "manual_gates_remaining":  [
-                                   "Run clean-machine smoke on a separate Windows profile or machine.",
-                                   "Generate signed SBOM and SCA/SAST report with no release-blocking findings.",
-                                   "Sign Windows executable and installers.",
-                                   "Complete engineering, product, and security/privacy approval."
-                               ],
-    "machine_readable_gates":  {
-                                   "toolchain":  {
-                                                     "gate":  "evida-toolchain",
-                                                     "status":  "PASS",
-                                                     "tools":  [
-                                                                   {
-                                                                       "name":  "java",
-                                                                       "status":  "PASS",
-                                                                       "command":  "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.10.7-hotspot\\bin\\java.exe",
-                                                                       "required_for":  "backend_tests",
-                                                                       "message":  "java available on PATH."
-                                                                   },
-                                                                   {
-                                                                       "name":  "maven",
-                                                                       "status":  "PASS",
-                                                                       "command":  "C:\\Users\\knutn\\.evida-tools\\apache-maven-3.9.11\\bin\\mvn.cmd",
-                                                                       "required_for":  "backend_tests",
-                                                                       "message":  "maven available via user-local Evida tool cache."
-                                                                   },
-                                                                   {
-                                                                       "name":  "node",
-                                                                       "status":  "PASS",
-                                                                       "command":  "C:\\Program Files\\nodejs\\node.exe",
-                                                                       "required_for":  "desktop_frontend_tests",
-                                                                       "message":  "node available on PATH."
-                                                                   },
-                                                                   {
-                                                                       "name":  "npm",
-                                                                       "status":  "PASS",
-                                                                       "command":  "C:\\Program Files\\nodejs\\npm.cmd",
-                                                                       "required_for":  "desktop_frontend_tests",
-                                                                       "message":  "npm available on PATH."
-                                                                   },
-                                                                   {
-                                                                       "name":  "cargo",
-                                                                       "status":  "PASS",
-                                                                       "command":  "C:\\Users\\knutn\\.cargo\\bin\\cargo.exe",
-                                                                       "required_for":  "desktop_rust_tests",
-                                                                       "message":  "cargo available on PATH."
-                                                                   },
-                                                                   {
-                                                                       "name":  "python",
-                                                                       "status":  "PASS",
-                                                                       "command":  "C:\\Users\\knutn\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
-                                                                       "required_for":  "status_bundle_validation",
-                                                                       "message":  "python available on PATH."
-                                                                   },
-                                                                   {
-                                                                       "name":  "gitleaks",
-                                                                       "status":  "PASS",
-                                                                       "command":  "C:\\Users\\knutn\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gitleaks.Gitleaks_Microsoft.Winget.Source_8wekyb3d8bbwe\\gitleaks.exe",
-                                                                       "required_for":  "secret_scan",
-                                                                       "message":  "gitleaks available on PATH."
-                                                                   }
-                                                               ],
-                                                     "blocked_tools":  [
-
-                                                                       ]
-                                                 },
-                                   "backend_tests":  {
-                                                         "gate":  "backend-tests",
-                                                         "status":  "PASS",
-                                                         "service":  "F:\\prosjekter(MAIN)\\EVIDA\\evida-core\\services\\saksrom-api",
-                                                         "command":  "C:\\Users\\knutn\\.evida-tools\\apache-maven-3.9.11\\bin\\mvn.cmd",
-                                                         "exit_code":  0,
-                                                         "message":  "Backend Maven tests passed."
-                                                     },
-                                   "secret_scan":  {
-                                                       "gate":  "secret-scan",
-                                                       "status":  "PASS",
-                                                       "command":  "C:\\Users\\knutn\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gitleaks.Gitleaks_Microsoft.Winget.Source_8wekyb3d8bbwe\\gitleaks.exe",
-                                                       "report":  "F:\\prosjekter(MAIN)\\EVIDA\\artifacts\\security\\gitleaks-report.json",
-                                                       "exit_code":  0,
-                                                       "findings":  0,
-                                                       "scopes":  [
-                                                                      "evida-core\\desktop-tauri\\src",
-                                                                      "evida-core\\desktop-tauri\\src-tauri\\src",
-                                                                      "evida-core\\desktop-tauri\\scripts",
-                                                                      "ops",
-                                                                      "scripts",
-                                                                      "configs",
-                                                                      "docs",
-                                                                      "tests",
-                                                                      ".github",
-                                                                      "AGENTS.md",
-                                                                      "casepilot_first_user_readiness_pack_manifest.json"
-                                                                  ],
-                                                       "message":  "gitleaks secret scan passed.",
-                                                       "output":  [
-
-                                                                  ]
-                                                   }
-                               }
+  "artifact": "evidence.first_user.current",
+  "generated_at": "2026-05-13T11:38:36Z",
+  "updated_at": "2026-07-24T15:35:22.0513867Z",
+  "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-24",
+  "scope": "controlled first-user evaluation with synthetic/redacted test data only; real client data remains blocked by client-data desktop DoD",
+  "verdict": "blocked",
+  "summary": {
+    "automated_desktop_gates": "pass",
+    "first_user_pack_integrity": "pass",
+    "release_artifact_integrity": "pass",
+    "control_plane_static_gate": "pass",
+    "code_signing": "blocked_no_signed_current_deliverable",
+    "signed_sbom_and_ci_security_scan": "blocked_workflow_added_not_yet_run",
+    "clean_machine_smoke": "blocked_manual_required",
+    "human_approval": "blocked_manual_required",
+    "real_client_data_allowed": false,
+    "managed_windows_braathe_jussys": "blocked",
+    "runtime_sensitive_log_scan": "pass",
+    "client_data_desktop_dod": "blocked_remaining_external_and_storage_gates",
+    "production_dod_status": "blocked_release_artifacts_failed",
+    "backend_tests_status": "pass_154_tests_2_skipped",
+    "control_plane_maven_tests": "pass",
+    "secret_scan_status": "pass",
+    "toolchain_status": "pass"
+  },
+  "evidence_refs": [
+    {
+      "id": "EV-DESKTOP-HARDENING",
+      "kind": "command",
+      "ref": "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaHardening.ps1",
+      "result": "PASS",
+      "notes": "Includes desktop npm tests, Rust static hardening checks, release hardening checks, and frontend build."
+    },
+    {
+      "id": "EV-RUST-FULL",
+      "kind": "command",
+      "ref": "cargo test --manifest-path src-tauri/Cargo.toml --jobs 1 -- --test-threads=1",
+      "result": "PASS",
+      "notes": "26 passed, 2 ignored. Includes upload safety failure modes, extraction failure modes, prompt-injection answer validation, audit tamper test, case/document/source smoke, AI exchange persistence, and encrypted backup restore roundtrip."
+    },
+    {
+      "id": "EV-DOCUMENT-STRESS",
+      "kind": "command",
+      "ref": "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaDocumentUploadStressSuite.ps1",
+      "result": "PASS",
+      "notes": "391 files tested with 0 deviations; actual statuses duplicate=1, failed=33, ocr_required=36, partial=9, ready=308, unsupported=4; total_pages=4012; total_sources=7962."
+    },
+    {
+      "id": "EV-FRONTEND-BUILD",
+      "kind": "command",
+      "ref": "npm.cmd run build",
+      "result": "PASS",
+      "notes": "TypeScript and Vite production build completed."
+    },
+    {
+      "id": "EV-DOCUMENT-CONTROL-UX",
+      "kind": "command",
+      "ref": "npm.cmd test && npm.cmd run build",
+      "result": "PASS",
+      "notes": "Verified aggregate import outcome rules, stale processing suppression after all documents are terminal, no ETA after completion, manual-review routing/removal, document-control workspace presence, no-text manual review AI exclusion, incomplete page-count handling, in-app document preview actions, filtered document lists, scroll-neutral Saksrom import status updates with browser scroll anchoring disabled, visible sidebar action contrast in light/dark mode, limited-source Saksrom copy, and explicit external-provider policy gating."
+    },
+    {
+      "id": "EV-RELEASE",
+      "kind": "command",
+      "ref": "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaRelease.ps1",
+      "result": "PASS",
+      "notes": "Fresh Tauri release build regenerated Evida.exe, installer artifacts, release manifest, and checksums; release verification passed."
+    },
+    {
+      "id": "EV-FIRST-USER-PACK",
+      "kind": "command",
+      "ref": "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaFirstUserReadiness.ps1",
+      "result": "BLOCKED",
+      "notes": "Pack structure, zip/manifest, golden docs, and status-bundle schema pass. Approval state remains blocked."
+    },
+    {
+      "id": "EV-PRODUCTION-DOD",
+      "kind": "artifact",
+      "ref": "artifacts/production-dod/evida-production-dod-report.json",
+      "result": "BLOCKED",
+      "notes": "Fail-closed aggregate DoD report. Latest run has release-artifacts PASS, desktop hardening PASS, backend/control-plane PASS, and remains BLOCKED on first-user approval, clean-machine smoke, Windows code signing, signed SBOM/CI SCA/SAST, and client-data desktop DoD gaps."
+    },
+    {
+      "id": "EV-CLIENT-DATA-DOD-CONTRACT",
+      "kind": "docs",
+      "ref": "docs/first-user/CLIENT_DATA_DESKTOP_DOD.md",
+      "result": "BLOCKED",
+      "notes": "Client-data desktop DoD contract installed. It explicitly keeps real_client_data_allowed=false until all P0 client-data gates pass."
+    },
+    {
+      "id": "EV-CLIENT-DATA-DOD-DIAGNOSTICS",
+      "kind": "command",
+      "ref": "powershell -NoProfile -ExecutionPolicy Bypass -File ops/Test-EvidaClientDataDesktopDoD.ps1",
+      "result": "BLOCKED",
+      "notes": "Generated machine-readable client-data desktop DoD phase artifacts. Phase 0 pass; Phases 1-11 blocked by signing, managed workstation, marker-flow, audit/export/security, and approval requirements."
+    },
+    {
+      "id": "EV-WINDOWS-POLICY-DIAGNOSTICS",
+      "kind": "artifact",
+      "ref": "artifacts/first-user/windows_policy_diagnostics.current.json",
+      "result": "BLOCKED",
+      "notes": "Release manifest/signing/managed policy evidence is not sufficient for real client data."
+    },
+    {
+      "id": "EV-RUNTIME-MARKER-LOG-SCAN",
+      "kind": "artifact",
+      "ref": "artifacts/first-user/runtime_sensitive_log_scan.json",
+      "result": "PASS",
+      "notes": "Runtime marker scan passed after full synthetic document flow: 1,723 files scanned, zero findings."
+    },
+    {
+      "id": "EV-CLIENT-DATA-APPROVALS",
+      "kind": "artifact",
+      "ref": "artifacts/first-user/*_approval.json",
+      "result": "BLOCKED",
+      "notes": "Approval artifacts are present as missing/blocked placeholders only; no approval is claimed."
+    },
+    {
+      "id": "EV-WEB-SPRING-REGRESSION",
+      "kind": "command",
+      "ref": "npm test && mvnw clean test && npm run build",
+      "result": "PASS",
+      "notes": "181 web tests, 11 pilot tests and 154 Spring tests pass; two OCR environment tests intentionally skipped."
+    },
+    {
+      "id": "EV-SOURCE-BOUND-RUNTIME",
+      "kind": "command",
+      "ref": "npm run pilot:test-source-bound-runtime",
+      "result": "PASS",
+      "notes": "Synthetic ClamAV upload, ingestion, multi-document source binding, unsupported claim, active-route prompt injection, export, versioned replacement/source invalidation and audit-chain runtime passed."
+    },
+    {
+      "id": "EV-BACKUP-RESTORE",
+      "kind": "artifact",
+      "ref": "artifacts/first-user/backup_restore_result.json",
+      "result": "PASS",
+      "notes": "AES-256-GCM backup and isolated PostgreSQL/document-storage restore drill passed."
+    },
+    {
+      "id": "EV-RELEASE-SECURITY-CURRENT",
+      "kind": "artifact",
+      "ref": "artifacts/release/release_manifest.json",
+      "result": "BLOCKED",
+      "notes": "SBOMs, npm audit and scoped gitleaks pass locally; CodeQL workflow has not run and current Windows deliverable is unsigned."
+    }
+  ],
+  "first_user_pack": {
+    "manifest": "casepilot_first_user_readiness_pack_manifest.json",
+    "zip": "casepilot_first_user_readiness_pack.zip",
+    "zip_sha256": "f9e0a9dd45c5d65abbb400b22d1b5d951bd9a94bab8334b1e8432f64121ba338",
+    "file_count": 24,
+    "integrity": "pass"
+  },
+  "client_data_desktop_dod": {
+    "status": "blocked",
+    "result_ref": "artifacts/first-user/client_data_desktop_dod_result.json",
+    "generated_artifacts": [
+      "artifacts/first-user/client_data_desktop_dod_result.json",
+      "artifacts/first-user/windows_policy_diagnostics.current.json",
+      "artifacts/first-user/signature_verification.json",
+      "artifacts/first-user/runtime_sensitive_log_scan.json",
+      "artifacts/first-user/raw_storage_inspection.json",
+      "artifacts/first-user/encryption_verification.json",
+      "artifacts/first-user/audit_coverage_result.json",
+      "artifacts/first-user/export_smoke_result.json"
+    ],
+    "real_client_data_allowed": false
+  },
+  "manual_gates_remaining": [
+    "Verify storage encryption and raw marker protection on the managed target machine.",
+    "Run native Windows file-picker and managed-machine smoke.",
+    "Build and sign the approved Windows deployment package.",
+    "Run pushed CodeQL/release-security workflow.",
+    "Complete engineering, product, security/privacy, Braathe/IT and data-owner approvals."
+  ],
+  "machine_readable_gates": {
+    "toolchain": {
+      "gate": "evida-toolchain",
+      "status": "PASS",
+      "tools": [
+        {
+          "name": "java",
+          "status": "PASS",
+          "command": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.10.7-hotspot\\bin\\java.exe",
+          "required_for": "backend_tests",
+          "message": "java available on PATH."
+        },
+        {
+          "name": "maven",
+          "status": "PASS",
+          "command": "C:\\Users\\knutn\\.evida-tools\\apache-maven-3.9.11\\bin\\mvn.cmd",
+          "required_for": "backend_tests",
+          "message": "maven available via user-local Evida tool cache."
+        },
+        {
+          "name": "node",
+          "status": "PASS",
+          "command": "C:\\Program Files\\nodejs\\node.exe",
+          "required_for": "desktop_frontend_tests",
+          "message": "node available on PATH."
+        },
+        {
+          "name": "npm",
+          "status": "PASS",
+          "command": "C:\\Program Files\\nodejs\\npm.cmd",
+          "required_for": "desktop_frontend_tests",
+          "message": "npm available on PATH."
+        },
+        {
+          "name": "cargo",
+          "status": "PASS",
+          "command": "C:\\Users\\knutn\\.cargo\\bin\\cargo.exe",
+          "required_for": "desktop_rust_tests",
+          "message": "cargo available on PATH."
+        },
+        {
+          "name": "python",
+          "status": "PASS",
+          "command": "C:\\Users\\knutn\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+          "required_for": "status_bundle_validation",
+          "message": "python available on PATH."
+        },
+        {
+          "name": "gitleaks",
+          "status": "PASS",
+          "command": "C:\\Users\\knutn\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gitleaks.Gitleaks_Microsoft.Winget.Source_8wekyb3d8bbwe\\gitleaks.exe",
+          "required_for": "secret_scan",
+          "message": "gitleaks available on PATH."
+        }
+      ],
+      "blocked_tools": []
+    },
+    "backend_tests": {
+      "gate": "backend-tests",
+      "status": "PASS",
+      "service": "F:\\prosjekter(MAIN)\\EVIDA\\evida-core\\services\\saksrom-api",
+      "command": "C:\\Users\\knutn\\.evida-tools\\apache-maven-3.9.11\\bin\\mvn.cmd",
+      "exit_code": 0,
+      "message": "Backend Maven tests passed."
+    },
+    "secret_scan": {
+      "gate": "secret-scan",
+      "status": "PASS",
+      "command": "C:\\Users\\knutn\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gitleaks.Gitleaks_Microsoft.Winget.Source_8wekyb3d8bbwe\\gitleaks.exe",
+      "report": "F:\\prosjekter(MAIN)\\EVIDA\\artifacts\\security\\gitleaks-report.json",
+      "exit_code": 0,
+      "findings": 0,
+      "scopes": [
+        "evida-core\\desktop-tauri\\src",
+        "evida-core\\desktop-tauri\\src-tauri\\src",
+        "evida-core\\desktop-tauri\\scripts",
+        "ops",
+        "scripts",
+        "configs",
+        "docs",
+        "tests",
+        ".github",
+        "AGENTS.md",
+        "casepilot_first_user_readiness_pack_manifest.json"
+      ],
+      "message": "gitleaks secret scan passed.",
+      "output": []
+    }
+  }
 }

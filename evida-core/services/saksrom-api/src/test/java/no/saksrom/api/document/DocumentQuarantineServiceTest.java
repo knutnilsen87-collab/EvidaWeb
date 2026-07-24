@@ -1,6 +1,7 @@
 package no.saksrom.api.document;
 
 import no.saksrom.api.security.AuthenticatedUser;
+import no.saksrom.api.audit.AuditService;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -183,7 +184,69 @@ class DocumentQuarantineServiceTest {
 
         verify(repository).findByTenantIdAndStatusNotInOrderByCreatedAtDesc(
                 eq(TENANT_ID),
-                eq(java.util.List.of(Document.STATUS_DELETED, Document.STATUS_ARCHIVED))
+                eq(java.util.List.of(Document.STATUS_DELETED, Document.STATUS_ARCHIVED, Document.STATUS_SUPERSEDED))
+        );
+    }
+
+    @Test
+    void replacementCreatesNewActiveVersionInvalidatesOldSourcesAndAudits() throws Exception {
+        var repository = mock(DocumentRepository.class);
+        var sourceUnits = mock(DocumentSourceUnitRepository.class);
+        var audit = mock(AuditService.class);
+        var storage = new LocalDocumentStorageService(new DevBypassMalwareScanner(), quarantineRoot);
+        var service = new DocumentQuarantineService(
+                new LargeDocumentIngestionService(),
+                repository,
+                storage,
+                null,
+                sourceUnits,
+                audit
+        );
+        UUID previousId = UUID.fromString("00000000-0000-0000-0000-000000001204");
+        Document previous = document(previousId);
+        when(repository.findByIdAndTenantIdForUpdate(previousId, TENANT_ID)).thenReturn(java.util.Optional.of(previous));
+        when(repository.save(any(Document.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        var user = new AuthenticatedUser(TENANT_ID, USER_ID, "jurist@firma.no", Set.of("USER"));
+        var replacementFile = new MockMultipartFile(
+                "file",
+                "case-v2.txt",
+                "text/plain",
+                "nytt og endret dokumentinnhold".getBytes(StandardCharsets.UTF_8)
+        );
+
+        var response = service.replaceDocument(
+                previousId,
+                replacementFile,
+                TENANT_ID,
+                user,
+                10_000
+        );
+
+        assertEquals(2, response.versionNumber());
+        assertEquals(previousId, response.supersedesDocumentId());
+        assertTrue(response.activeVersion());
+        assertEquals(Document.STATUS_SUPERSEDED, previous.getStatus());
+        assertFalse(previous.isActiveVersion());
+        assertEquals(response.id(), previous.getSupersededByDocumentId());
+        verify(repository, times(2)).flush();
+        verify(sourceUnits).deleteByTenantIdAndDocumentId(TENANT_ID, previousId);
+        verify(audit).record(
+                eq(TENANT_ID),
+                eq(CASE_ID),
+                eq(USER_ID),
+                eq("SOURCE_OBJECTS_INVALIDATED"),
+                eq("DOCUMENT"),
+                eq(previousId),
+                contains(response.id().toString())
+        );
+        verify(audit).record(
+                eq(TENANT_ID),
+                eq(CASE_ID),
+                eq(USER_ID),
+                eq("DOCUMENT_REPLACED"),
+                eq("DOCUMENT"),
+                eq(response.id()),
+                contains("\"versionNumber\":2")
         );
     }
 

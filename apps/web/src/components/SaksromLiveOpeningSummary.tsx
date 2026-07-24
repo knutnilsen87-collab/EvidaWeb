@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EvidaDocument, SaksromSummary, SourceCoverage, SourceReference } from "../lib/api";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type {
+  EvidaDocument,
+  SaksromSummary,
+  SaksromSummaryFinding,
+  SourceCoverage,
+  SourceReference
+} from "../lib/api";
 import { fetchSaksromSummary } from "../lib/api";
 import { Citation } from "../lib/CitationManager";
 import type { WorkspaceView } from "../navigation";
@@ -84,6 +90,51 @@ function warningText(warning: string) {
   return warning.replace(/_/g, " ").toLowerCase();
 }
 
+type UnderstandingSection = {
+  emptyText?: string;
+  findings?: SaksromSummaryFinding[];
+  id: string;
+  sources?: SourceReference[];
+  text?: string;
+  title: string;
+};
+
+const contractTerms = /\b(avtale|kontrakt|kontraktssum|vederlag|betaling|pris|frist|garanti|sikkerhet|partene|byggherre|entreprenør|leveranse)\b/i;
+const disputeTerms = /\b(tvist|tvistetema|uenighet|bestrid|motstrid|mislighold|forsink|dagmulkt|reklamasjon|mangel|erstatning|krav|ansvar)\w*/i;
+
+function findingText(finding: SaksromSummaryFinding) {
+  return `${finding.heading ?? ""} ${finding.text}`.trim();
+}
+
+function sourceDocumentName(source: SourceReference, documents: EvidaDocument[]) {
+  return documents.find((document) => document.id === source.documentId)?.filename;
+}
+
+const legalTokenPattern = /(\b[A-ZÆØÅ][A-Za-zÆØÅæøå0-9&.-]*(?:\s+[A-ZÆØÅ][A-Za-zÆØÅæøå0-9&.-]*){0,3}\s+(?:AS|ASA|DA|ANS)\b|\b\d[\d .]*\s*(?:NOK|kr|kroner)(?:\s*(?:eks\.|inkl\.)\s*mva\.?)?|§\s*\d+[a-z]?|punkt\s+\d+(?:\.\d+)*)/gi;
+
+function legalText(value: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  let cursor = 0;
+  for (const match of value.matchAll(legalTokenPattern)) {
+    const index = match.index ?? 0;
+    if (index > cursor) {
+      nodes.push(value.slice(cursor, index));
+    }
+    const token = match[0];
+    const className = /\b(?:NOK|kr|kroner)\b/i.test(token)
+      ? "legal-token legal-token--amount"
+      : /^(?:§|punkt)/i.test(token)
+      ? "legal-token legal-token--reference"
+      : "legal-token legal-token--party";
+    nodes.push(<span className={className} key={`${index}:${token}`}>{token}</span>);
+    cursor = index + token.length;
+  }
+  if (cursor < value.length) {
+    nodes.push(value.slice(cursor));
+  }
+  return nodes;
+}
+
 export function SaksromLiveOpeningSummary({
   caseId,
   tenantId,
@@ -97,6 +148,8 @@ export function SaksromLiveOpeningSummary({
   const [activeStep, setActiveStep] = useState(0);
   const [visibleSectionCount, setVisibleSectionCount] = useState(0);
   const requestKeyRef = useRef("");
+  const completedRequestKeyRef = useRef("");
+  const revealedSummaryRef = useRef<SaksromSummary | null>(null);
 
   const hasSourceBasis = sourceCoverage
     ? (sourceCoverage.readyPages ?? 0) > 0
@@ -118,19 +171,34 @@ export function SaksromLiveOpeningSummary({
     }
     summary?.warnings.forEach((warning) => values.add(warning));
     return [...values];
-  }, [isPartial, sourceCoverage, summary?.warnings]);
+  }, [
+    isPartial,
+    sourceCoverage?.belowThresholdPageRanges,
+    sourceCoverage?.belowThresholdPages,
+    sourceCoverage?.missingOcrPageRanges,
+    sourceCoverage?.missingOcrPages,
+    summary?.warnings
+  ]);
 
-  const loadSummary = useCallback(async () => {
+  const loadSummary = useCallback(async (force = false) => {
     if (!caseId || !tenantId || !hasSourceBasis) {
       return;
     }
 
     const requestKey = `${caseId}:${tenantId}`;
+    if (!force && (requestKeyRef.current === requestKey || completedRequestKeyRef.current === requestKey)) {
+      return;
+    }
+
     requestKeyRef.current = requestKey;
     setStatus("loading");
-    setSummary(null);
+    if (force) {
+      setSummary(null);
+    }
     setActiveStep(0);
-    setVisibleSectionCount(0);
+    if (force) {
+      setVisibleSectionCount(0);
+    }
 
     try {
       const response = await fetchSaksromSummary(tenantId, {
@@ -144,16 +212,30 @@ export function SaksromLiveOpeningSummary({
       setSummary(response);
       setStatus("ready");
       setActiveStep(progressSteps.length - 1);
+      completedRequestKeyRef.current = requestKey;
     } catch {
       if (requestKeyRef.current === requestKey) {
         setStatus("error");
+      }
+    } finally {
+      if (requestKeyRef.current === requestKey) {
+        requestKeyRef.current = "";
       }
     }
   }, [caseId, hasSourceBasis, tenantId]);
 
   useEffect(() => {
+    if (!caseId || !tenantId) {
+      requestKeyRef.current = "";
+      completedRequestKeyRef.current = "";
+      revealedSummaryRef.current = null;
+      setSummary(null);
+      setStatus("idle");
+      setVisibleSectionCount(0);
+      return;
+    }
     void loadSummary();
-  }, [loadSummary]);
+  }, [caseId, loadSummary, tenantId]);
 
   useEffect(() => {
     if (status !== "loading") {
@@ -169,42 +251,62 @@ export function SaksromLiveOpeningSummary({
     if (!summary) {
       return [];
     }
+
+    const contractFindings: SaksromSummaryFinding[] = [];
+    const disputeFindings: SaksromSummaryFinding[] = [];
+    const generalFindings: SaksromSummaryFinding[] = [];
+    summary.findings.forEach((finding) => {
+      const text = findingText(finding);
+      if (disputeTerms.test(text)) {
+        disputeFindings.push(finding);
+      } else if (contractTerms.test(text)) {
+        contractFindings.push(finding);
+      } else {
+        generalFindings.push(finding);
+      }
+    });
+
     return [
-      summary.summary
-        ? {
-            id: "tema",
-            title: summary.title || "Kort sakstype/tema",
-            text: summary.summary,
-            sources: compactSources(summary.sources ?? [])
-          }
-        : null,
-      ...summary.findings.map((finding, index) => ({
-        id: `finding-${index}`,
-        title: finding.heading || "Viktig punkt",
-        text: finding.text,
-        sources: compactSources(finding.sources ?? [])
-      })),
-      warnings.length > 0
-        ? {
-            id: "mangler",
-            title: "Mulige mangler",
-            text: warnings.map(warningText).join(" "),
-            sources: []
-          }
-        : null
-    ].filter(Boolean) as Array<{ id: string; title: string; text: string; sources: SourceReference[] }>;
+      {
+        id: "case-overview",
+        title: "Hva saken gjelder",
+        text: summary.summary,
+        findings: generalFindings
+      },
+      {
+        emptyText: "Ingen særskilte kontraktspunkter er identifisert i de tilgjengelige backend-funnene.",
+        findings: contractFindings,
+        id: "contract-points",
+        title: "Viktige kontraktspunkter"
+      },
+      {
+        emptyText: "Ingen mulige tvistetemaer er identifisert i de tilgjengelige backend-funnene.",
+        findings: disputeFindings,
+        id: "dispute-themes",
+        title: "Mulige tvistetemaer"
+      },
+      {
+        id: "source-basis",
+        sources: compactSources(summary.sources ?? []),
+        text: warnings.length > 0
+          ? warnings.map(warningText).join(" ")
+          : "Oppsummeringen bygger på kildehenvisningene nedenfor.",
+        title: "Kildegrunnlag"
+      }
+    ] satisfies UnderstandingSection[];
   }, [summary, warnings]);
 
   useEffect(() => {
-    if (status !== "ready" || sections.length === 0) {
+    if (status !== "ready" || !summary || sections.length === 0 || revealedSummaryRef.current === summary) {
       return;
     }
+    revealedSummaryRef.current = summary;
     setVisibleSectionCount(0);
     const timers = sections.map((_, index) =>
       window.setTimeout(() => setVisibleSectionCount((count) => Math.max(count, index + 1)), 180 + index * 220)
     );
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [sections, status]);
+  }, [sections, status, summary]);
 
   if (!hasSourceBasis) {
     return null;
@@ -251,16 +353,55 @@ export function SaksromLiveOpeningSummary({
 
       {summary ? (
         <div className="saksrom-live-summary__result">
-          <h3>Her er første saksforståelse basert på tilgjengelige kilder:</h3>
+          <header className="saksrom-live-summary__result-header">
+            <span>Kildebundet arbeidsnotat</span>
+            <h3>Første saksforståelse</h3>
+            <p>
+              {summary.title || "Sakstema ikke navngitt"}
+              {" · "}
+              {summary.sources.length} kildehenvisning{summary.sources.length === 1 ? "" : "er"}
+            </p>
+          </header>
           {sections.slice(0, visibleSectionCount).map((section) => (
             <section className="saksrom-live-summary__section" key={section.id}>
               <h4>{section.title}</h4>
-              <p>{section.text}</p>
-              {section.sources.length > 0 ? (
+              {section.text ? <p>{legalText(section.text)}</p> : null}
+              {(section.findings ?? []).length > 0 ? (
+                <ol className="saksrom-live-summary__findings">
+                  {section.findings?.map((finding, findingIndex) => (
+                    <li key={`${finding.heading}:${finding.text}:${findingIndex}`}>
+                      <span>
+                        {finding.heading ? <strong>{finding.heading}:</strong> : null} {legalText(finding.text)}
+                      </span>
+                      {(finding.sources ?? []).length > 0 ? (
+                        <span className="saksrom-live-summary__sources" aria-label={`Kilder for funn ${findingIndex + 1}`}>
+                          {compactSources(finding.sources ?? []).map((source) => (
+                            <CitationChip
+                              ariaContext={`for funn ${findingIndex + 1}`}
+                              citation={citationFromSource(source)}
+                              documentName={sourceDocumentName(source, documents)}
+                              excerpt={source.quote}
+                              key={`${source.documentId}:${source.sourceUnitId}:${source.pageNumber}`}
+                              label={`Side ${source.pageNumber}`}
+                            />
+                          ))}
+                        </span>
+                      ) : (
+                        <small>Ikke dokumentert med egen kildehenvisning.</small>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              ) : section.emptyText ? (
+                <p className="saksrom-live-summary__empty">{section.emptyText}</p>
+              ) : null}
+              {(section.sources ?? []).length > 0 ? (
                 <div className="saksrom-live-summary__sources" aria-label="Kilder">
-                  {section.sources.map((source) => (
+                  {section.sources?.map((source) => (
                     <CitationChip
                       citation={citationFromSource(source)}
+                      documentName={sourceDocumentName(source, documents)}
+                      excerpt={source.quote}
                       key={`${source.documentId}:${source.sourceUnitId}:${source.pageNumber}`}
                       label={`Side ${source.pageNumber}`}
                     />

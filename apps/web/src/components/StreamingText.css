@@ -1,0 +1,79 @@
+.streaming-text {
+  display: inline;
+}
+
+.streaming-text__content {
+  white-space: pre-wrap;
+}
+
+/* Pulsing cursor shown while generating / waiting for the next token. */
+.streaming-text__cursor {
+  display: inline-block;
+  width: 0.5ch;
+  height: 1.05em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: currentColor;
+  border-radius: 1px;
+  opacity: 0.9;
+  animation-name: streaming-cursor-blink;
+  animation-duration: 900ms; /* overridden inline from STREAMING_CONFIG.cursorBlinkMs */
+  animation-timing-function: steps(2, start);
+  animation-iteration-count: infinite;
+}
+
+/* Gentler pulse when the buffer is empty and we're waiting on the network (no jerk, just breathing). */
+.streaming-text__cursor.is-waiting {
+  animation-name: streaming-cursor-wait;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes streaming-cursor-blink {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes streaming-cursor-wait {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streaming-text__cursor {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.streaming-text__error {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  color: var(--evida-danger, #b3261e);
+  font-size: 0.875em;
+}
+
+.streaming-text__retry {
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  border-radius: 6px;
+  padding: 0.1rem 0.55rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.streaming-text__retry:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}

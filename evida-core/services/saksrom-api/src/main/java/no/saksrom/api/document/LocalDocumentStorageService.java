@@ -57,7 +57,12 @@ public class LocalDocumentStorageService implements DocumentStorageService {
 
             MalwareScanResult scan = malwareScanner.scan(tempFile);
             if (!scan.clean()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "MALWARE_SCAN_REJECTED:" + scan.detail());
+                throw switch (scan.status()) {
+                    case INFECTED -> new UploadSecurityException("MALWARE_DETECTED", HttpStatus.BAD_REQUEST);
+                    case SCAN_UNAVAILABLE -> new UploadSecurityException("MALWARE_SCAN_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE);
+                    case SCAN_FAILED -> new UploadSecurityException("MALWARE_SCAN_FAILED", HttpStatus.SERVICE_UNAVAILABLE);
+                    case CLEAN -> new IllegalStateException("Unexpected clean malware scan rejection");
+                };
             }
 
             String prefix = streamed.sha256().substring(0, 2);

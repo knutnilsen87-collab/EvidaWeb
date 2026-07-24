@@ -1,12 +1,17 @@
 package no.saksrom.api.document;
 
 import no.saksrom.api.config.EvidaProperties;
+import no.saksrom.api.audit.AuditService;
 import no.saksrom.api.security.AuthenticatedUser;
 import no.saksrom.api.security.CurrentUserService;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HexFormat;
 import java.util.List;
@@ -21,6 +26,8 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DocumentControllerTest {
@@ -61,13 +68,13 @@ class DocumentControllerTest {
         var badMime = new MockMultipartFile("file", "case.pdf", "application/octet-stream", "abc".getBytes());
 
         assertEquals("UPLOAD_REJECTED_EXTENSION", controller.calculateHash(badExtension).status());
-        assertEquals("UPLOAD_REJECTED_MIME_TYPE", controller.calculateHash(badMime).status());
+        assertEquals("UPLOAD_REJECTED_DECLARED_MIME_MISMATCH", controller.calculateHash(badMime).status());
     }
 
     @Test
-    void uploadPlacesDocumentInQuarantineForAuthenticatedTenant() {
+    void uploadPlacesDocumentInQuarantineForAuthenticatedTenant() throws Exception {
         var controller = controller(true);
-        var file = new MockMultipartFile("file", "case.pdf", "application/pdf", "test".getBytes());
+        var file = validPdfFile("case.pdf");
 
         var response = controller.uploadDocument(file, TENANT_ID.toString(), null);
 
@@ -116,6 +123,93 @@ class DocumentControllerTest {
         assertEquals(400, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals("UPLOAD_REJECTED_EMPTY_FILE", response.getBody().status());
+    }
+
+    @Test
+    void uploadAcceptsOnlyPilotPdfAndTxtIncludingUppercaseExtensions() throws Exception {
+        var controller = controller(true);
+
+        var pdfResponse = controller.uploadDocument(validPdfFile("CASE.PDF"), TENANT_ID.toString(), null);
+        var txtResponse = controller.uploadDocument(
+                new MockMultipartFile("file", "NOTAT.TXT", "text/plain", "Ærlig tekst på norsk".getBytes(StandardCharsets.UTF_8)),
+                TENANT_ID.toString(),
+                null
+        );
+
+        assertEquals(200, pdfResponse.getStatusCode().value());
+        assertEquals(200, txtResponse.getStatusCode().value());
+    }
+
+    @Test
+    void uploadRejectsDocxEvenWhenDeclaredAsDocx() {
+        var controller = controller(true);
+        byte[] zipHeader = new byte[] {0x50, 0x4b, 0x03, 0x04, 0x14, 0x00};
+        var file = new MockMultipartFile(
+                "file",
+                "prosesskriv.docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                zipHeader
+        );
+
+        var response = controller.uploadDocument(file, TENANT_ID.toString(), null);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals("UPLOAD_REJECTED_EXTENSION", response.getBody().status());
+    }
+
+    @Test
+    void uploadRejectsSpoofedPdfBeforeQuarantine() {
+        var documentRepository = mock(DocumentRepository.class);
+        var controller = controller(true, documentRepository);
+        var file = new MockMultipartFile("file", "case.pdf", "application/pdf", "MZ executable".getBytes(StandardCharsets.UTF_8));
+
+        var response = controller.uploadDocument(file, TENANT_ID.toString(), null);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals("UPLOAD_REJECTED_CONTENT_TYPE_MISMATCH", response.getBody().status());
+        verify(documentRepository, never()).save(any(Document.class));
+    }
+
+    @Test
+    void uploadRejectionRecordsSafeAuditCodeOnly() {
+        var documentRepository = mock(DocumentRepository.class);
+        var auditService = mock(AuditService.class);
+        var controller = controller(true, documentRepository, auditService);
+        var file = new MockMultipartFile("file", "case.pdf", "application/pdf", "MZ executable".getBytes(StandardCharsets.UTF_8));
+
+        var response = controller.uploadDocument(file, TENANT_ID.toString(), null);
+
+        assertEquals(400, response.getStatusCode().value());
+        verify(auditService).record(
+                eq(TENANT_ID),
+                eq(null),
+                eq(USER_ID),
+                eq("DOCUMENT_UPLOAD_REJECTED"),
+                eq("DOCUMENT"),
+                eq(null),
+                eq("{\"code\":\"UPLOAD_REJECTED_CONTENT_TYPE_MISMATCH\"}")
+        );
+    }
+
+    @Test
+    void uploadRejectsPdfRenamedTxtAndTxtRenamedPdf() throws Exception {
+        var controller = controller(true);
+        var pdfAsTxt = new MockMultipartFile("file", "rettsbok.txt", "text/plain", validPdfBytes());
+        var txtAsPdf = new MockMultipartFile("file", "notat.pdf", "application/pdf", "Dette er tekst".getBytes(StandardCharsets.UTF_8));
+
+        assertEquals("UPLOAD_REJECTED_CONTENT_TYPE_MISMATCH", controller.uploadDocument(pdfAsTxt, TENANT_ID.toString(), null).getBody().status());
+        assertEquals("UPLOAD_REJECTED_CONTENT_TYPE_MISMATCH", controller.uploadDocument(txtAsPdf, TENANT_ID.toString(), null).getBody().status());
+    }
+
+    @Test
+    void uploadRejectsTruncatedPdfWithPdfSignature() {
+        var controller = controller(true);
+        var file = new MockMultipartFile("file", "truncated.pdf", "application/pdf", "%PDF-1.7\ntruncated".getBytes(StandardCharsets.UTF_8));
+
+        var response = controller.uploadDocument(file, TENANT_ID.toString(), null);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals("UPLOAD_REJECTED_INVALID_PDF", response.getBody().status());
     }
 
     @Test
@@ -219,7 +313,7 @@ class DocumentControllerTest {
     @Test
     void checkDuplicatesWithCaseIdIgnoresTenantWideBlobExistence() {
         var controller = controller(true);
-        var file = new MockMultipartFile("file", "case.pdf", "application/pdf", "shared bytes".getBytes());
+        var file = new MockMultipartFile("file", "case.txt", "text/plain", "shared bytes".getBytes(StandardCharsets.UTF_8));
 
         // Upload stores a tenant-wide content-addressed blob (repo mock keeps document lookups empty).
         var upload = controller.uploadDocument(file, TENANT_ID.toString(), null);
@@ -261,7 +355,7 @@ class DocumentControllerTest {
     void uploadRegistersExistingTenantHashAsNewDocumentInAnotherCase() {
         var controller = controller(true);
         UUID caseB = UUID.fromString("00000000-0000-0000-0000-000000002002");
-        var file = new MockMultipartFile("file", "fasit.pdf", "application/pdf", "shared bytes".getBytes());
+        var file = new MockMultipartFile("file", "fasit.txt", "text/plain", "shared bytes".getBytes(StandardCharsets.UTF_8));
 
         // First upload seeds the tenant-wide blob (no case).
         var first = controller.uploadDocument(file, TENANT_ID.toString(), null);
@@ -412,6 +506,10 @@ class DocumentControllerTest {
     }
 
     private DocumentController controller(boolean rawUploadAllowed, DocumentRepository documentRepository) {
+        return controller(rawUploadAllowed, documentRepository, null);
+    }
+
+    private DocumentController controller(boolean rawUploadAllowed, DocumentRepository documentRepository, AuditService auditService) {
         var currentUserService = mock(CurrentUserService.class);
         when(currentUserService.currentUser()).thenReturn(
                 new AuthenticatedUser(TENANT_ID, USER_ID, "jurist@firma.no", Set.of("USER"))
@@ -427,7 +525,14 @@ class DocumentControllerTest {
                 currentUserService,
                 new DocumentQuarantineService(new LargeDocumentIngestionService(), documentRepository, quarantineRoot.toString()),
                 new LargeDocumentIngestionService(),
-                mock(IngestionJobService.class)
+                mock(IngestionJobService.class),
+                new UploadSecurityService(new EvidaProperties(
+                        EvidaProperties.Security.of(true),
+                        EvidaProperties.Ai.of(false),
+                        EvidaProperties.Documents.of(rawUploadAllowed),
+                        null
+                )),
+                auditService
         );
     }
 
@@ -456,5 +561,17 @@ class DocumentControllerTest {
             document.markArchived();
         }
         return document;
+    }
+
+    private MockMultipartFile validPdfFile(String filename) throws Exception {
+        return new MockMultipartFile("file", filename, "application/pdf", validPdfBytes());
+    }
+
+    private byte[] validPdfBytes() throws Exception {
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            document.addPage(new PDPage());
+            document.save(out);
+            return out.toByteArray();
+        }
     }
 }

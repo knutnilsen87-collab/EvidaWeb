@@ -1,8 +1,10 @@
 package no.saksrom.api.document;
 
+import no.saksrom.api.audit.AuditService;
 import no.saksrom.api.config.EvidaProperties;
 import no.saksrom.api.security.AuthenticatedUser;
 import no.saksrom.api.security.CurrentUserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,7 +23,6 @@ import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -30,20 +31,33 @@ import java.util.regex.Pattern;
 public class DocumentController {
     private static final Pattern SHA256_PATTERN = Pattern.compile("(?i)[0-9a-f]{64}");
     private static final int MAX_DUPLICATE_CHECK_HASHES = 100;
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "txt", "docx", "png", "jpg", "jpeg");
-    private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
-            "application/pdf",
-            "text/plain",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "image/png",
-            "image/jpeg"
-    );
 
     private final EvidaProperties properties;
     private final CurrentUserService currentUserService;
     private final DocumentQuarantineService quarantineService;
     private final LargeDocumentIngestionService ingestionService;
     private final IngestionJobService ingestionJobService;
+    private final UploadSecurityService uploadSecurityService;
+    private final AuditService auditService;
+
+    @Autowired
+    public DocumentController(
+            EvidaProperties properties,
+            CurrentUserService currentUserService,
+            DocumentQuarantineService quarantineService,
+            LargeDocumentIngestionService ingestionService,
+            IngestionJobService ingestionJobService,
+            UploadSecurityService uploadSecurityService,
+            AuditService auditService
+    ) {
+        this.properties = properties;
+        this.currentUserService = currentUserService;
+        this.quarantineService = quarantineService;
+        this.ingestionService = ingestionService;
+        this.ingestionJobService = ingestionJobService;
+        this.uploadSecurityService = uploadSecurityService;
+        this.auditService = auditService;
+    }
 
     public DocumentController(
             EvidaProperties properties,
@@ -52,11 +66,15 @@ public class DocumentController {
             LargeDocumentIngestionService ingestionService,
             IngestionJobService ingestionJobService
     ) {
-        this.properties = properties;
-        this.currentUserService = currentUserService;
-        this.quarantineService = quarantineService;
-        this.ingestionService = ingestionService;
-        this.ingestionJobService = ingestionJobService;
+        this(
+                properties,
+                currentUserService,
+                quarantineService,
+                ingestionService,
+                ingestionJobService,
+                new UploadSecurityService(properties),
+                null
+        );
     }
 
     /**
@@ -74,13 +92,14 @@ public class DocumentController {
             );
         }
 
-        String validationFailure = validateUpload(file);
-        if (validationFailure != null) {
+        try {
+            validateUpload(file);
+        } catch (UploadSecurityException e) {
             return new DocumentHashResponse(
                     file.getOriginalFilename(),
                     file.getSize(),
                     null,
-                    validationFailure
+                    e.code()
             );
         }
 
@@ -117,14 +136,16 @@ public class DocumentController {
             ));
         }
 
-        String validationFailure = validateUpload(file);
-        if (validationFailure != null) {
-            return ResponseEntity.badRequest().body(DocumentUploadResponse.rejected(
+        try {
+            validateUpload(file);
+        } catch (UploadSecurityException e) {
+            auditUploadRejected(requestedTenant, caseId, user.userId(), e.code());
+            return ResponseEntity.status(e.httpStatus()).body(DocumentUploadResponse.rejected(
                     requestedTenant,
                     file.getOriginalFilename(),
                     file.getSize(),
-                    validationFailure,
-                    "Opplasting feilet: Sikkerhetskontroll avviste forespørselen."
+                    e.code(),
+                    uploadSecurityService.safeMessage(e.code())
             ));
         }
 
@@ -138,11 +159,41 @@ public class DocumentController {
                             properties.documents().maxFileSizeBytes()
                     )
             );
+        } catch (UploadSecurityException e) {
+            auditUploadRejected(requestedTenant, caseId, user.userId(), e.code());
+            return ResponseEntity.status(e.httpStatus()).body(DocumentUploadResponse.rejected(
+                    requestedTenant,
+                    file.getOriginalFilename(),
+                    file.getSize(),
+                    e.code(),
+                    uploadSecurityService.safeMessage(e.code())
+            ));
         } catch (ResponseStatusException e) {
             throw e;
         } catch (Exception e) {
             throw new IllegalStateException("Could not quarantine uploaded document", e);
         }
+    }
+
+    @PostMapping("/{documentId}/replace")
+    public ResponseEntity<DocumentUploadResponse> replaceDocument(
+            @PathVariable UUID documentId,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader
+    ) {
+        AuthenticatedUser user = currentUserService.currentUser();
+        UUID requestedTenant = parseUuid(tenantHeader, "TENANT_HEADER_INVALID");
+        if (!requestedTenant.equals(user.tenantId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tenant-kontekst stemmer ikke med autentisert bruker.");
+        }
+        validateUpload(file);
+        return ResponseEntity.ok(quarantineService.replaceDocument(
+                documentId,
+                file,
+                requestedTenant,
+                user,
+                properties.documents().maxFileSizeBytes()
+        ));
     }
 
     @GetMapping
@@ -337,29 +388,23 @@ public class DocumentController {
         return digest.digest();
     }
 
-    String validateUpload(MultipartFile file) {
-        if (file.isEmpty()) {
-            return "UPLOAD_REJECTED_EMPTY_FILE";
-        }
-        if (file.getSize() > properties.documents().maxFileSizeBytes()) {
-            return "UPLOAD_REJECTED_FILE_TOO_LARGE";
-        }
-        String extension = extension(file.getOriginalFilename());
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            return "UPLOAD_REJECTED_EXTENSION";
-        }
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
-            return "UPLOAD_REJECTED_MIME_TYPE";
-        }
-        return null;
+    void validateUpload(MultipartFile file) {
+        uploadSecurityService.validate(file);
     }
 
-    private String extension(String filename) {
-        if (filename == null || !filename.contains(".")) {
-            return "";
+    private void auditUploadRejected(UUID tenantId, UUID caseId, UUID actorUserId, String code) {
+        if (auditService == null) {
+            return;
         }
-        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+        auditService.record(
+                tenantId,
+                caseId,
+                actorUserId,
+                "DOCUMENT_UPLOAD_REJECTED",
+                "DOCUMENT",
+                null,
+                "{\"code\":\"" + code + "\"}"
+        );
     }
 
     private UUID parseUuid(String value, String errorCode) {
@@ -411,7 +456,12 @@ public class DocumentController {
             String ingestionJobStatus,
             int ingestionPagesProcessed,
             Integer ingestionPagesTotal,
-            String ingestionJobError
+            String ingestionJobError,
+            Integer versionNumber,
+            UUID versionRootId,
+            UUID supersedesDocumentId,
+            UUID supersededByDocumentId,
+            boolean activeVersion
     ) {
         static DocumentUploadResponse rejected(
                 UUID tenantId,
@@ -443,7 +493,12 @@ public class DocumentController {
                     null,
                     0,
                     null,
-                    null
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    false
             );
         }
     }

@@ -1,0 +1,72 @@
+name: Release security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+      - uses: actions/setup-java@v4
+        if: matrix.language == 'java-kotlin'
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Build Java
+        if: matrix.language == 'java-kotlin'
+        working-directory: evida-core/services/saksrom-api
+        run: ./mvnw -DskipTests package
+      - uses: github/codeql-action/analyze@v3
+
+  sbom:
+    name: Build CycloneDX SBOMs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+      - name: Generate web SBOM
+        working-directory: apps/web
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom-web.cdx.json
+      - name: Generate backend SBOM
+        working-directory: evida-core/services/saksrom-api
+        run: ./mvnw org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom -DoutputName=sbom-backend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-sboms
+          path: |
+            apps/web/sbom-web.cdx.json
+            evida-core/services/saksrom-api/target/sbom-backend.json

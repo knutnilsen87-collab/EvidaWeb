@@ -54,6 +54,56 @@
   color: var(--primary);
 }
 
+.summary-next-action-card {
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid rgba(0, 212, 163, 0.24);
+  border-radius: 8px;
+  padding: var(--evida-space-3);
+  background:
+    radial-gradient(circle at top right, rgba(0, 212, 163, 0.1), transparent 58%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.summary-next-action-card h4,
+.summary-next-action-card p {
+  margin: 0;
+}
+
+.summary-next-action-card h4 {
+  color: var(--evida-text-primary);
+  font-size: 1rem;
+}
+
+.summary-next-action-card p {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.summary-next-action-card button {
+  justify-self: start;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.65rem 0.9rem;
+  background: var(--primary);
+  color: #04110f;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.case-summary-secondary-actions summary {
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.case-summary-secondary-actions[open] {
+  display: grid;
+  gap: var(--evida-space-2);
+}
+
 .summary-preliminary-marker,
 .summary-stale-warning,
 .summary-empty-state {
@@ -127,14 +177,120 @@
   padding: 0.48rem 0.72rem;
 }
 
+.summary-ready-state {
+  justify-self: start;
+  margin: 0;
+  border: 1px solid rgba(0, 212, 163, 0.24);
+  border-radius: var(--evida-radius-sm);
+  padding: 0.46rem 0.7rem;
+  background: rgba(0, 212, 163, 0.055);
+  color: rgba(0, 212, 163, 0.9);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .summary-empty-state {
   border: 1px solid var(--evida-glass-border);
   color: var(--evida-text-secondary);
 }
 
+.summary-generation-panel {
+  display: grid;
+  gap: var(--evida-space-3);
+  border: 1px solid rgba(0, 212, 163, 0.2);
+  border-radius: var(--evida-radius-md);
+  padding: var(--evida-space-3);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025)),
+    rgba(0, 212, 163, 0.045);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  color: var(--evida-text-primary);
+}
+
+.summary-generation-panel strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-size: 0.92rem;
+}
+
+.summary-live-cursor {
+  color: var(--primary);
+  animation: summary-cursor-blink 1s steps(2, start) infinite;
+}
+
+.summary-generation-steps {
+  display: grid;
+  gap: 0.48rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summary-generation-step {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.82rem;
+}
+
+.summary-generation-step::before {
+  content: "";
+  width: 0.44rem;
+  height: 0.44rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.summary-generation-step.is-active {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.summary-generation-step.is-active::before {
+  background: var(--primary);
+  box-shadow: 0 0 16px rgba(0, 212, 163, 0.55);
+}
+
+.summary-generation-step.is-complete {
+  color: rgba(0, 212, 163, 0.86);
+}
+
+.summary-generation-step.is-complete::before {
+  background: rgba(0, 212, 163, 0.86);
+}
+
 .summary-sections {
   display: grid;
   gap: var(--evida-space-3);
+}
+
+.summary-sections--live .saksrom-summary-section {
+  animation: summary-section-enter 0.34s ease-out both;
+}
+
+@keyframes summary-section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes summary-cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .summary-live-cursor,
+  .summary-sections--live .saksrom-summary-section {
+    animation: none;
+  }
 }
 
 .saksrom-summary-body {
@@ -173,6 +329,22 @@
 
 .summary-sections strong {
   color: var(--evida-text-primary);
+}
+
+.summary-claim-text {
+  margin-right: 0.35rem;
+}
+
+.summary-source-pill-row--inline {
+  display: inline-flex;
+  margin-left: 0.25rem;
+  vertical-align: baseline;
+}
+
+.unsupported-claim {
+  color: rgba(255, 205, 120, 0.86);
+  font-size: 0.78rem;
+  font-weight: 750;
 }
 
 .summary-body-text {

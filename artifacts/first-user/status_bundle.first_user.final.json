@@ -1,11 +1,11 @@
 {
   "bundle_id": "SB-FIRST-USER-EVIDA-LOCAL-2026-05-13",
-  "bundle_version": 1,
+  "bundle_version": 2,
   "domain": "casepilot_first_user_release",
-  "release_candidate_id": "evida-0.1.0-alpha-local-2026-05-13",
-  "commit_sha": "local-working-tree",
+  "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-24",
+  "commit_sha": "pending-final-git-commit",
   "created_at": "2026-05-13T11:38:36Z",
-  "updated_at": "2026-05-20T00:00:00+02:00",
+  "updated_at": "2026-07-24T15:34:36.0510617Z",
   "current_state": {
     "lifecycle_state": "evidence_collected",
     "status": "blocked",
@@ -15,9 +15,9 @@
     "production_ready": false
   },
   "summary": {
-    "short_summary": "Production-ready-only policy is active; first-user and client-data desktop release remain blocked.",
-    "technical_summary": "Client-data gates now fail closed: PARTIAL, SKIPPED, and UNKNOWN count as BLOCKED. Document replacement is blocked until versioned supersede semantics, source invalidation, audit, and AI exclusion are production-ready. Small-text/image OCR remains blocked until automatic enhancement, retry metadata, confidence storage, and source_ready gating are verified.",
-    "user_visible_summary": "Not approved for first user or real client data. Features that are not production-ready stay blocked or disabled."
+    "short_summary": "Automated local readiness improved substantially; first-user and real-client-data release remain blocked by explicit technical and external gates.",
+    "technical_summary": "Synthetic runtime passes upload/ClamAV, multi-document source binding, unsupported-claim refusal, active-route prompt-injection containment, export, audit-chain integrity, versioned replacement/source invalidation, OCR retry/confidence tests, encrypted backup/restore, and sensitive-log scanning. Remaining P0 blockers are storage encryption/raw inspection, provider-policy change audit, signed Windows delivery, managed-machine/native-picker smoke, release CI security results, and approvals.",
+    "user_visible_summary": "Morten must not use real case documents yet. Synthetic/redacted testing is working; storage protection, signed deployment, target-machine smoke and approvals remain."
   },
   "scope_lock": {
     "allowed_data": "synthetic_or_redacted_test_data",
@@ -51,16 +51,12 @@
     ],
     "broken_invariants": [],
     "untested_invariants": [
-      "INV-DATA-001",
       "INV-DATA-002",
       "INV-AUDIT-001",
       "INV-WIN-001",
       "INV-DATA-003",
-      "INV-DATA-004",
       "INV-RELEASE-001",
-      "INV-APPROVAL-001",
-      "INV-DOC-REPLACE-001",
-      "INV-OCR-001"
+      "INV-APPROVAL-001"
     ],
     "evaluation_ref": "artifacts/first-user/invariant_evaluation.first_user.json"
   },
@@ -104,7 +100,16 @@
       "artifacts/first-user/client_data_pilot_approval.json",
       "artifacts/first-user/engineering_approval.json",
       "artifacts/first-user/product_approval.json",
-      "artifacts/first-user/security_privacy_approval.json"
+      "artifacts/first-user/security_privacy_approval.json",
+      "artifacts/first-user/document_replacement_eval.json",
+      "artifacts/first-user/real_client_data_gate_latest.json",
+      "artifacts/release/release_manifest.json",
+      "artifacts/release/sbom-web.cdx.json",
+      "artifacts/release/sbom-backend.cdx.json",
+      "artifacts/release/npm-audit-web.json",
+      "artifacts/release/gitleaks_apps_result.json",
+      "artifacts/release/gitleaks_services_result.json",
+      "artifacts/release/gitleaks_scripts_result.json"
     ],
     "ci_refs": [],
     "manual_smoke_refs": [],
@@ -124,23 +129,23 @@
     ]
   },
   "verification_layer": {
-    "verification_status": "blocked",
-    "coverage_status": "blocked",
+    "verification_status": "blocked_external_and_storage_gates",
+    "coverage_status": "substantially_improved_but_not_complete",
     "residual_risk": "high_until_client_data_dod_closes",
     "false_green_risk": "controlled_by_fail_closed_gates",
     "p0_status": "blocked",
-    "document_upload_status": "blocked_document_replace_and_ocr_recovery_not_production_ready",
-    "ai_source_control_status": "blocked_until_only_active_source_ready_versions_can_be_used",
-    "audit_status": "blocked_document_replace_audit_not_verified",
-    "signing_status": "blocked_not_signed",
-    "client_data_safety_status": "blocked_marker_storage_proof_missing",
-    "multi_doc_eval_status": "blocked",
+    "document_upload_status": "pass_automated_runtime_native_picker_manual_required",
+    "ai_source_control_status": "pass_active_local_source_bound_route",
+    "audit_status": "blocked_provider_policy_change_audit_missing",
+    "signing_status": "blocked_no_signed_current_windows_deliverable",
+    "client_data_safety_status": "blocked_storage_encryption_not_verified",
+    "multi_doc_eval_status": "pass_synthetic_runtime",
     "approval_status": "blocked_missing_approvals",
     "clean_machine_smoke_status": "blocked_not_run",
     "managed_windows_status": "blocked_not_run_on_target",
-    "export_status": "blocked_not_verified",
-    "runtime_log_scan_status": "blocked_marker_flow_not_run",
-    "release_security_status": "blocked",
+    "export_status": "pass_synthetic_runtime",
+    "runtime_log_scan_status": "pass_1723_files_zero_findings",
+    "release_security_status": "blocked_codeql_workflow_added_not_yet_run_and_deliverable_unsigned",
     "release_artifact_integrity_status": "pass"
   },
   "ambiguity_layer": {
@@ -160,8 +165,8 @@
     ]
   },
   "action_layer": {
-    "recommended_next_action": "Implement production-grade document replacement and OCR recovery: versioned supersede semantics, source invalidation, document_replaced audit, active-source-only AI gating, automatic OCR enhancement/retry metadata/confidence, and update evidence before enabling client data.",
-    "fallback_action": "Disable Erstatt fil where production-grade replacement is not ready; keep affected documents outside source basis and keep status_bundle BLOCKED.",
+    "recommended_next_action": "On the managed pilot machine: verify BitLocker/storage protection, run raw-marker and native-picker smoke, execute the pushed release-security workflow, build/sign the approved Windows deployment package, then obtain approvals tied to this bundle.",
+    "fallback_action": "Continue synthetic/redacted testing only; keep real_client_data_allowed=false.",
     "rollback_path": "Do not distribute release candidate; revoke build artifact if already shared. Delete local test data with Evida reset command if needed."
   },
   "trust_layer": {
@@ -172,17 +177,13 @@
     "closure_decision": "blocked",
     "approved_by_review": false,
     "remaining_unknowns": [
-      "Manual clean-machine install/start behavior.",
-      "Signed SBOM/CI SCA/SAST result.",
-      "Windows code-signing certificate/signature result.",
-      "Privacy/legal operational decision for real juridical data.",
-      "Human approval decision.",
-      "Managed Windows/Braathe/Jussys compatibility is not verified.",
-      "Client-data local encryption/raw storage/deletion-retention gates are incomplete.",
-      "Runtime sensitive marker log scan has not passed.",
-      "Client-data pilot/Braathe/IT approvals are missing.",
-      "Client-data desktop DoD result is blocked.",
-      "Generated approval artifacts are missing approvals, not approvals."
+      "Managed Windows/Braathe/Jussys install and runtime behavior.",
+      "Trusted signature for the current Windows deployment deliverable.",
+      "BitLocker or equivalent application-layer protection for raw documents and extracted source text.",
+      "Provider/policy change audit ownership and evidence.",
+      "Release CodeQL/SCA workflow result from the pushed commit.",
+      "Native Windows file-picker smoke.",
+      "Engineering, product, security/privacy, Braathe/IT and data-owner approvals."
     ],
     "failure_to_asset_required": false
   },
@@ -208,33 +209,30 @@
       "managed_windows_status": "blocked_not_run_on_target",
       "signing_status": "blocked_not_signed",
       "clean_machine_smoke_status": "blocked_not_run",
-      "client_data_safety_status": "blocked_marker_storage_proof_missing",
-      "runtime_log_scan_status": "blocked_marker_flow_not_run",
-      "document_upload_status": "blocked_document_replace_and_ocr_recovery_not_production_ready",
-      "ai_source_control_status": "blocked_until_only_active_source_ready_versions_can_be_used",
-      "audit_status": "blocked_document_replace_audit_not_verified",
-      "export_status": "blocked_not_verified",
+      "client_data_safety_status": "blocked_storage_encryption_not_verified",
+      "runtime_log_scan_status": "pass_1723_files_zero_findings",
+      "document_upload_status": "pass_automated_runtime_native_picker_manual_required",
+      "ai_source_control_status": "pass_active_local_source_bound_route",
+      "audit_status": "blocked_provider_policy_change_audit_missing",
+      "export_status": "pass_synthetic_runtime",
       "release_security_status": "blocked",
       "approval_status": "blocked_missing_approvals"
     },
     "action_layer": {
-      "recommended_next_action": "Use artifacts/first-user/client_data_desktop_dod_result.json as the phase ledger; keep real client data blocked until every P0 client-data artifact is pass and approvals are present.",
+      "recommended_next_action": "Use real_client_data_gate_latest.json as the fail-closed ledger; close storage encryption, policy audit, signing, managed-machine/native-picker smoke, CI security and approvals.",
       "fallback_action": "Continue synthetic/redacted evaluation only."
     },
     "closure_layer": {
       "closure_decision": "blocked",
       "approved_by_review": false,
       "remaining_unknowns": [
-        "Braathe/IT approval not verified",
-        "client-data safety gates not complete",
-        "clean-machine smoke not complete",
-        "release signing/security gates not complete",
-        "Generated client-data DoD artifacts are present but blocked.",
-        "Release artifacts must be regenerated/signed and verified.",
-        "Synthetic client-data marker flow must be executed on a managed target machine.",
-        "Production-grade document replacement/versioning is not implemented.",
-        "Small-text/image OCR enhancement and retry confidence flow is not production-ready.",
-        "document_replaced/source_object_invalidated audit evidence is missing."
+        "Managed Windows/Braathe/Jussys install and runtime behavior.",
+        "Trusted signature for the current Windows deployment deliverable.",
+        "BitLocker or equivalent application-layer protection for raw documents and extracted source text.",
+        "Provider/policy change audit ownership and evidence.",
+        "Release CodeQL/SCA workflow result from the pushed commit.",
+        "Native Windows file-picker smoke.",
+        "Engineering, product, security/privacy, Braathe/IT and data-owner approvals."
       ]
     },
     "result_ref": "artifacts/first-user/client_data_desktop_dod_result.json",
@@ -258,15 +256,15 @@
       }
     },
     "document_replace": {
-      "status": "blocked",
-      "required_solution": "versioned replacement with supersede semantics",
+      "status": "pass",
+      "required_solution": "implemented and verified versioned replacement with supersede semantics, source invalidation and audit",
       "not_allowed": "import new duplicate file",
-      "if_not_ready": "disable replace button",
-      "ui_state": "disabled_until_production_grade_replace_exists"
+      "if_not_ready": "not_applicable_current_candidate_verified",
+      "ui_state": "enabled_with_runtime_verified_backend"
     },
     "small_text_ocr": {
-      "status": "blocked",
-      "required_solution": "automatic image preprocessing and OCR retry",
+      "status": "pass_automated_tests",
+      "required_solution": "implemented enhancement retry, confidence persistence and fail-closed source-ready gating",
       "not_allowed": "give up immediately and push burden to user",
       "if_not_ready": "mark not source_ready and block AI usage"
     }
@@ -289,5 +287,75 @@
       "manual_approval_required": true,
       "status_bundle_update_required": true
     }
+  },
+  "morten_pilot_runtime_status_2026_07_13": {
+    "decision": "controlled_synthetic_redacted_technical_pilot_ready",
+    "approval_language": "Approved for controlled first-user evaluation with synthetic/redacted test data only. Not approved for real client data or production legal work unless separately approved.",
+    "commercial_release_ready": "staging_candidate",
+    "real_client_data_allowed": false,
+    "production_legal_work_allowed": false,
+    "repo_health_verdict": "improved",
+    "commit_sha_at_gate_update": "fc1360b plus local working tree changes",
+    "runtime_evidence": {
+      "backend_18080_ocr_usable": true,
+      "frontend_5173_available": true,
+      "masterdoc_case_id": "44e42081-f3ff-45fe-ad19-daf180fdd0b8",
+      "masterdoc_document_id": "cd5670f9-3f3f-417f-9f27-d201e62e7b39",
+      "masterdoc_status": "SOURCE_READY",
+      "masterdoc_job_status": "COMPLETED",
+      "masterdoc_ready_pages": 78,
+      "masterdoc_total_pages": 78,
+      "pages_1_to_5_ocr_pageunits": true,
+      "page75_blank_pageunit": true,
+      "saksrom_chat_source_bound": true,
+      "saksrom_chat_source_pills_include_pages_1_or_2": true,
+      "zero_source_no_source_basis_guard_preserved": true,
+      "one_click_pilot_scripts_present": true
+    },
+    "verification": {
+      "frontend_tests": "PASS: npm run test -- --pool=threads --maxWorkers=1; 26 files, 139 tests",
+      "frontend_build": "PASS: npm run build",
+      "backend_tests": "PASS: .\\mvnw.cmd test; 132 tests, 0 failures, 2 skipped",
+      "pilot_health": "PASS: .\\scripts\\pilot\\test-evida-pilot-health.ps1",
+      "browser_smoke": "PASS: startup overview, uploader visibility, OCR source coverage, and source-bound Saksrom chat"
+    },
+    "remaining_manual_signoff": {
+      "native_file_picker_upload_signed_off": "manual_required",
+      "reason": "The in-app browser automation surface cannot inject a local file into the Windows native file picker.",
+      "impact": "Does not block controlled synthetic/redacted technical pilot; blocks any real-client-data claim."
+    }
+  },
+  "real_client_data_gate_2026_07_14": {
+    "status": "blocked",
+    "real_client_data_allowed": false,
+    "commercial_release_ready": "staging_candidate",
+    "evidence": {
+      "clamav_runtime": "blocked",
+      "runtime_sensitive_log_scan": "pass",
+      "audit_controller_test": "pass",
+      "native_file_picker": "manual_required",
+      "deletion_reset_method": "available_dry_run",
+      "topbar_policy_test": "pass",
+      "full_frontend_tests": "pass_27_files_142_tests",
+      "frontend_build": "pass",
+      "full_backend_tests": "pass_142_tests_2_skipped",
+      "clamav_start_attempt": "blocked_docker_daemon_not_running"
+    },
+    "artifacts": [
+      "artifacts/first-user/clamav_runtime_result.json",
+      "artifacts/first-user/runtime_sensitive_log_scan.json",
+      "artifacts/first-user/deletion_retention_result.json",
+      "artifacts/first-user/native_file_picker_upload_signoff.json",
+      "artifacts/first-user/real_client_data_gate_2026-07-14.json",
+      "docs/release/EVIDA_REAL_CLIENT_DATA_GATE_2026-07-14.md"
+    ]
+  },
+  "phase_completion": {
+    "phase_1_backup_restore": "completed_pass",
+    "phase_2_client_data_security": "completed_blocked_storage_encryption_and_managed_host_evidence",
+    "phase_3_document_ai_export": "completed_pass_except_full_policy_change_audit",
+    "phase_4_release_target_machine": "completed_local_evidence_external_signing_and_target_smoke_blocked",
+    "phase_5_regression_evidence": "completed_pass_automated",
+    "repo_health_verdict": "improved"
   }
 }

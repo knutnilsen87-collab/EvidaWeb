@@ -1,0 +1,92 @@
+{
+  "generated_at": "2026-07-24T15:40:22.4981374Z",
+  "commit": "94659c5ed8cf103aaf012666e117957e0d27bcec",
+  "branch": "travel-checkpoint-evida-web-court-engine",
+  "surface": "web-spring-local-pilot",
+  "signed": false,
+  "excluded_local_files": [
+    "apps/web/dist/dev-fixture-tmp.pdf"
+  ],
+  "files": [
+    {
+      "path": "evida-core/services/saksrom-api/target/evida-api-0.1.0.jar",
+      "bytes": 80394400,
+      "sha256": "6af70432f0aa0e5689c5fa5719338b084699e7fe90a6d1b1a9b8df88e722c0a3"
+    },
+    {
+      "path": "artifacts/release/sbom-web.cdx.json",
+      "bytes": 283694,
+      "sha256": "f368fb2c869e2563a6c7ac906d815b0889da7d30150e984949a34367a8df8478"
+    },
+    {
+      "path": "artifacts/release/sbom-backend.cdx.json",
+      "bytes": 275226,
+      "sha256": "ffe0c19c43033b91fc0b9cf64ff92197e139866fd4a748e5833fb20ea0d04373"
+    },
+    {
+      "path": "apps/web/dist/background-clean.jpg",
+      "bytes": 90043,
+      "sha256": "e4c84a80bed6f3a8c92151d4016670845b0d0b99e76e7702c1b2386f2256884b"
+    },
+    {
+      "path": "apps/web/dist/background-justice.jpg",
+      "bytes": 240591,
+      "sha256": "37a6d1f2d1b124115a11dc5f8e2b2e12f2a56147e26f7e11144d47c0004e374c"
+    },
+    {
+      "path": "apps/web/dist/background.jpg",
+      "bytes": 90043,
+      "sha256": "e4c84a80bed6f3a8c92151d4016670845b0d0b99e76e7702c1b2386f2256884b"
+    },
+    {
+      "path": "apps/web/dist/evida-background.svg",
+      "bytes": 2945,
+      "sha256": "a39c9f43486ad6ca00ee981f8515472b4669e04a47db61521848e28455d7fddd"
+    },
+    {
+      "path": "apps/web/dist/favicon.ico",
+      "bytes": 410598,
+      "sha256": "9c88e0edc942f63f1a5899ce1163019afd0f24ed6fe301c715a361ebdbc97772"
+    },
+    {
+      "path": "apps/web/dist/index.html",
+      "bytes": 623,
+      "sha256": "8f61ee09e191d5e17280124b1d7b1f86b9b7c05557909508e38a218829243d20"
+    },
+    {
+      "path": "apps/web/dist/assets/hashWorker-wp6YvWiV.js",
+      "bytes": 19160,
+      "sha256": "f15c5d94c4c8fbe95e22d3504db2c3474744d044b7d5e508352e3bd46716b385"
+    },
+    {
+      "path": "apps/web/dist/assets/index-B5fLQ18g.js",
+      "bytes": 491273,
+      "sha256": "396f367b158685c29d5c7e379611cf1e1d3b4fef51b31988d3468e09853b0f47"
+    },
+    {
+      "path": "apps/web/dist/assets/index-CdqzRGGX.css",
+      "bytes": 108782,
+      "sha256": "33a3416f4de96db146bfeb6c577a0c4341de9fb647d360e69449da020775490b"
+    },
+    {
+      "path": "apps/web/dist/brand/lady-justice-watermark.svg",
+      "bytes": 1389,
+      "sha256": "6765c5b9ad94a12467752203b659e65f16439f46cee94a7901dc508c5dc4e622"
+    },
+    {
+      "path": "apps/web/dist/brand/logo-mark.png",
+      "bytes": 594891,
+      "sha256": "462e30610a80343a28e0e84eb670e4755b729d317a5eb6c914eb4ccfad71c167"
+    },
+    {
+      "path": "apps/web/dist/brand/logo.png",
+      "bytes": 821514,
+      "sha256": "8d12820a007d3c8017d3db97957305628e6140c3c66698531891901d91f987c1"
+    },
+    {
+      "path": "apps/web/dist/brand/logo.svg",
+      "bytes": 634183,
+      "sha256": "5adb093cf004098b31698ab5f3ead4f58f563299e7b6344db1596d2012915069"
+    }
+  ]
+}

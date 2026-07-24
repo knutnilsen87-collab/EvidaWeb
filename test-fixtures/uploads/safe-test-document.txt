@@ -1,0 +1,4 @@
+EVIDA synthetic upload fixture.
+
+This file contains no client data. It exists only to exercise the real local upload,
+quarantine, malware scanning, ingestion and tenant/case-isolation pipeline.

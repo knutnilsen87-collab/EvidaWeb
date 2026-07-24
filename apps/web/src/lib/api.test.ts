@@ -7,12 +7,14 @@ import {
   checkDocumentDuplicates,
   downloadDocumentUrl,
   ensureBackendCaseId,
+  fetchCases,
   fetchCaseDocuments,
   fetchSourceUnitWindow,
   getHeaders,
   ingestDocument,
   rejectDocument,
   searchSourceUnits,
+  streamSaksromSummary,
   toUuid,
   uploadDocument,
   uploadDocuments
@@ -65,6 +67,32 @@ describe("web API tenant upload contract", () => {
         headers: {
           [EVIDA_TENANT_HEADER]: "00000000-0000-0000-0000-000000000101"
         }
+      })
+    );
+  });
+
+  it("fetches cases from the backend with tenant context", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: "dddddddd-1111-4222-8333-444444444444",
+          tenantId,
+          title: "Holands Hage",
+          status: "OPEN",
+          localFirst: true
+        }
+      ]
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchCases(tenantId)).resolves.toEqual([
+      expect.objectContaining({ id: "dddddddd-1111-4222-8333-444444444444", title: "Holands Hage" })
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/cases",
+      expect.objectContaining({
+        headers: expect.objectContaining({ [EVIDA_TENANT_HEADER]: tenantId })
       })
     );
   });
@@ -161,6 +189,38 @@ describe("web API tenant upload contract", () => {
         "00000000-0000-0000-0000-000000000101"
       )
     ).rejects.toThrow("Tenant-kontekst stemmer ikke");
+  });
+
+  it("maps upload security codes to safe Norwegian messages", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ status: "UPLOAD_REJECTED_CONTENT_TYPE_MISMATCH" })
+      })
+    );
+
+    await expect(
+      uploadDocument(
+        new File(["test"], "case.pdf", { type: "application/pdf" }),
+        "00000000-0000-0000-0000-000000000101"
+      )
+    ).rejects.toThrow("Filens innhold stemmer ikke med filtypekontrakten.");
+  });
+
+  it("rejects document upload when case id is not a backend UUID", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      uploadDocument(
+        new File(["test"], "case.pdf", { type: "application/pdf" }),
+        "00000000-0000-0000-0000-000000000101",
+        "Morten test sak"
+      )
+    ).rejects.toThrow("Backend case UUID mangler for opplasting.");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("uploads multiple documents through the quarantine endpoint", async () => {
@@ -475,9 +535,81 @@ describe("web API tenant upload contract", () => {
         body: JSON.stringify({
           question: "Hva er varslingsplikten?",
           selectedSourceUnitIds: ["doc_doc_1_p0001_b0001"],
-          mode: "sporre"
+          mode: "sporre",
+          includePartial: true,
+          sourceBasis: "READY_PAGE_UNITS_ONLY"
         })
       })
     );
+  });
+
+  it("streams Saksrom summary events from split NDJSON chunks", async () => {
+    const encoder = new TextEncoder();
+    const chunks = [
+      '{"type":"stage","stage":"reading_sources","label":"Leser kil',
+      'degrunnlaget"}\n{"type":"text_delta","sectionId":"overview","text":"Foreløpig"}\n',
+      '{"type":"citation","sectionId":"overview","citation":{"documentId":"doc_1","sourceUnitId":"unit_1","pageNumber":2}}\n',
+      '{"type":"complete"}\n'
+    ];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+      new ReadableStream({
+        start(controller) {
+          chunks.forEach((chunk) => controller.enqueue(encoder.encode(chunk)));
+          controller.close();
+        }
+      }),
+      { status: 200, headers: { "Content-Type": "application/x-ndjson" } }
+    )));
+    const events: string[] = [];
+
+    await streamSaksromSummary(
+      tenantId,
+      { caseId: "case_web_demo", includePartial: true, sourceBasis: "READY_PAGE_UNITS_ONLY" },
+      (event) => {
+        events.push(event.type);
+        if (event.type === "citation") {
+          expect(event.citation.sourceUnitId).toBe("unit_1");
+        }
+      }
+    );
+
+    expect(events).toEqual(["stage", "text_delta", "citation", "complete"]);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/saksrom/summary/stream",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          caseId: toUuid("case_web_demo"),
+          includePartial: true,
+          sourceBasis: "READY_PAGE_UNITS_ONLY"
+        })
+      })
+    );
+  });
+
+  it("stops processing summary stream events after abort", async () => {
+    const encoder = new TextEncoder();
+    const controller = new AbortController();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(
+      new ReadableStream({
+        start(streamController) {
+          streamController.enqueue(encoder.encode('{"type":"stage","stage":"reading_sources","label":"Leser kildegrunnlaget"}\n'));
+          controller.abort();
+          streamController.enqueue(encoder.encode('{"type":"complete"}\n'));
+          streamController.close();
+        }
+      }),
+      { status: 200, headers: { "Content-Type": "application/x-ndjson" } }
+    )));
+    const events: string[] = [];
+
+    await streamSaksromSummary(
+      tenantId,
+      { caseId: "case_web_demo", includePartial: true, sourceBasis: "READY_PAGE_UNITS_ONLY" },
+      (event) => events.push(event.type),
+      controller.signal
+    );
+
+    expect(events).toEqual([]);
   });
 });

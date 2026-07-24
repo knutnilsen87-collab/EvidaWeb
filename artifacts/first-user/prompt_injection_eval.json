@@ -1,8 +1,11 @@
 {
-    "generated_at":  "2026-05-19T12:29:11.9270554Z",
-    "status":  "partial",
-    "verdict":  "blocked",
-    "existing_invariant_reference":  "INV-AI-004 is currently pass in first-user invariant evaluation",
-    "release_client_data_eval_verified":  false,
-    "blocker":  "Prompt injection behavior still needs release-client-data evaluation evidence."
+  "generated_at": "2026-07-24T15:31:22.549Z",
+  "status": "pass",
+  "verdict": "pass",
+  "synthetic_only": true,
+  "active_provider_calls_enabled": false,
+  "document_instruction_executed": false,
+  "answer_source_bound": true,
+  "source_count": 1,
+  "scope": "Active local deterministic route; rerun if provider routing is enabled."
 }

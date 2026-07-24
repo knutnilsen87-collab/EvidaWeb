@@ -111,6 +111,27 @@ describe("UploadQueue State Machine & Scheduling", () => {
     expect(state.items[0].name).toBe("document.pdf");
   });
 
+  it("rejects DOCX in the pilot upload contract", () => {
+    const queue = new UploadQueue();
+    queue.setContext("tenant_123", "case_456");
+
+    queue.addFiles([
+      new File(["foo"], "prosesskriv.docx", {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      }),
+      new File(["bar"], "notat.txt", { type: "text/plain" })
+    ]);
+
+    const state = queue.getState();
+    expect(state.items.map((item) => item.name)).toEqual(["notat.txt"]);
+    expect(state.rejectedFiles).toEqual([
+      expect.objectContaining({
+        name: "prosesskriv.docx",
+        reason: "Ugyldig filtype. Kun PDF og TXT støttes."
+      })
+    ]);
+  });
+
   it("limits hashing concurrency to maxHashJobs and upload to maxUploads", async () => {
     const queue = new UploadQueue();
     queue.setContext("tenant_123", "case_456");
@@ -199,7 +220,8 @@ describe("UploadQueue State Machine & Scheduling", () => {
 
   it("sends the active case UUID with the duplicate check request", async () => {
     const queue = new UploadQueue();
-    queue.setContext("tenant_123", "case_456");
+    const caseId = "11111111-2222-4333-8444-555555555555";
+    queue.setContext("tenant_123", caseId);
 
     queue.addFiles([new File(["foo"], "file_1.pdf", { type: "application/pdf" })]);
     await vi.runAllTimersAsync();
@@ -209,7 +231,7 @@ describe("UploadQueue State Machine & Scheduling", () => {
     );
     expect(duplicateCall).toBeDefined();
     expect(JSON.parse(duplicateCall![1].body)).toEqual(
-      expect.objectContaining({ caseId: toUuid("case_456") })
+      expect.objectContaining({ caseId })
     );
   });
 
@@ -230,12 +252,14 @@ describe("UploadQueue State Machine & Scheduling", () => {
 
   it("keeps queue stats and uploads scoped to the case each file was queued under", async () => {
     const queue = new UploadQueue();
-    queue.setContext("tenant_123", "case_a");
+    const caseA = "aaaaaaaa-1111-4222-8333-444444444444";
+    const caseB = "bbbbbbbb-1111-4222-8333-444444444444";
+    queue.setContext("tenant_123", caseA);
 
     queue.addFiles([new File(["foo"], "case_a_file.pdf", { type: "application/pdf" })]);
 
     // User switches case while the file is still being processed.
-    queue.setContext("tenant_123", "case_b");
+    queue.setContext("tenant_123", caseB);
     expect(queue.getState().total).toBe(0);
 
     await vi.runAllTimersAsync();
@@ -248,18 +272,18 @@ describe("UploadQueue State Machine & Scheduling", () => {
       String(url).includes("/api/documents/upload")
     );
     expect(uploadCall).toBeDefined();
-    expect(uploadCall![1].headers["X-Evida-Case-ID"]).toBe(toUuid("case_a"));
+    expect(uploadCall![1].headers["X-Evida-Case-ID"]).toBe(caseA);
 
     // And the duplicate check was scoped to case A as well.
     const duplicateCall = fetchMock.mock.calls.find(([url]: any[]) =>
       String(url).includes("/api/documents/check-duplicates")
     );
     expect(JSON.parse(duplicateCall![1].body)).toEqual(
-      expect.objectContaining({ caseId: toUuid("case_a") })
+      expect.objectContaining({ caseId: caseA })
     );
 
     // Switching back shows the completed upload under case A.
-    queue.setContext("tenant_123", "case_a");
+    queue.setContext("tenant_123", caseA);
     const stateA = queue.getState();
     expect(stateA.total).toBe(1);
     expect(stateA.items[0].status).toBe("QUARANTINE");

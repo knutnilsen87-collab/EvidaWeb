@@ -6,10 +6,11 @@ import { Dashboard } from "./components/Dashboard";
 import { Kronologi } from "./components/Kronologi";
 import { AppShell } from "./components/layout/AppShell";
 import { NewCaseModal } from "./components/NewCaseModal";
+import type { CreationPhase } from "./components/NewCaseModal";
 import { NewCaseWizard } from "./components/NewCaseWizard";
 import { QuarantineGate } from "./components/QuarantineGate";
 import { SaksromView } from "./components/SaksromView";
-import { StartupGateway } from "./components/StartupGateway";
+import { StartupPortal } from "./components/StartupPortal";
 import { UtkastModul } from "./components/UtkastModul";
 import { DocumentImport } from "./components/DocumentImport";
 import { useAuth } from "./context/AuthContext";
@@ -21,11 +22,16 @@ import { SaksromReadinessModal } from "./components/SaksromReadinessModal";
 import "./styles/global.css";
 import "./App.css";
 
-type ActiveCaseResolutionState = "none_selected" | "creating" | "resolving" | "resolved" | "failed";
+export type ActiveCaseResolutionState = "none_selected" | "creating" | "resolving" | "resolved" | "failed";
 
 type CaseResolutionRequest =
-  | { kind: "create"; title: string }
+  | { kind: "create"; title: string; files?: File[] }
   | { kind: "open"; id: string; title: string };
+
+function readinessFingerprint(documents: EvidaDocument[], coverage?: SourceCoverage | null) {
+  return documents.map((document) => `${document.id}:${document.status}`).join(",")
+    + `:${coverage?.readyPages ?? "x"}/${coverage?.totalPages ?? "x"}`;
+}
 
 function WorkroomPlaceholder({
   title,
@@ -45,11 +51,19 @@ function WorkroomPlaceholder({
   );
 }
 
-function App() {
-  const [activeView, setActiveView] = useState<WorkspaceView>("dashboard");
-  const [activeCaseName, setActiveCaseName] = useState<string | null>(null);
-  const [caseResolutionState, setCaseResolutionState] = useState<ActiveCaseResolutionState>("none_selected");
-  const [caseResolutionError, setCaseResolutionError] = useState<string | null>(null);
+export interface AppRouterInitialState {
+  activeCaseId?: string;
+  activeCaseName?: string;
+  caseResolutionState?: ActiveCaseResolutionState;
+  caseResolutionError?: string;
+  activeView?: WorkspaceView;
+}
+
+function AuthenticatedWorkspace({ initialState }: { initialState?: AppRouterInitialState }) {
+  const [activeView, setActiveView] = useState<WorkspaceView>(initialState?.activeView ?? (initialState?.activeCaseId ? "import" : "dashboard"));
+  const [activeCaseName, setActiveCaseName] = useState<string | null>(initialState?.activeCaseName ?? null);
+  const [caseResolutionState, setCaseResolutionState] = useState<ActiveCaseResolutionState>(initialState?.caseResolutionState ?? (initialState?.activeCaseId ? "resolved" : "none_selected"));
+  const [caseResolutionError, setCaseResolutionError] = useState<string | null>(initialState?.caseResolutionError ?? null);
   const [caseResolutionRequest, setCaseResolutionRequest] = useState<CaseResolutionRequest | null>(null);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
   const [newCaseWizardOpen, setNewCaseWizardOpen] = useState(false);
@@ -57,6 +71,7 @@ function App() {
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>("idle");
   const [queueBusy, setQueueBusy] = useState(false);
   const [controlActionSubmitting, setControlActionSubmitting] = useState(false);
+  const [initialImportFiles, setInitialImportFiles] = useState<File[]>([]);
   
   // Preliminary kildegrunnlag states
   const [documents, setDocuments] = useState<EvidaDocument[]>([]);
@@ -71,7 +86,7 @@ function App() {
   // documents.case_id has an FK to cases(id) in backend, so the active case must be a
   // backend-created UUID before any upload/fetch can be case-scoped. Empty string while
   // resolving; case-scoped views are gated until it is set.
-  const [activeCaseId, setActiveCaseId] = useState("");
+  const [activeCaseId, setActiveCaseId] = useState(initialState?.activeCaseId ?? "");
 
 
   const refreshDocs = useCallback(async () => {
@@ -127,21 +142,13 @@ function App() {
             console.error("Error fetching live source coverage:", coverageError);
             setReadinessCoverage(null);
           }
-          const total = docs.length;
           const verified = docs.filter(
             (d) => d.status === "verified" || d.status === "source_ready" || d.status === "partial_source_ready"
           ).length;
-          const cov = liveCoverage?.totalPages
-            ? liveCoverage.coveragePercent ?? Math.round(((liveCoverage.readyPages ?? 0) / liveCoverage.totalPages) * 100)
-            : total > 0
-            ? Math.round((verified / total) * 100)
-            : 0;
-          const currentFingerprint = docs.map((d) => `${d.id}:${d.status}`).join(",")
-            + `:${liveCoverage?.readyPages ?? "x"}/${liveCoverage?.totalPages ?? "x"}`;
+          const currentFingerprint = readinessFingerprint(docs, liveCoverage);
           const isAcked = acknowledgedFingerprints[activeCaseId] === currentFingerprint;
-          const hasOcrWarning = docs.some((d) => d.ocrRequired) || Boolean(liveCoverage && ((liveCoverage.missingOcrPages ?? 0) > 0 || (liveCoverage.belowThresholdPages ?? 0) > 0));
 
-          if ((cov < 100 || hasOcrWarning) && !isAcked) {
+          if (verified > 0 && !isAcked) {
             setPendingView(view);
             setReadinessModalOpen(true);
             return;
@@ -157,8 +164,7 @@ function App() {
   }
 
   function handleConfirmReadiness() {
-    const currentFingerprint = documents.map((d) => `${d.id}:${d.status}`).join(",")
-      + `:${readinessCoverage?.readyPages ?? "x"}/${readinessCoverage?.totalPages ?? "x"}`;
+    const currentFingerprint = readinessFingerprint(documents, readinessCoverage);
     setAcknowledgedFingerprints((prev) => ({
       ...prev,
       [activeCaseId]: currentFingerprint
@@ -184,13 +190,14 @@ function App() {
     setNewCaseWizardOpen(true);
   }
 
-  async function resolveCase(request: CaseResolutionRequest) {
+  async function resolveCase(request: CaseResolutionRequest, onProgress?: (phase: CreationPhase) => void): Promise<boolean> {
     const tenantId = currentUser?.tenantId;
     setCaseResolutionRequest(request);
     setCaseResolutionError(null);
     setActiveCaseName(request.title);
     setActiveCaseId("");
     setDocuments([]);
+    setInitialImportFiles([]);
     setActiveView("import");
     setCaseResolutionState(request.kind === "create" ? "creating" : "resolving");
     setLastAction(
@@ -203,37 +210,45 @@ function App() {
       setCaseResolutionState("failed");
       setCaseResolutionError("Saken kunne ikke klargjøres fordi tenant mangler.");
       setLastAction("Saken kunne ikke klargjøres fordi tenant mangler.");
-      return;
+      return false;
     }
 
     try {
+      onProgress?.("creating_case");
       const id = request.kind === "open" ? request.id : await ensureBackendCaseId(request.title, tenantId);
       if (!isUuid(id)) {
         throw new Error("Backend returnerte ikke en gyldig case UUID.");
       }
       setActiveCaseId(id);
+      onProgress?.("registering_documents");
+      setInitialImportFiles(request.kind === "create" ? request.files ?? [] : []);
+      onProgress?.("starting_source_basis");
       setCaseResolutionState("resolved");
+      onProgress?.("opening_intake");
       setLastAction(
         request.kind === "create"
           ? `${request.title} er opprettet. Last opp dokumenter for å starte kildegrunnlaget.`
           : `${request.title} er valgt. Last opp dokumenter for å starte kildegrunnlaget.`
       );
+      return true;
     } catch (err) {
       console.error("Kunne ikke klargjøre sak i backend:", err);
       setCaseResolutionState("failed");
       setCaseResolutionError("Saken kunne ikke klargjøres i backend. Kontroller at API-et kjører.");
       setLastAction("Saken kunne ikke klargjøres i backend. Kontroller at API-et kjører.");
+      return false;
     }
   }
 
-  function createNewCase(caseName: string) {
+  async function createNewCase(caseName: string, files: File[] = [], onProgress?: (phase: CreationPhase) => void) {
     const trimmedName = caseName.trim();
     if (!trimmedName) {
-      return;
+      throw new Error("Saksnavn mangler.");
     }
-    setNewCaseOpen(false);
     setNewCaseWizardOpen(false);
-    void resolveCase({ kind: "create", title: trimmedName });
+    const resolved = await resolveCase({ kind: "create", title: trimmedName, files }, onProgress);
+    if (!resolved) throw new Error("Saken kunne ikke klargjøres. Prøv igjen.");
+    setNewCaseOpen(false);
   }
 
   function openExistingCase(caseFile: CaseFileDto) {
@@ -259,6 +274,7 @@ function App() {
     setCaseResolutionState("none_selected");
     setCaseResolutionError(null);
     setDocuments([]);
+    setInitialImportFiles([]);
     setLastAction("Velg eller opprett en sak.");
   }
 
@@ -307,6 +323,12 @@ function App() {
     : documents.length > 0
     ? Math.round((verifiedCount / documents.length) * 100)
     : 0;
+  const readinessAcknowledged = acknowledgedFingerprints[activeCaseId]
+    === readinessFingerprint(documents, readinessCoverage);
+  const completenessPassed = coverage === 100
+    && pendingCount === 0
+    && failedCount === 0
+    && ocrWarningCount === 0;
 
   function renderWorkroom() {
     const needsBackendCase = activeView === "quarantine" || activeView === "saksrom" || activeView === "import";
@@ -362,6 +384,8 @@ function App() {
             caseId={activeCaseId}
             tenantId={currentUser?.tenantId || ""}
             documents={documents}
+            completenessAcknowledged={readinessAcknowledged}
+            completenessPassed={completenessPassed}
             onDocumentsChange={setDocuments}
             onNavigate={openView}
             onOpenMissingDocuments={() => void openView("quarantine")}
@@ -372,6 +396,8 @@ function App() {
           <DocumentImport
             key={activeCaseId}
             caseId={activeCaseId}
+            initialFiles={initialImportFiles}
+            onInitialFilesAccepted={() => setInitialImportFiles([])}
             onAnalysisStatusChange={(status) => setAnalysisStatus(status as any)}
             onDocumentsChange={setDocuments}
             onContinueToSaksrom={() => void openView("saksrom")}
@@ -398,9 +424,9 @@ function App() {
           />
         );
       case "draft":
-        return <UtkastModul isPreliminary={coverage < 100} />;
+        return <UtkastModul activeCaseId={activeCaseId} isPreliminary={coverage < 100} />;
       case "export":
-        return <UtkastModul isPreliminary={coverage < 100} />;
+        return <UtkastModul activeCaseId={activeCaseId} isPreliminary={coverage < 100} />;
     }
   }
 
@@ -422,7 +448,7 @@ function App() {
   if (!activeCaseId || caseResolutionState === "none_selected") {
     return (
       <>
-        <StartupGateway
+        <StartupPortal
           activeCaseName={activeCaseName}
           caseResolutionError={caseResolutionError}
           caseResolutionState={caseResolutionState}
@@ -485,7 +511,7 @@ function App() {
       ) : null}
         <motion.div
           key={activeView}
-          className="legal-os-stage"
+          className={activeView === "saksrom" ? "legal-os-stage legal-os-stage--saksrom" : "legal-os-stage"}
           initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
@@ -522,4 +548,33 @@ function App() {
   );
 }
 
-export default App;
+export function AppRouter({ initialState }: { initialState?: AppRouterInitialState }) {
+  const { user, loading, login } = useAuth();
+
+  if (loading) {
+    return (
+      <main className="startup-auth-state" aria-live="polite">
+        <p>Validerer EVIDA-sesjonen …</p>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="startup-auth-state">
+        <p className="eyebrow">EVIDA</p>
+        <h1>Logg inn for å fortsette</h1>
+        <p>Du må ha en gyldig sesjon før saker kan velges eller åpnes.</p>
+        {import.meta.env.DEV ? (
+          <button className="btn-primary" type="button" onClick={() => login("00000000-0000-0000-0000-000000000101")}>
+            Fortsett med lokal dev-bruker
+          </button>
+        ) : null}
+      </main>
+    );
+  }
+
+  return <AuthenticatedWorkspace initialState={initialState} />;
+}
+
+export default AppRouter;

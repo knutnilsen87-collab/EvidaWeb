@@ -1,0 +1,729 @@
+{
+  "generated_at": "2026-07-24T15:36:58.239Z",
+  "gate": "EVIDA-REAL-CLIENT-DATA-GATE",
+  "status": "blocked",
+  "exit_code": 2,
+  "real_client_data_allowed": false,
+  "environment": {
+    "EVIDA_BACKEND_URL": "http://127.0.0.1:18080",
+    "EVIDA_FRONTEND_URL": "http://127.0.0.1:5173",
+    "EVIDA_POSTGRES_HOST": "127.0.0.1",
+    "EVIDA_POSTGRES_PORT": "5432",
+    "EVIDA_CLAMAV_HOST": "127.0.0.1",
+    "EVIDA_CLAMAV_PORT": "3310",
+    "EVIDA_TESSERACT_PATH": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    "EVIDA_TESSDATA_PATH": "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\tessdata",
+    "VITE_EVIDA_API_TARGET": "http://127.0.0.1:18080"
+  },
+  "checks": [
+    {
+      "name": "Docker daemon",
+      "whyImportant": "Lokale avhengigheter og reproduserbar pilotdrift krever en tilgjengelig Docker daemon.",
+      "suggestedAction": "Start Docker Desktop og kjør `docker info`.",
+      "requiresInstall": true,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "Docker daemon svarer."
+    },
+    {
+      "name": "Postgres",
+      "whyImportant": "Saks-, dokument- og auditdata må ha tilgjengelig database.",
+      "suggestedAction": "Start Postgres på 127.0.0.1:5432.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "127.0.0.1:5432"
+    },
+    {
+      "name": "Backend",
+      "whyImportant": "Alle sikkerhets- og tenantgrenser håndheves av backend.",
+      "suggestedAction": "Start saksrom-api og kontroller http://127.0.0.1:18080/actuator/health.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "200"
+    },
+    {
+      "name": "Frontend",
+      "whyImportant": "Piloten må kunne åpnes på forventet lokal adresse.",
+      "suggestedAction": "Start webappen og kontroller http://127.0.0.1:5173.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "200 OK"
+    },
+    {
+      "name": "API proxy via frontend",
+      "whyImportant": "Frontend og preflight må treffe samme backend uten skjult portdrift.",
+      "suggestedAction": "Sett VITE_EVIDA_API_TARGET=http://127.0.0.1:18080 og restart Vite.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "200 OK",
+      "evidence": {
+        "expected_target": "http://127.0.0.1:18080"
+      }
+    },
+    {
+      "name": "ClamAV/clamd",
+      "whyImportant": "Dokumentinntak er P0 og må malware-skannes fail-closed.",
+      "suggestedAction": "Installer/start ClamAV og eksponer clamd på 127.0.0.1:3310.",
+      "requiresInstall": true,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "127.0.0.1:3310"
+    },
+    {
+      "name": "EICAR runtime test",
+      "whyImportant": "Scannerens prosess må bevise at kjent malware-signatur stoppes i runtime.",
+      "suggestedAction": "Start clamd, oppdater signaturer og kjør `npm run pilot:preflight` på nytt.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "stream: Eicar-Test-Signature FOUND"
+    },
+    {
+      "name": "Tesseract executable",
+      "whyImportant": "Skannede dokumenter kan ikke bli kildeklare uten verifisert OCR-runtime.",
+      "suggestedAction": "Installer Tesseract eller korriger EVIDA_TESSERACT_PATH (C:\\Program Files\\Tesseract-OCR\\tesseract.exe).",
+      "requiresInstall": true,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+    },
+    {
+      "name": "EVIDA_TESSDATA_PATH",
+      "whyImportant": "OCR må bruke eksplisitt, kontrollerbart språkdatagrunnlag.",
+      "suggestedAction": "Sett EVIDA_TESSDATA_PATH til gyldig tessdata-mappe (F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\tessdata).",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\tessdata"
+    },
+    {
+      "name": "nor.traineddata",
+      "whyImportant": "Norsk juridisk tekst krever norsk OCR-modell.",
+      "suggestedAction": "Last ned nor.traineddata til EVIDA_TESSDATA_PATH.",
+      "requiresInstall": true,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\tessdata\\nor.traineddata"
+    },
+    {
+      "name": "eng.traineddata",
+      "whyImportant": "Engelske bilag må kunne OCR-behandles kontrollert.",
+      "suggestedAction": "Last ned eng.traineddata til EVIDA_TESSDATA_PATH.",
+      "requiresInstall": true,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\tessdata\\eng.traineddata"
+    },
+    {
+      "name": "OCR runtime probe",
+      "whyImportant": "Filtilstedeværelse alene beviser ikke at OCR-prosessen kan starte med riktige språkdata.",
+      "suggestedAction": "Rett Tesseract/tessdata-konfigurasjonen og kjør preflight på nytt.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "tesseract v5.5.0.20241111"
+    },
+    {
+      "name": "Native file picker signoff",
+      "whyImportant": "Native Windows-picker må godkjennes manuelt på pilotmaskinen.",
+      "suggestedAction": "Kjør native picker-smoke og oppdater signoff-artifakten med tester og evidens.",
+      "requiresInstall": false,
+      "requiresManualApproval": true,
+      "status": "manual_required",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\native_file_picker_upload_signoff.json: manual_required",
+      "evidence": {
+        "generated_at": "2026-07-14T18:18:12.9686647Z",
+        "gate": "NATIVE-FILE-PICKER-UPLOAD",
+        "status": "manual_required",
+        "tester": "",
+        "evidence_path": "",
+        "acceptance": [
+          "Open EVIDA on the target Windows workstation.",
+          "Click Velg filer in Dokumenter.",
+          "Use the native Windows file picker to select an approved synthetic/redacted PDF or TXT.",
+          "Verify the uploader shows the selected file and queues upload.",
+          "Verify upload reaches quarantine and can be opened via preview/download.",
+          "Verify no real client data was used."
+        ],
+        "note": "Automation can set file inputs in browser tests, but cannot sign off the native Windows picker UX."
+      }
+    },
+    {
+      "name": "Backup script",
+      "whyImportant": "Restaurerbar backup er P0 før ekte klientdata.",
+      "suggestedAction": "Implementer og dokumenter et eksplisitt backup-script.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\scripts\\pilot\\backup-evida-pilot.ps1"
+    },
+    {
+      "name": "Restore script",
+      "whyImportant": "Backup uten testbar restore gir ingen gjenopprettingsgaranti.",
+      "suggestedAction": "Implementer restore-script og kjør syntetisk restore-drill.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\scripts\\pilot\\restore-evida-pilot.ps1"
+    },
+    {
+      "name": "Backup/restore drill",
+      "whyImportant": "Backup må være kryptert og faktisk restaurerbar uten å overskrive live-data.",
+      "suggestedAction": "Kjør scripts/pilot/test-backup-restore-drill.ps1 og rett alle feil.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\backup_restore_result.json: pass",
+      "evidence": {
+        "generated_at": "2026-07-24T15:02:06.7470474Z",
+        "status": "pass",
+        "verdict": "pass",
+        "gate": "DATA-BACKUP-RESTORE-001",
+        "encryption": "AES-256-GCM",
+        "backup_sha256": "d0cd834ea22b2acfdd1b8f8175c60fdf100254127b029fbee7654775685749c4",
+        "database_dump_restored": true,
+        "document_storage_restored": true,
+        "manifest_integrity_verified": true,
+        "client_data_marker_restore_verified": true,
+        "live_database_overwritten": false,
+        "drill_database": "evida_restore_drill_bf1f6e2c135f",
+        "marker": "EVIDA_BACKUP_RESTORE_MARKER_bf1f6e2c135f444aa872fe7d27414d07",
+        "rollback_path": "Drill used an isolated temporary database and restore directory; live EVIDA data was not replaced."
+      }
+    },
+    {
+      "name": "Client-data storage encryption",
+      "whyImportant": "Rå saksdokumenter og kildeutdrag må være beskyttet ved lagring.",
+      "suggestedAction": "Verifiser BitLocker på målmaskinen eller implementer applikasjonskryptering med forvaltet nøkkel.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "blocked",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\encryption_verification.json: blocked",
+      "evidence": {
+        "generated_at": "2026-07-24T15:21:08.5328602Z",
+        "status": "blocked",
+        "verdict": "blocked",
+        "current_user_is_administrator": false,
+        "bitlocker_verification": {
+          "verified": false,
+          "command": "manage-bde.exe -status C:",
+          "result": "BitLocker Drive Encryption: Configuration Tool version 10.0.26100\r\nCopyright (C) 2013 Microsoft Corporation. All rights reserved.\r\n\r\nERROR: An attempt to access a required resource was denied.\r\n\r\nCheck that you have administrative rights on the computer."
+        },
+        "application_storage": {
+          "raw_document_encryption_verified": false,
+          "plaintext_file_write_detected": true,
+          "source": "evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/LocalDocumentStorageService.java",
+          "database_source_text_encryption_verified": false
+        },
+        "backup_storage": {
+          "encryption": "AES-256-GCM",
+          "verified": true,
+          "evidence": "artifacts/first-user/backup_restore_result.json"
+        },
+        "blocker": "Current Spring document bytes and extracted source text do not have verified application-layer encryption, and OS volume encryption cannot be verified without an elevated managed target-machine check.",
+        "remediation": "Enable and verify BitLocker/device encryption on the managed pilot machine or implement application-layer encryption for document bytes and source text with managed key storage; rerun raw-storage marker inspection."
+      }
+    },
+    {
+      "name": "Raw-storage marker inspection",
+      "whyImportant": "Syntetiske klientmarkører skal ikke kunne leses direkte fra lagringsmediet.",
+      "suggestedAction": "Kjør markerbasert rålagringsinspeksjon etter at lagringskryptering er verifisert.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "blocked",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\raw_storage_inspection.json: blocked",
+      "evidence": {
+        "generated_at": "2026-07-24T15:21:08.5328602Z",
+        "status": "blocked",
+        "verdict": "blocked",
+        "inspected_database": false,
+        "marker_client_data_used": false,
+        "static_inspection": {
+          "local_document_storage_plaintext_write_detected": true,
+          "source_text_database_encryption_verified": false
+        },
+        "blocker": "A synthetic marker test cannot produce a passing result while raw document and source-text encryption are not implemented or the underlying volume encryption is not verified.",
+        "required_markers": [
+          "EVIDA_SECRET_MARKER_CLIENT_NAME_123",
+          "EVIDA_SECRET_MARKER_CASE_FACT_456",
+          "EVIDA_SECRET_MARKER_PERSONAL_NUMBER_789",
+          "EVIDA_SECRET_MARKER_PRIVILEGED_NOTE_ABC"
+        ]
+      }
+    },
+    {
+      "name": "Deletion/retention dry-run",
+      "whyImportant": "Sletting og retention må være dokumentert og reversibelt verifisert.",
+      "suggestedAction": "Kjør deletion/retention dry-run og oppdater artifakten.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\deletion_retention_result.json: available",
+      "evidence": {
+        "generated_at": "2026-07-14T18:16:31.9040489Z",
+        "gate": "DATA-DELETE-RESET",
+        "status": "available",
+        "destructive_action_required": "-ConfirmReset",
+        "check_only": true,
+        "include_runtime_logs": false,
+        "targets": [
+          "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\quarantine",
+          "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\uploads",
+          "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\temp"
+        ],
+        "existing_targets": [
+          "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\quarantine"
+        ],
+        "actions": [
+          "dry_run_only"
+        ],
+        "database_reset": "not_performed; use explicit DB backup/restore runbook before client data"
+      }
+    },
+    {
+      "name": "Sensitive log scan",
+      "whyImportant": "Rå klienttekst eller testmarkører må ikke lekke til logger.",
+      "suggestedAction": "Kjør scripts/pilot/scan-evida-runtime-logs.ps1 og håndter alle funn.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\runtime_sensitive_log_scan.json: pass",
+      "evidence": {
+        "generated_at": "2026-07-24T15:32:16.8063305Z",
+        "gate": "DATA-LOG-001",
+        "status": "pass",
+        "roots": [
+          "F:\\prosjekter_MAIN\\EVIDA\\.codex-runtime",
+          "F:\\prosjekter_MAIN\\EVIDA\\logs",
+          "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\logs",
+          "F:\\prosjekter_MAIN\\EVIDA\\apps\\web\\logs"
+        ],
+        "scanned_files": 1723,
+        "findings": []
+      }
+    },
+    {
+      "name": "Source-bound multi-document evaluation",
+      "whyImportant": "AI-svar må være kildebundet og håndtere flere dokumenter og motstridende fakta.",
+      "suggestedAction": "Kjør runtime-evalueringen for flere dokumenter, konflikter og kildehenvisninger.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\ai_multi_doc_eval.json: pass",
+      "evidence": {
+        "generated_at": "2026-07-24T15:31:22.549Z",
+        "status": "pass",
+        "verdict": "pass",
+        "synthetic_only": true,
+        "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+        "documents_used": 3,
+        "conflicting_facts": [
+          "Leveransen er oppgitt som grønn.",
+          "Leveransen er oppgitt som blå."
+        ],
+        "conflict_handling": "Separate cited findings; no unsupported reconciliation was generated.",
+        "source_bound": true,
+        "source_count": 3
+      }
+    },
+    {
+      "name": "Prompt-injection evaluation",
+      "whyImportant": "Instruksjoner inne i dokumenter må aldri kunne overstyre system- eller kildepolicy.",
+      "suggestedAction": "Kjør prompt-injection-evalueringen mot aktiv provider-rute.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\prompt_injection_eval.json: pass",
+      "evidence": {
+        "generated_at": "2026-07-24T15:31:22.549Z",
+        "status": "pass",
+        "verdict": "pass",
+        "synthetic_only": true,
+        "active_provider_calls_enabled": false,
+        "document_instruction_executed": false,
+        "answer_source_bound": true,
+        "source_count": 1,
+        "scope": "Active local deterministic route; rerun if provider routing is enabled."
+      }
+    },
+    {
+      "name": "Unsupported-claim evaluation",
+      "whyImportant": "Svar uten kildebelegg skal avvises eller merkes tydelig.",
+      "suggestedAction": "Kjør unsupported-claim-evalueringen og verifiser tomme kildehenvisninger.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\unsupported_claim_eval.json: pass",
+      "evidence": {
+        "generated_at": "2026-07-24T15:31:22.549Z",
+        "status": "pass",
+        "verdict": "pass",
+        "synthetic_only": true,
+        "source_bound": true,
+        "source_count": 0,
+        "warnings": [
+          "NO_RELEVANT_SOURCE_MATCH"
+        ]
+      }
+    },
+    {
+      "name": "Audit coverage",
+      "whyImportant": "Import, AI, eksport, sletting og policyendring må ha etterprøvbar auditkjede.",
+      "suggestedAction": "Lukk manglende audit-events og verifiser hashkjeden i runtime.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "blocked",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\audit_coverage_result.json: blocked",
+      "evidence": {
+        "generated_at": "2026-07-24T15:31:22.549Z",
+        "status": "blocked",
+        "verdict": "blocked",
+        "synthetic_only": true,
+        "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+        "chain_valid": true,
+        "event_count": 28,
+        "observed_event_types": [
+          "AUDIT_VERIFICATION_RUN",
+          "CASE_CREATED",
+          "DOCUMENT_APPROVED_PENDING_INGESTION",
+          "DOCUMENT_DELETED",
+          "DOCUMENT_INGEST_STARTED",
+          "DOCUMENT_INGEST_SUCCEEDED",
+          "DOCUMENT_REPLACED",
+          "DOCUMENT_UPLOADED",
+          "EXPORT_CREATED",
+          "SAKSROM_ANSWER_CREATED",
+          "SAKSROM_QUESTION_ASKED",
+          "SAKSROM_SUMMARY_CREATED",
+          "SAKSROM_SUMMARY_REQUESTED",
+          "SOURCE_OBJECTS_INVALIDATED"
+        ],
+        "missing_required_runtime_events": [],
+        "provider_or_policy_change_audited": false,
+        "blocker": "No authoritative provider/policy mutation endpoint and audit event exists."
+      }
+    },
+    {
+      "name": "Export smoke",
+      "whyImportant": "Eksport må være kildebasert, merket som utkast og auditert.",
+      "suggestedAction": "Kjør kildebasert eksport-smoke på releasebygget.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\export_smoke_result.json: pass",
+      "evidence": {
+        "generated_at": "2026-07-24T15:31:22.549Z",
+        "status": "pass",
+        "verdict": "pass",
+        "synthetic_only": true,
+        "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+        "http_status": 200,
+        "ai_draft_warning_present": true,
+        "source_section_present": true,
+        "all_runtime_documents_referenced": true
+      }
+    },
+    {
+      "name": "Signed Windows deliverable",
+      "whyImportant": "Distribusjonsartefakten må være signert med organisasjonens betrodde sertifikat.",
+      "suggestedAction": "Bygg og signer godkjent Windows-pakke i forvaltet release-miljø.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "blocked",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\signature_verification.json: blocked",
+      "evidence": {
+        "generated_at": "2026-07-24T15:21:42.4158992Z",
+        "status": "blocked",
+        "verdict": "blocked",
+        "current_release_surface": "apps/web plus saksrom-api",
+        "current_release_has_signed_windows_deliverable": false,
+        "legacy_artifacts": [
+          {
+            "path": "evida-core/desktop-tauri/src-tauri/target/release/bundle/msi/Evida_0.1.0_x64_en-US.msi",
+            "status": "NotSigned",
+            "status_message": "The file F:\\prosjekter_MAIN\\EVIDA\\evida-core\\desktop-tauri\\src-tauri\\target\\release\\bundle\\msi\\Evida_0.1.0_x64_en-US.msi is not digitally signed. You cannot run this script on the current system. For more information about running scripts and setting execution policy, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170",
+            "signer": null,
+            "sha256": "a1b940193a08a2e95606af6fa443fdfa9b04809c6db5a0790b60a3ff49a3e05b",
+            "deprecated_desktop_tauri": true
+          },
+          {
+            "path": "evida-core/desktop-tauri/src-tauri/target/release/bundle/nsis/Evida_0.1.0_x64-setup.exe",
+            "status": "NotSigned",
+            "status_message": "The file F:\\prosjekter_MAIN\\EVIDA\\evida-core\\desktop-tauri\\src-tauri\\target\\release\\bundle\\nsis\\Evida_0.1.0_x64-setup.exe is not digitally signed. You cannot run this script on the current system. For more information about running scripts and setting execution policy, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170",
+            "signer": null,
+            "sha256": "26d299095696fe4d7ed169bf1340c024863c07e96044b4916a052085127c10a4",
+            "deprecated_desktop_tauri": true
+          }
+        ],
+        "blocker": "No trusted code-signing certificate and no signed Windows deliverable exists for the current web/Spring pilot surface. Legacy Tauri artifacts are outside the current product directive and cannot satisfy this gate.",
+        "required_action": "Build the approved Windows deployment package in the managed release environment, sign with the organization certificate, and verify it on the target machine."
+      }
+    },
+    {
+      "name": "Managed workstation smoke",
+      "whyImportant": "Målmaskinens policy, installasjon, oppstart og dokumentflyt må verifiseres.",
+      "suggestedAction": "Kjør smoke på Braathe/Jussys-forvaltet Windows-maskin.",
+      "requiresInstall": false,
+      "requiresManualApproval": true,
+      "status": "manual_required",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\windows_managed_workstation_smoke.json: blocked",
+      "evidence": {
+        "generated_at": "2026-05-19T12:29:11.9410535Z",
+        "status": "blocked",
+        "verdict": "blocked",
+        "target": "managed Windows workstation with Jussys/Braathe policy",
+        "executed_on_target": false,
+        "steps": [
+          {
+            "name": "install signed release",
+            "status": "not_run"
+          },
+          {
+            "name": "launch under policy",
+            "status": "not_run"
+          },
+          {
+            "name": "import synthetic case package",
+            "status": "not_run"
+          },
+          {
+            "name": "verify no client data leaves approved storage",
+            "status": "not_run"
+          }
+        ],
+        "blocker": "Requires access to the managed target workstation and organization policy context."
+      }
+    },
+    {
+      "name": "Engineering approval",
+      "whyImportant": "Engineering må eksplisitt godkjenne den eksakte releasekandidaten.",
+      "suggestedAction": "Innhent signert engineering-godkjenning.",
+      "requiresInstall": false,
+      "requiresManualApproval": true,
+      "status": "manual_required",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\engineering_approval.json: missing",
+      "evidence": {
+        "generated_at": "2026-05-19T12:29:11.9270554Z",
+        "status": "missing",
+        "approved": false,
+        "authority": "Engineering approval",
+        "required_before_real_client_data": true,
+        "blocker": "No approval artifact is present."
+      }
+    },
+    {
+      "name": "Product approval",
+      "whyImportant": "Produkteier må eksplisitt godkjenne førstebrukeromfanget.",
+      "suggestedAction": "Innhent signert produktgodkjenning.",
+      "requiresInstall": false,
+      "requiresManualApproval": true,
+      "status": "manual_required",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\product_approval.json: missing",
+      "evidence": {
+        "generated_at": "2026-05-19T12:29:11.9270554Z",
+        "status": "missing",
+        "approved": false,
+        "authority": "Product approval",
+        "required_before_real_client_data": true,
+        "blocker": "No approval artifact is present."
+      }
+    },
+    {
+      "name": "Security/privacy approval",
+      "whyImportant": "Sikkerhet/personvern må godkjenne behandling av ekte klientdata.",
+      "suggestedAction": "Innhent signert sikkerhets- og personverngodkjenning.",
+      "requiresInstall": false,
+      "requiresManualApproval": true,
+      "status": "manual_required",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\security_privacy_approval.json: missing",
+      "evidence": {
+        "generated_at": "2026-05-19T12:29:11.9270554Z",
+        "status": "missing",
+        "approved": false,
+        "authority": "Security/privacy approval",
+        "required_before_real_client_data": true,
+        "blocker": "No approval artifact is present."
+      }
+    },
+    {
+      "name": "Braathe/Jussys approval",
+      "whyImportant": "Driftsmiljøet må godkjennes av ansvarlig IT-part.",
+      "suggestedAction": "Innhent signert Braathe/Jussys-godkjenning.",
+      "requiresInstall": false,
+      "requiresManualApproval": true,
+      "status": "manual_required",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\braathe_approval.json: missing",
+      "evidence": {
+        "generated_at": "2026-05-19T12:29:11.9410535Z",
+        "status": "missing",
+        "approved": false,
+        "authority": "Braathe/Jussys IT",
+        "required_before_real_client_data": true,
+        "blocker": "No signed managed-workstation approval artifact is present."
+      }
+    },
+    {
+      "name": "Client/data-owner approval",
+      "whyImportant": "Dataeier må godkjenne bruk av ekte saksdokumenter.",
+      "suggestedAction": "Innhent signert dataeiergodkjenning.",
+      "requiresInstall": false,
+      "requiresManualApproval": true,
+      "status": "manual_required",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\client_data_pilot_approval.json: missing",
+      "evidence": {
+        "generated_at": "2026-05-19T12:29:11.9270554Z",
+        "status": "missing",
+        "approved": false,
+        "authority": "Client/data owner pilot approval",
+        "required_before_real_client_data": true,
+        "blocker": "No approval artifact is present."
+      }
+    },
+    {
+      "name": "Release gate artifacts",
+      "whyImportant": "Beslutningen må bygge på synlig og sporbar release-evidens.",
+      "suggestedAction": "Generer manglende status bundle og Morten-gate-evidens.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\status_bundle.first_user.final.json"
+    },
+    {
+      "name": "Dev fixture upload",
+      "status": "pass",
+      "detail": "COMPLETED",
+      "whyImportant": "Den ekte upload-pipelinen og case-isolasjon må kunne testes uten native picker.",
+      "suggestedAction": "Start alle lokale sikkerhetsavhengigheter og kjør `npm run pilot:real-data-gate`.",
+      "evidence": {
+        "status": "pass",
+        "fixture": "test-fixtures\\uploads\\safe-test-document.txt",
+        "primary_case_id": "f3120338-1c3d-4609-883a-93309f658093",
+        "isolation_case_id": "2f0a4c3c-ba3a-4114-b0cf-faeff9a0bf8a",
+        "document_id": "34c32dc0-57b1-4728-af3a-d3614085c81a",
+        "in_correct_case": true,
+        "absent_from_other_case": true,
+        "ingestion_job_id": "21d09204-0ec9-4411-856d-83ab128486c6",
+        "ingestion_status": "COMPLETED",
+        "pipeline_bypassed": false
+      }
+    }
+  ],
+  "operator_actions": [
+    {
+      "component": "Native file picker signoff",
+      "status": "krever godkjenning",
+      "why_important": "Native Windows-picker må godkjennes manuelt på pilotmaskinen.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Kjør native picker-smoke og oppdater signoff-artifakten med tester og evidens.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Client-data storage encryption",
+      "status": "kjører ikke",
+      "why_important": "Rå saksdokumenter og kildeutdrag må være beskyttet ved lagring.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Verifiser BitLocker på målmaskinen eller implementer applikasjonskryptering med forvaltet nøkkel.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Raw-storage marker inspection",
+      "status": "kjører ikke",
+      "why_important": "Syntetiske klientmarkører skal ikke kunne leses direkte fra lagringsmediet.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Kjør markerbasert rålagringsinspeksjon etter at lagringskryptering er verifisert.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Audit coverage",
+      "status": "kjører ikke",
+      "why_important": "Import, AI, eksport, sletting og policyendring må ha etterprøvbar auditkjede.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Lukk manglende audit-events og verifiser hashkjeden i runtime.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Signed Windows deliverable",
+      "status": "kjører ikke",
+      "why_important": "Distribusjonsartefakten må være signert med organisasjonens betrodde sertifikat.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Bygg og signer godkjent Windows-pakke i forvaltet release-miljø.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Managed workstation smoke",
+      "status": "krever godkjenning",
+      "why_important": "Målmaskinens policy, installasjon, oppstart og dokumentflyt må verifiseres.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Kjør smoke på Braathe/Jussys-forvaltet Windows-maskin.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Engineering approval",
+      "status": "krever godkjenning",
+      "why_important": "Engineering må eksplisitt godkjenne den eksakte releasekandidaten.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert engineering-godkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Product approval",
+      "status": "krever godkjenning",
+      "why_important": "Produkteier må eksplisitt godkjenne førstebrukeromfanget.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert produktgodkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Security/privacy approval",
+      "status": "krever godkjenning",
+      "why_important": "Sikkerhet/personvern må godkjenne behandling av ekte klientdata.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert sikkerhets- og personverngodkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Braathe/Jussys approval",
+      "status": "krever godkjenning",
+      "why_important": "Driftsmiljøet må godkjennes av ansvarlig IT-part.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert Braathe/Jussys-godkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Client/data-owner approval",
+      "status": "krever godkjenning",
+      "why_important": "Dataeier må godkjenne bruk av ekte saksdokumenter.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert dataeiergodkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    }
+  ],
+  "fixture_upload": {
+    "status": "pass",
+    "fixture": "test-fixtures\\uploads\\safe-test-document.txt",
+    "primary_case_id": "f3120338-1c3d-4609-883a-93309f658093",
+    "isolation_case_id": "2f0a4c3c-ba3a-4114-b0cf-faeff9a0bf8a",
+    "document_id": "34c32dc0-57b1-4728-af3a-d3614085c81a",
+    "in_correct_case": true,
+    "absent_from_other_case": true,
+    "ingestion_job_id": "21d09204-0ec9-4411-856d-83ab128486c6",
+    "ingestion_status": "COMPLETED",
+    "pipeline_bypassed": false
+  },
+  "reason": "11 eksplisitte operatorhandlinger gjenstår."
+}

@@ -42,6 +42,27 @@ class IngestionJobServiceTest {
     }
 
     @Test
+    void approveAllowsPartialSourceReadyDocumentToBeReprocessed() {
+        var documentRepository = mock(DocumentRepository.class);
+        var jobRepository = mock(IngestionJobRepository.class);
+        var service = service(documentRepository, jobRepository, mock(DocumentSourceUnitRepository.class));
+        var document = document();
+        document.markPartialSourceReady("PARTIAL_SOURCE_READY");
+        when(documentRepository.findByIdAndTenantIdForUpdate(DOCUMENT_ID, TENANT_ID)).thenReturn(Optional.of(document));
+        when(jobRepository.findFirstByTenantIdAndDocumentIdAndStatusInOrderByCreatedAtDesc(eq(TENANT_ID), eq(DOCUMENT_ID), anyCollection()))
+                .thenReturn(Optional.empty());
+        when(documentRepository.save(any(Document.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jobRepository.save(any(IngestionJob.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        IngestionJob job = service.approve(DOCUMENT_ID, TENANT_ID);
+
+        assertEquals(IngestionJob.STATUS_PENDING, job.getStatus());
+        assertEquals(Document.STATUS_APPROVED_PENDING_INGESTION, document.getStatus());
+        assertNull(document.getIngestionError());
+        verify(jobRepository).save(any(IngestionJob.class));
+    }
+
+    @Test
     void approveReturnsExistingActiveJobWithoutCreatingDuplicate() {
         var documentRepository = mock(DocumentRepository.class);
         var jobRepository = mock(IngestionJobRepository.class);
@@ -125,6 +146,20 @@ class IngestionJobServiceTest {
                 .thenReturn(List.of(1, 2, 3, 4, 5));
 
         assertEquals(6, service.firstMissingPage(document(), job, 5));
+    }
+
+    @Test
+    void updateDocumentPageCountPersistsInspectedPageTotal() {
+        var documentRepository = mock(DocumentRepository.class);
+        var service = service(documentRepository, mock(IngestionJobRepository.class), mock(DocumentSourceUnitRepository.class));
+        var document = document();
+        when(documentRepository.findByIdAndTenantIdForUpdate(DOCUMENT_ID, TENANT_ID)).thenReturn(Optional.of(document));
+        when(documentRepository.save(document)).thenReturn(document);
+
+        service.updateDocumentPageCount(DOCUMENT_ID, TENANT_ID, 78);
+
+        assertEquals(78, document.getPageCount());
+        verify(documentRepository).save(document);
     }
 
     @Test

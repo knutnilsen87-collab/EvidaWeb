@@ -46,9 +46,18 @@ export function NewCaseWizard({ isOpen, onClose, onCreate }: NewCaseWizardProps)
     if (step === 3) {
       window.setTimeout(() => inputRef.current?.focus(), 0);
     }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
 
-    return () => document.body.classList.remove("evida-modal-open");
-  }, [isOpen, step]);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.classList.remove("evida-modal-open");
+    };
+  }, [isOpen, onClose, step]);
 
   if (!isOpen) {
     return null;

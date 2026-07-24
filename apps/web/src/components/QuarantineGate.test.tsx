@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import type { ComponentProps } from "react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EVIDA_TENANT_HEADER } from "../lib/auth";
@@ -8,7 +9,7 @@ import { uploadQueue } from "../lib/uploadQueue";
 
 const tenantId = "00000000-0000-0000-0000-000000000101";
 
-function backendDocument(filename = "Skannet_Vedlegg_B.png") {
+function backendDocument(filename = "Skannet_Vedlegg_B.png", status = "QUARANTINE") {
   return {
     id: "doc_backend_1",
     tenantId,
@@ -18,16 +19,16 @@ function backendDocument(filename = "Skannet_Vedlegg_B.png") {
     size: 4,
     contentType: "image/png",
     sha256: "hash",
-    status: "QUARANTINE",
+    status,
     message: "Dokument ligger i karantene.",
     pageCount: 1
   };
 }
 
-function renderGate() {
+function renderGate(props: Partial<ComponentProps<typeof QuarantineGate>> = {}) {
   return render(
     <AuthProvider>
-      <QuarantineGate caseId="case_web_demo" />
+      <QuarantineGate caseId="case_web_demo" {...props} />
     </AuthProvider>
   );
 }
@@ -84,6 +85,103 @@ describe("QuarantineGate", () => {
       "/api/documents/doc_backend_1/approve-ingestion",
       expect.objectContaining({ method: "POST" })
     );
+  });
+
+  it("opens an accessible preview and runs the same approve action from the modal", async () => {
+    const user = userEvent.setup();
+    const submitting = vi.fn();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [backendDocument()]
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ...backendDocument(), status: "APPROVED_FOR_INGESTION" })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => []
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    renderGate({ onControlActionSubmitting: submitting });
+
+    await screen.findByText("Skannet_Vedlegg_B.png");
+    await user.click(screen.getByRole("button", { name: "Åpne kontrollpreview for Skannet_Vedlegg_B.png" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Skannet_Vedlegg_B.png" });
+    expect(within(dialog).getByText(/Hva skjer ved handling/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Forhåndsvisning åpnet/i)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "Godkjenn for ingestion" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/documents/doc_backend_1/approve-ingestion",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+    expect(submitting).toHaveBeenCalledWith(true);
+    expect(submitting).toHaveBeenLastCalledWith(false);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("replaces an active document with a new quarantined version", async () => {
+    const user = userEvent.setup();
+    const activeDocument = {
+      ...backendDocument("Prosesskriv.pdf", "SOURCE_READY"),
+      versionNumber: 1,
+      activeVersion: true
+    };
+    const replacement = {
+      ...backendDocument("Prosesskriv-oppdatert.pdf", "QUARANTINE"),
+      id: "doc_backend_2",
+      versionNumber: 2,
+      supersedesDocumentId: activeDocument.id,
+      activeVersion: true
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [activeDocument] })
+      .mockResolvedValueOnce({ ok: true, json: async () => replacement })
+      .mockResolvedValueOnce({ ok: true, json: async () => [replacement] });
+    vi.stubGlobal("fetch", fetchMock);
+    renderGate();
+
+    await screen.findByText("Prosesskriv.pdf");
+    await user.click(screen.getByRole("button", { name: /kontrollpreview for Prosesskriv\.pdf/i }));
+    await user.upload(
+      screen.getByLabelText("Erstatt Prosesskriv.pdf med ny versjon"),
+      new File(["oppdatert"], "Prosesskriv-oppdatert.pdf", { type: "application/pdf" })
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/documents/doc_backend_1/replace",
+        expect.objectContaining({ method: "POST", body: expect.any(FormData) })
+      );
+    });
+    expect(await screen.findByText(/Ny versjon 2 er lagt i karantene/i)).toBeInTheDocument();
+  });
+
+  it("shows a Saksrom CTA, not archive, for partial source ready documents", async () => {
+    const user = userEvent.setup();
+    const openSaksrom = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [backendDocument("Masterdoc_001.pdf", "PARTIAL_SOURCE_READY")]
+      })
+    );
+
+    renderGate({ onOpenSaksrom: openSaksrom });
+
+    await screen.findByText("Masterdoc_001.pdf");
+    expect(screen.getByRole("button", { name: "Åpne Saksrom for Masterdoc_001.pdf" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Arkiver Masterdoc_001.pdf" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Åpne Saksrom for Masterdoc_001.pdf" }));
+    expect(openSaksrom).toHaveBeenCalledTimes(1);
   });
 
   it("uploads a document, refreshes backend list and shows success state", async () => {

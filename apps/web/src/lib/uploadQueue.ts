@@ -1,4 +1,5 @@
 import * as api from "./api";
+import { isSupportedUploadFileName, UNSUPPORTED_UPLOAD_MESSAGE } from "./uploadPolicy";
 
 export type QueueItemStatus =
   | "QUEUED"
@@ -181,7 +182,7 @@ export class UploadQueue {
 
   public setContext(tenantId: string, caseId: string | null) {
     this.tenantId = tenantId;
-    this.caseId = api.toUuid(caseId) || null;
+    this.caseId = caseId && api.isUuid(caseId) ? caseId : null;
     this.notify(true);
   }
 
@@ -197,7 +198,6 @@ export class UploadQueue {
 
   public addFiles(files: File[]) {
     const systemFileRegex = /(^\..*)|(^\.DS_Store$)|(^Thumbs\.db$)|(^desktop\.ini$)|(^__MACOSX$)/i;
-    const acceptedExtensions = [".pdf", ".docx", ".doc", ".txt", ".png", ".jpg", ".jpeg"];
     const cid = this.caseId || "";
 
     files.forEach((file) => {
@@ -206,14 +206,13 @@ export class UploadQueue {
         return;
       }
 
-      const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-      if (!acceptedExtensions.includes(ext)) {
+      if (!isSupportedUploadFileName(file.name)) {
         if (!this.rejectedFilesByCase[cid]) {
           this.rejectedFilesByCase[cid] = [];
         }
         this.rejectedFilesByCase[cid].push({
           name: file.name,
-          reason: "Ugyldig filtype. Kun PDF, DOCX, TXT, PNG, JPG støttes."
+          reason: UNSUPPORTED_UPLOAD_MESSAGE
         });
         return;
       }
@@ -246,6 +245,16 @@ export class UploadQueue {
 
     this.notify(true);
     this.processQueue();
+  }
+
+  public addRejectedFiles(rejected: Array<{ name: string; reason: string }>) {
+    if (rejected.length === 0) return;
+    const cid = this.caseId || "";
+    this.rejectedFilesByCase[cid] = [
+      ...(this.rejectedFilesByCase[cid] || []),
+      ...rejected
+    ];
+    this.notify(true);
   }
 
   public cancelFile(id: string) {

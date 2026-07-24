@@ -30,6 +30,7 @@ legacy/abandoned-initial-app/
 
 # Local assistant / agent state
 .claude/
+.codex-runtime/
 
 # Local runtime data
 **/local_data/

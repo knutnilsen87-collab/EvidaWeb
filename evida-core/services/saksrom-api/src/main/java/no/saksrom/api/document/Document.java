@@ -28,6 +28,7 @@ public class Document {
     public static final String STATUS_VERIFIED = "VERIFIED";
     public static final String STATUS_ARCHIVED = "ARCHIVED";
     public static final String STATUS_DELETED = "DELETED";
+    public static final String STATUS_SUPERSEDED = "SUPERSEDED";
 
     @Id
     private UUID id;
@@ -77,6 +78,21 @@ public class Document {
     @Column(name = "ingestion_error")
     private String ingestionError;
 
+    @Column(name = "version_number", nullable = false)
+    private Integer versionNumber = 1;
+
+    @Column(name = "version_root_id", nullable = false)
+    private UUID versionRootId;
+
+    @Column(name = "supersedes_document_id")
+    private UUID supersedesDocumentId;
+
+    @Column(name = "superseded_by_document_id")
+    private UUID supersededByDocumentId;
+
+    @Column(name = "active_version", nullable = false)
+    private boolean activeVersion = true;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -115,6 +131,9 @@ public class Document {
         this.storagePath = storagePath;
         this.storagePolicy = storagePolicy;
         this.status = STATUS_QUARANTINE;
+        this.versionNumber = 1;
+        this.versionRootId = id;
+        this.activeVersion = true;
     }
 
     public UUID getId() { return id; }
@@ -135,6 +154,51 @@ public class Document {
     public String getIngestionError() { return ingestionError; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public Integer getVersionNumber() { return versionNumber; }
+    public UUID getVersionRootId() { return versionRootId; }
+    public UUID getSupersedesDocumentId() { return supersedesDocumentId; }
+    public UUID getSupersededByDocumentId() { return supersededByDocumentId; }
+    public boolean isActiveVersion() { return activeVersion; }
+
+    public void initializeReplacementOf(Document previous) {
+        if (previous == null || previous.id == null) {
+            throw new IllegalArgumentException("Previous document is required");
+        }
+        if (!previous.tenantId.equals(tenantId) || !java.util.Objects.equals(previous.caseId, caseId)) {
+            throw new IllegalArgumentException("Replacement must preserve tenant and case ownership");
+        }
+        if (!previous.activeVersion || STATUS_SUPERSEDED.equals(previous.status) || STATUS_DELETED.equals(previous.status)) {
+            throw new IllegalStateException("Only the active document version can be replaced");
+        }
+        this.versionRootId = previous.versionRootId == null ? previous.id : previous.versionRootId;
+        this.versionNumber = previous.versionNumber == null ? 2 : previous.versionNumber + 1;
+        this.supersedesDocumentId = previous.id;
+        this.activeVersion = true;
+    }
+
+    public void markSupersededBy(UUID replacementId) {
+        markSuperseded();
+        linkSupersededBy(replacementId);
+    }
+
+    public void markSuperseded() {
+        if (!activeVersion || STATUS_DELETED.equals(status)) {
+            throw new IllegalStateException("Only an active non-deleted document can be superseded");
+        }
+        this.status = STATUS_SUPERSEDED;
+        this.activeVersion = false;
+        this.supersededByDocumentId = null;
+    }
+
+    public void linkSupersededBy(UUID replacementId) {
+        if (!STATUS_SUPERSEDED.equals(status) || activeVersion) {
+            throw new IllegalStateException("Document must be superseded before linking its replacement");
+        }
+        if (replacementId == null || replacementId.equals(id)) {
+            throw new IllegalArgumentException("A distinct replacement id is required");
+        }
+        this.supersededByDocumentId = replacementId;
+    }
 
     public void markApprovedForIngestion() {
         requireStatus(STATUS_QUARANTINE);
@@ -158,6 +222,7 @@ public class Document {
 
     public void markDeleted() {
         this.status = STATUS_DELETED;
+        this.activeVersion = false;
     }
 
     public void markIngesting() {
@@ -183,6 +248,13 @@ public class Document {
     public void markSourceReady() {
         this.status = STATUS_SOURCE_READY;
         this.ingestionError = null;
+    }
+
+    public void updatePageCount(int pageCount) {
+        if (pageCount < 1) {
+            throw new IllegalArgumentException("pageCount must be >= 1");
+        }
+        this.pageCount = pageCount;
     }
 
     public void markPartialSourceReady(String warning) {

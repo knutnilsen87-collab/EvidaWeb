@@ -52,12 +52,20 @@
 }
 
 .portal-title {
-  margin: 1.65rem 0 2.25rem;
+  margin: 1.65rem 0 1rem;
   color: #ffffff;
   font-size: clamp(3.4rem, 7vw, 5rem);
   font-weight: 200;
   letter-spacing: 0;
   line-height: 0.9;
+}
+
+.portal-supporting-text {
+  max-width: 640px;
+  margin: 0 0 2.25rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1.04rem;
+  line-height: 1.65;
 }
 
 h1.serif-title {
@@ -74,6 +82,16 @@ h1.serif-title {
   width: 100%;
   max-width: 700px;
   margin: 0 auto;
+}
+
+.command-portal-grid--single {
+  grid-template-columns: minmax(260px, 420px);
+  justify-content: center;
+}
+
+.command-portal-grid--single .large-action-btn {
+  min-height: 72px;
+  text-align: center;
 }
 
 .large-action-btn {
@@ -107,6 +125,100 @@ h1.serif-title {
   background:
     radial-gradient(circle at top right, rgba(0, 212, 163, 0.14), transparent 64%),
     rgba(255, 255, 255, 0.025);
+}
+
+.case-overview {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  min-height: 0;
+}
+
+.case-overview__header {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.case-overview__title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 2rem;
+  align-items: end;
+}
+
+.case-overview .portal-title {
+  margin: 0.75rem 0 1rem;
+  font-size: clamp(3rem, 6vw, 4.6rem);
+}
+
+.case-overview .portal-supporting-text {
+  margin-bottom: 0;
+  text-align: left;
+}
+
+.case-overview__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.case-overview__state {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  width: 100%;
+  min-height: 260px;
+  border-radius: 8px;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+}
+
+.case-overview__state h2,
+.case-folder-card h2 {
+  margin: 0;
+  color: var(--evida-text-primary);
+  letter-spacing: 0;
+}
+
+.case-overview__state p,
+.case-folder-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.5;
+}
+
+.case-overview__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  width: 100%;
+  align-content: start;
+}
+
+.case-folder-card {
+  display: grid;
+  gap: 1.25rem;
+  align-content: space-between;
+  min-height: 190px;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.case-folder-card__status {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 0.85rem;
+  color: var(--evida-status-active);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.case-folder-card .btn-primary,
+.case-overview__state .btn-primary {
+  width: fit-content;
 }
 
 .dashboard-control-room,
@@ -468,8 +580,69 @@ h1.serif-title {
 
   .case-command-card,
   .control-room-grid,
+  .case-overview__title-row,
   .integrity-list {
     grid-template-columns: 1fr;
+  }
+
+  .case-overview {
+    gap: 1rem;
+    padding: 0 0 1rem;
+  }
+
+  .case-overview .portal-kicker {
+    font-size: 0.68rem;
+  }
+
+  .case-overview .portal-title {
+    margin: 0.5rem 0 0.75rem;
+    font-size: 2.35rem;
+    line-height: 1;
+  }
+
+  .case-overview .portal-supporting-text {
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .case-overview__title-row {
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .case-overview__title-row .large-action-btn {
+    min-height: 52px;
+    text-align: center;
+  }
+
+  .case-overview__body {
+    min-width: 0;
+  }
+
+  .case-overview__grid {
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+
+  .case-folder-card {
+    min-height: 168px;
+    padding: 1rem;
+  }
+
+  .case-folder-card h2 {
+    overflow-wrap: anywhere;
+    font-size: 1.25rem;
+    line-height: 1.22;
+  }
+
+  .case-folder-card p {
+    font-size: 0.95rem;
+  }
+
+  .case-folder-card .btn-primary,
+  .case-overview__state .btn-primary {
+    width: 100%;
+    min-height: 48px;
   }
 
   .control-room-grid {

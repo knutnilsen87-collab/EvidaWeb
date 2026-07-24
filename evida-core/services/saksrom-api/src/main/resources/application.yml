@@ -46,8 +46,19 @@ evida:
     local-dev-mode: ${EVIDA_LOCAL_DEV_MODE:true}
     allowed-origins: ${EVIDA_ALLOWED_ORIGINS:}
     malware-scanner-configured: ${EVIDA_MALWARE_SCANNER_CONFIGURED:false}
+    malware-scan-enabled: ${EVIDA_MALWARE_SCAN_ENABLED:false}
+    malware-scan-host: ${EVIDA_MALWARE_SCAN_HOST:127.0.0.1}
+    malware-scan-port: ${EVIDA_MALWARE_SCAN_PORT:3310}
+    malware-scan-timeout-millis: ${EVIDA_MALWARE_SCAN_TIMEOUT_MILLIS:5000}
   ai:
     provider-calls-enabled: ${EVIDA_AI_PROVIDER_CALLS_ENABLED:false}
+  streaming:
+    # SSE transport tuning for token-by-token AI responses. Perceived reading speed is paced on the
+    # client (see apps/web streamingConfig.ts); these only control transport timeout/keepalive and an
+    # optional deliberate server delay (0 = stream as fast as tokens are produced, lowest TTFT).
+    timeout-millis: ${EVIDA_STREAMING_TIMEOUT_MILLIS:120000}
+    heartbeat-millis: ${EVIDA_STREAMING_HEARTBEAT_MILLIS:15000}
+    server-token-delay-millis: ${EVIDA_STREAMING_SERVER_TOKEN_DELAY_MILLIS:0}
   documents:
     raw-upload-allowed: ${EVIDA_RAW_DOCUMENT_UPLOAD_ALLOWED:false}
     max-file-size-bytes: ${EVIDA_MAX_DOCUMENT_UPLOAD_BYTES:104857600}
@@ -62,6 +73,9 @@ evida:
     ocr-enabled: ${EVIDA_OCR_ENABLED:true}
     ocr-text-threshold-chars: ${EVIDA_PARSER_OCR_TEXT_THRESHOLD_CHARS:40}
     ocr-dpi: ${EVIDA_PARSER_OCR_DPI:300}
+    ocr-retry-dpi: ${EVIDA_PARSER_OCR_RETRY_DPI:400}
+    ocr-min-confidence: ${EVIDA_PARSER_OCR_MIN_CONFIDENCE:0.55}
+    ocr-enhancement-enabled: ${EVIDA_PARSER_OCR_ENHANCEMENT_ENABLED:true}
     ocr-timeout-seconds: ${EVIDA_PARSER_OCR_TIMEOUT_SECONDS:60}
     tessdata-path: ${EVIDA_TESSDATA_PATH:./data/tessdata}
     tesseract-path: ${EVIDA_TESSERACT_PATH:}

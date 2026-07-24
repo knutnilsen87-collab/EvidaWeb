@@ -1,178 +1,181 @@
 {
-    "artifact":  "invariant_evaluation.first_user",
-    "generated_at":  "2026-05-19T08:45:00Z",
-    "release_candidate_id":  "evida-0.1.0-alpha-local-2026-05-13",
-    "verdict":  "blocked",
-    "critical_invariants":  [
-                                {
-                                    "id":  "INV-DOC-001",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-RUST-FULL",
-                                                     "EV-DOCUMENT-STRESS",
-                                                     "EV-DESKTOP-HARDENING"
-                                                 ],
-                                    "reason":  "Failed/unsupported/duplicate/OCR-required upload outcomes are terminally classified in Rust tests and the 391-file stress suite has zero deviations; failed and unsupported outcomes create zero source objects, and Saksrom answer eligibility is covered by UI readiness tests."
-                                },
-                                {
-                                    "id":  "INV-DOC-002",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-RUST-FULL"
-                                                 ],
-                                    "reason":  "Accepted documents are persisted with stable document id and sha256 in Rust integration tests."
-                                },
-                                {
-                                    "id":  "INV-DOC-003",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-DESKTOP-HARDENING"
-                                                 ],
-                                    "reason":  "Structured answer validation rejects unknown sources and requires allowed source ids."
-                                },
-                                {
-                                    "id":  "INV-DOC-004",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-DESKTOP-HARDENING"
-                                                 ],
-                                    "reason":  "Document basis and smoke path tests cover ready, OCR/manual review, unreadable, and import health UI states."
-                                },
-                                {
-                                    "id":  "INV-DATA-001",
-                                    "status":  "incomplete",
-                                    "evidence":  [
-                                                     "EV-DESKTOP-HARDENING"
-                                                 ],
-                                    "reason":  "Default settings block document/chat logging, but a full runtime log scan is still required."
-                                },
-                                {
-                                    "id":  "INV-DATA-002",
-                                    "status":  "incomplete",
-                                    "evidence":  [
-                                                     "EV-RUST-FULL"
-                                                 ],
-                                    "reason":  "Persistence is covered at database level, but clean restart smoke on a separate profile is still manual."
-                                },
-                                {
-                                    "id":  "INV-AI-001",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-DESKTOP-HARDENING",
-                                                     "EV-RUST-FULL"
-                                                 ],
-                                    "reason":  "Unsupported/invalid provider answers are blocked and safe fallback behavior is tested."
-                                },
-                                {
-                                    "id":  "INV-AI-002",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-RUST-FULL",
-                                                     "EV-DESKTOP-HARDENING"
-                                                 ],
-                                    "reason":  "Provider answer validation now blocks prompt-injection echoes such as \u0027ignorer alle tidligere instruksjoner\u0027, in addition to existing untrusted-source prompting and safe fallback tests."
-                                },
-                                {
-                                    "id":  "INV-AUDIT-001",
-                                    "status":  "incomplete",
-                                    "evidence":  [
-                                                     "EV-RUST-FULL"
-                                                 ],
-                                    "reason":  "Core audit events are tested for create/import/AI/delete and backup restore, but export and policy-change audit coverage is not fully closed."
-                                },
-                                {
-                                    "id":  "INV-AUDIT-002",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-RUST-FULL"
-                                                 ],
-                                    "reason":  "Audit tamper detection test passes."
-                                },
-                                {
-                                    "id":  "INV-CONFIG-001",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-DESKTOP-HARDENING"
-                                                 ],
-                                    "reason":  "External AI is off by default and raw/full document sending requires explicit settings."
-                                },
-                                {
-                                    "id":  "INV-CONFIG-002",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-PRODUCTION-DOD"
-                                                 ],
-                                    "reason":  "Release is explicitly pilot/pre-alpha labeled and production DoD blocks broad production use."
-                                },
-                                {
-                                    "id":  "INV-EXPORT-001",
-                                    "status":  "incomplete",
-                                    "evidence":  [
-
-                                                 ],
-                                    "reason":  "Export smoke and timestamp/source-basis assertion remain P1 evidence gaps."
-                                },
-                                {
-                                    "id":  "INV-BACKUP-001",
-                                    "status":  "pass",
-                                    "evidence":  [
-                                                     "EV-RUST-FULL"
-                                                 ],
-                                    "reason":  "Encrypted backup/restore roundtrip preserves cases and audits restore."
-                                },
-                                {
-                                    "id":  "INV-WIN-001",
-                                    "status":  "incomplete",
-                                    "evidence":  [
-
-                                                 ],
-                                    "reason":  "Managed Windows/Braathe/Jussys compatibility, signing, and IT approval evidence are not complete."
-                                },
-                                {
-                                    "id":  "INV-DATA-003",
-                                    "status":  "incomplete",
-                                    "evidence":  [
-
-                                                 ],
-                                    "reason":  "Client-data local encryption/protected document store/raw storage/deletion-retention evidence is not complete."
-                                },
-                                {
-                                    "id":  "INV-DATA-004",
-                                    "status":  "incomplete",
-                                    "evidence":  [
-
-                                                 ],
-                                    "reason":  "Runtime sensitive marker log scan has not passed."
-                                },
-                                {
-                                    "id":  "INV-RELEASE-001",
-                                    "status":  "incomplete",
-                                    "evidence":  [
-
-                                                 ],
-                                    "reason":  "Signed app/installer, signed SBOM, CI SCA/SAST, and release provenance evidence are not complete."
-                                },
-                                {
-                                    "id":  "INV-APPROVAL-001",
-                                    "status":  "incomplete",
-                                    "evidence":  [
-
-                                                 ],
-                                    "reason":  "Engineering, product, security/privacy, Braathe/IT, and client-data pilot approvals are not complete."
-                                }
-                            ],
-    "broken_invariants":  [
-
-                          ],
-    "untested_or_incomplete_invariants":  [
-                                              "INV-DATA-001",
-                                              "INV-DATA-002",
-                                              "INV-AUDIT-001",
-                                              "INV-EXPORT-001",
-                                              "INV-WIN-001",
-                                              "INV-DATA-003",
-                                              "INV-DATA-004",
-                                              "INV-RELEASE-001",
-                                              "INV-APPROVAL-001"
-                                          ]
+  "artifact": "invariant_evaluation.first_user",
+  "generated_at": "2026-07-24T15:35:22.0513867Z",
+  "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-24",
+  "verdict": "blocked",
+  "critical_invariants": [
+    {
+      "id": "INV-DOC-001",
+      "status": "pass",
+      "evidence": [
+        "EV-RUST-FULL",
+        "EV-DOCUMENT-STRESS",
+        "EV-DESKTOP-HARDENING"
+      ],
+      "reason": "Failed/unsupported/duplicate/OCR-required upload outcomes are terminally classified in Rust tests and the 391-file stress suite has zero deviations; failed and unsupported outcomes create zero source objects, and Saksrom answer eligibility is covered by UI readiness tests."
+    },
+    {
+      "id": "INV-DOC-002",
+      "status": "pass",
+      "evidence": [
+        "EV-RUST-FULL"
+      ],
+      "reason": "Accepted documents are persisted with stable document id and sha256 in Rust integration tests."
+    },
+    {
+      "id": "INV-DOC-003",
+      "status": "pass",
+      "evidence": [
+        "EV-DESKTOP-HARDENING"
+      ],
+      "reason": "Structured answer validation rejects unknown sources and requires allowed source ids."
+    },
+    {
+      "id": "INV-DOC-004",
+      "status": "pass",
+      "evidence": [
+        "EV-DESKTOP-HARDENING"
+      ],
+      "reason": "Document basis and smoke path tests cover ready, OCR/manual review, unreadable, and import health UI states."
+    },
+    {
+      "id": "INV-DATA-001",
+      "status": "pass",
+      "evidence": [
+        "artifacts/first-user/runtime_sensitive_log_scan.json"
+      ],
+      "reason": "Runtime marker scan passed across 1,723 files with zero findings."
+    },
+    {
+      "id": "INV-DATA-002",
+      "status": "incomplete",
+      "evidence": [
+        "EV-RUST-FULL"
+      ],
+      "reason": "Persistence is covered at database level, but clean restart smoke on a separate profile is still manual."
+    },
+    {
+      "id": "INV-AI-001",
+      "status": "pass",
+      "evidence": [
+        "EV-DESKTOP-HARDENING",
+        "EV-RUST-FULL"
+      ],
+      "reason": "Unsupported/invalid provider answers are blocked and safe fallback behavior is tested."
+    },
+    {
+      "id": "INV-AI-002",
+      "status": "pass",
+      "evidence": [
+        "EV-RUST-FULL",
+        "EV-DESKTOP-HARDENING"
+      ],
+      "reason": "Provider answer validation now blocks prompt-injection echoes such as 'ignorer alle tidligere instruksjoner', in addition to existing untrusted-source prompting and safe fallback tests."
+    },
+    {
+      "id": "INV-AUDIT-001",
+      "status": "incomplete",
+      "evidence": [
+        "artifacts/first-user/audit_coverage_result.json"
+      ],
+      "reason": "Upload, AI answer, export and deletion events plus hash-chain verification pass; authoritative provider/policy change audit remains missing."
+    },
+    {
+      "id": "INV-AUDIT-002",
+      "status": "pass",
+      "evidence": [
+        "EV-RUST-FULL"
+      ],
+      "reason": "Audit tamper detection test passes."
+    },
+    {
+      "id": "INV-CONFIG-001",
+      "status": "pass",
+      "evidence": [
+        "EV-DESKTOP-HARDENING"
+      ],
+      "reason": "External AI is off by default and raw/full document sending requires explicit settings."
+    },
+    {
+      "id": "INV-CONFIG-002",
+      "status": "pass",
+      "evidence": [
+        "EV-PRODUCTION-DOD"
+      ],
+      "reason": "Release is explicitly pilot/pre-alpha labeled and production DoD blocks broad production use."
+    },
+    {
+      "id": "INV-EXPORT-001",
+      "status": "pass",
+      "evidence": [
+        "artifacts/first-user/export_smoke_result.json"
+      ],
+      "reason": "Runtime source report contains timestamp, case id, source basis, draft warning and audit event."
+    },
+    {
+      "id": "INV-BACKUP-001",
+      "status": "pass",
+      "evidence": [
+        "EV-RUST-FULL"
+      ],
+      "reason": "Encrypted backup/restore roundtrip preserves cases and audits restore."
+    },
+    {
+      "id": "INV-WIN-001",
+      "status": "incomplete",
+      "evidence": [],
+      "reason": "Managed Windows/Braathe/Jussys compatibility, signing, and IT approval evidence are not complete."
+    },
+    {
+      "id": "INV-DATA-003",
+      "status": "incomplete",
+      "evidence": [],
+      "reason": "Client-data local encryption/protected document store/raw storage/deletion-retention evidence is not complete."
+    },
+    {
+      "id": "INV-DATA-004",
+      "status": "pass",
+      "evidence": [
+        "artifacts/first-user/runtime_sensitive_log_scan.json"
+      ],
+      "reason": "Post-runtime marker log scan passed with zero findings."
+    },
+    {
+      "id": "INV-RELEASE-001",
+      "status": "incomplete",
+      "evidence": [],
+      "reason": "Signed app/installer, signed SBOM, CI SCA/SAST, and release provenance evidence are not complete."
+    },
+    {
+      "id": "INV-APPROVAL-001",
+      "status": "incomplete",
+      "evidence": [],
+      "reason": "Engineering, product, security/privacy, Braathe/IT, and client-data pilot approvals are not complete."
+    },
+    {
+      "id": "INV-DOC-REPLACE-001",
+      "status": "pass",
+      "evidence": [
+        "artifacts/first-user/document_replacement_eval.json"
+      ],
+      "reason": "PostgreSQL runtime verifies v2 active version, old version superseded, old source units invalidated, replacement audited and old content excluded from retrieval."
+    },
+    {
+      "id": "INV-OCR-001",
+      "status": "pass",
+      "evidence": [
+        "PdfBoxDocumentParserTest"
+      ],
+      "reason": "Automated OCR enhancement/retry, confidence persistence and fail-closed below-threshold tests pass."
+    }
+  ],
+  "broken_invariants": [],
+  "untested_or_incomplete_invariants": [
+    "INV-DATA-002",
+    "INV-AUDIT-001",
+    "INV-WIN-001",
+    "INV-DATA-003",
+    "INV-RELEASE-001",
+    "INV-APPROVAL-001"
+  ]
 }

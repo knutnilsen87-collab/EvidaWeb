@@ -19,6 +19,23 @@
   background-blend-mode: normal, screen;
 }
 
+.evida-legal-os--focus {
+  grid-template-columns: 76px minmax(700px, 1fr) 320px;
+}
+
+.evida-legal-os--phone,
+.evida-legal-os--tablet {
+  grid-template-areas:
+    "top"
+    "main";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+  background-size: 130% auto, cover;
+}
+
 .evida-legal-os .sidebar,
 .evida-legal-os .main-work-area,
 .evida-legal-os .legal-os-control-panel {
@@ -43,6 +60,25 @@
   margin: 0 auto;
   padding: 2rem;
   overflow: hidden;
+}
+
+.evida-legal-os--phone .main-work-area,
+.evida-legal-os--tablet .main-work-area {
+  padding: 0;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.evida-legal-os--phone .content-scroll-area,
+.evida-legal-os--tablet .content-scroll-area {
+  padding: 0 16px calc(92px + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+}
+
+.evida-legal-os--phone .content-scroll-area {
+  padding-top: 0;
 }
 
 .content-scroll-area {
@@ -74,6 +110,12 @@
     filter 0.25s ease,
     transform 0.25s ease,
     opacity 0.25s ease;
+}
+
+.legal-os-stage--saksrom {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 .court-engine-chat-panel {
@@ -114,12 +156,339 @@
   line-height: 1.55;
 }
 
+.global-source-preview {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+  border-radius: 8px;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+.global-source-preview > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.global-source-preview span {
+  color: var(--evida-status-active);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.global-source-preview h2 {
+  margin: 0.25rem 0;
+  color: var(--evida-text-primary);
+  font-size: 1.1rem;
+  line-height: 1.25;
+}
+
+.global-source-preview p {
+  margin: 0;
+  color: var(--evida-text-muted);
+  font-size: 0.86rem;
+}
+
+.global-source-preview button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--evida-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  pointer-events: auto;
+}
+
+.global-source-preview .pdf-viewer-container {
+  pointer-events: none;
+}
+
+.mobile-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  grid-area: top;
+  display: none;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 8px;
+  min-height: calc(58px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(9, 9, 11, 0.94);
+  backdrop-filter: blur(14px) saturate(145%);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+}
+
+.evida-legal-os--phone .mobile-topbar,
+.evida-legal-os--tablet .mobile-topbar {
+  display: grid;
+}
+
+.mobile-icon-btn {
+  display: inline-grid;
+  min-width: 48px;
+  min-height: 48px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--evida-text-primary);
+  font-size: 1.45rem;
+}
+
+.mobile-icon-btn:disabled {
+  opacity: 0.28;
+}
+
+.mobile-topbar__title {
+  display: grid;
+  min-width: 0;
+  text-align: center;
+}
+
+.mobile-topbar__title strong {
+  color: var(--evida-status-active);
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.mobile-topbar__title span {
+  overflow: hidden;
+  color: var(--evida-text-primary);
+  font-size: 0.92rem;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-bottom-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  display: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(9, 9, 11, 0.96);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+
+.evida-legal-os--phone .mobile-bottom-nav,
+.evida-legal-os--tablet .mobile-bottom-nav {
+  display: grid;
+}
+
+.mobile-bottom-nav__item {
+  display: grid;
+  min-height: 52px;
+  min-width: 48px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  gap: 2px;
+}
+
+.mobile-bottom-nav__item span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.mobile-bottom-nav__item small {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.mobile-bottom-nav__item.is-active {
+  border-color: rgba(0, 212, 163, 0.28);
+  background: rgba(0, 212, 163, 0.1);
+  color: var(--evida-text-primary);
+}
+
+.mobile-status-row {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: calc(100% - 32px);
+  min-height: 48px;
+  margin: 12px 16px;
+  border: 1px solid rgba(0, 212, 163, 0.18);
+  border-radius: 12px;
+  padding: 0 12px;
+  background: rgba(0, 212, 163, 0.06);
+  color: var(--evida-text-primary);
+  text-align: left;
+}
+
+.evida-legal-os--phone .mobile-status-row,
+.evida-legal-os--tablet .mobile-status-row {
+  display: flex;
+}
+
+.mobile-status-row span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-status-row strong {
+  color: var(--evida-status-active);
+  font-size: 0.8rem;
+}
+
+.mobile-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  align-items: end;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.mobile-bottom-sheet {
+  display: grid;
+  gap: 16px;
+  max-height: min(78dvh, 720px);
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px 18px 0 0;
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+  background: rgba(12, 14, 18, 0.98);
+  color: var(--evida-text-primary);
+  box-shadow: 0 -26px 80px rgba(0, 0, 0, 0.42);
+}
+
+.mobile-bottom-sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-bottom-sheet header span {
+  color: var(--evida-status-active);
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mobile-sheet-close,
+.mobile-sheet-action,
+.mobile-next-step button {
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--evida-text-primary);
+  font-weight: 760;
+}
+
+.mobile-sheet-action,
+.mobile-next-step button {
+  width: 100%;
+  border-color: rgba(0, 212, 163, 0.28);
+  background: rgba(0, 212, 163, 0.1);
+}
+
+.mobile-more-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.mobile-more-item {
+  display: grid;
+  min-height: 64px;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--evida-text-primary);
+  text-align: left;
+}
+
+.mobile-more-item span,
+.mobile-next-step p,
+.mobile-status-metrics dt {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.mobile-status-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.mobile-status-metrics div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.mobile-status-metrics dd {
+  margin: 0;
+  color: var(--evida-text-primary);
+  font-size: 1.45rem;
+  font-weight: 780;
+}
+
+.mobile-next-step {
+  display: grid;
+  gap: 10px;
+}
+
+.mobile-next-step span {
+  color: var(--evida-status-active);
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mobile-next-step strong {
+  font-size: 1.25rem;
+}
+
 body.evida-command-open .legal-os-stage {
   filter: blur(4px) brightness(0.72) saturate(0.9);
   transform: scale(0.995);
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1180px) {
   .evida-legal-os {
     grid-template-areas:
       "top top"
@@ -130,6 +499,10 @@ body.evida-command-open .legal-os-stage {
 
   .main-work-area {
     padding: 2rem 2rem 1rem;
+  }
+
+  .evida-legal-os--focus {
+    grid-template-columns: 76px minmax(0, 1fr);
   }
 }
 
@@ -148,5 +521,38 @@ body.evida-command-open .legal-os-stage {
 
   .main-work-area {
     padding: 1rem 1rem 0.75rem;
+  }
+}
+
+@media (max-width: 1023px) {
+  .evida-legal-os--phone,
+  .evida-legal-os--tablet {
+    grid-template-areas:
+      "top"
+      "main";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+}
+
+@media (max-width: 767px) {
+  .evida-legal-os--phone {
+    background-image:
+      linear-gradient(180deg, rgba(10, 12, 16, 0.96), rgba(10, 12, 16, 0.98)),
+      var(--evida-bg-grain);
+  }
+
+  .evida-legal-os--phone .legal-os-stage {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .evida-legal-os--tablet .content-scroll-area {
+    padding-right: 24px;
+    padding-left: 24px;
   }
 }

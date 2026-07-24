@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchSaksromSummary } from "../lib/api";
+import { fetchCaseDocuments, fetchSaksromSummary } from "../lib/api";
 import { citationStore } from "../lib/CitationManager";
 import { SaksromView } from "./SaksromView";
 
@@ -91,17 +91,18 @@ describe("SaksromView", () => {
     expect(screen.queryByText("DOKUMENTGRUNNLAG")).not.toBeInTheDocument();
     expect(screen.queryByText("Signert klientavtale")).not.toBeInTheDocument();
     expect(screen.queryByText("Virtualisert PDF")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Juridisk reasoning engine" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Saksrom chatlogg")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Juridisk reasoning engine" })).not.toBeInTheDocument();
   });
 
-  it("renders preliminary banner when source basis is incomplete", async () => {
+  it("renders preliminary source basis as a compact coverage status by the input", async () => {
     render(<SaksromView caseId="case_123" tenantId="tenant_123" documents={mockDocs} />);
 
-    expect(screen.getAllByText("Foreløpig kildegrunnlag").length).toBeGreaterThan(0);
+    expect(await screen.findByText(/Foreløpig kildegrunnlag · 72 av 78 sider klare/i)).toBeInTheDocument();
     expect((await screen.findAllByText(/72 av 78 sider/i)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/5 sider krever OCR/i)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/1 side krever kontroll/i)).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Mangler OCR: side 1-5/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Mangler OCR: side/i)).not.toBeInTheDocument();
   });
 
   it("renders live opening summary when source basis exists", async () => {
@@ -115,8 +116,20 @@ describe("SaksromView", () => {
         sourceBasis: "READY_PAGE_UNITS_ONLY"
       })
     );
-    expect(await screen.findByText("Her er første saksforståelse basert på tilgjengelige kilder:")).toBeInTheDocument();
-    expect(await screen.findByText("Viktigste faktum")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Første saksforståelse" })).toBeInTheDocument();
+    expect(await screen.findByText(/Viktigste faktum/)).toBeInTheDocument();
+  });
+
+  it("does not poll settled documents while the user reads Saksrom", async () => {
+    vi.useFakeTimers();
+    const fetchCaseDocumentsMock = vi.mocked(fetchCaseDocuments);
+
+    render(<SaksromView caseId="case_123" tenantId="tenant_123" documents={mockDocs} />);
+
+    await vi.advanceTimersByTimeAsync(12_000);
+
+    expect(fetchCaseDocumentsMock).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it("opens the source overlay when citation is clicked, and closes it when back is clicked", async () => {

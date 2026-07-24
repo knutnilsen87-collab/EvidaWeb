@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Changa:wght@400;500;600;700&display=swap");
 @import "./tokens.css";
 
 * {
@@ -38,8 +38,9 @@ h3,
 .serif-title {
   color: #f0f0f0;
   font-family: var(--evida-font-header);
-  font-weight: 400;
-  letter-spacing: 0;
+  font-weight: 700 !important;
+  letter-spacing: 0.035em;
+  text-transform: uppercase !important;
 }
 
 
@@ -84,9 +85,14 @@ button:disabled {
 
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible,
 [role="dialog"]:focus-visible {
-  outline: 3px solid var(--evida-status-active);
+  outline: 2px solid rgba(0, 212, 163, 0.95);
   outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(0, 212, 163, 0.16);
 }
 
 .text-muted {
@@ -240,4 +246,64 @@ input:focus-visible,
 
 .status-pill--rejected {
   color: var(--evida-status-critical);
+}
+
+@media (max-width: 767px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    font-size: 16px;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1 {
+    font-size: 2.35rem;
+    line-height: 1;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    line-height: 1.12;
+  }
+
+  .main-work-area p {
+    max-width: none;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  button,
+  .btn-primary,
+  .evida-button {
+    min-height: 48px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .liquid-glass-panel {
+    backdrop-filter: blur(8px) saturate(130%);
+    -webkit-backdrop-filter: blur(8px) saturate(130%);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
 }

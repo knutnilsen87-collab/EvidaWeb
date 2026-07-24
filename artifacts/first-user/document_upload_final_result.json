@@ -1,15 +1,20 @@
 {
-    "generated_at":  "2026-05-19T12:29:11.9270554Z",
-    "status":  "partial",
-    "verdict":  "blocked",
-    "referenced_evidence":  [
-                                "artifacts/first-user/document-upload-stress-report.json",
-                                "artifacts/first-user/evidence.first_user.current.json"
-                            ],
-    "remaining_blockers":  [
-                               "manual desktop smoke with client-data-shaped synthetic package",
-                               "source coverage and failed-document AI exclusion proof",
-                               "password/corrupt/OCR-needed flows captured as current evidence"
-                           ],
-    "real_client_data_allowed":  false
+  "generated_at": "2026-07-24T15:31:22.549Z",
+  "status": "pass",
+  "verdict": "pass",
+  "synthetic_only": true,
+  "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+  "document_ids": [
+    "5af21d4a-1e91-419f-aa9e-67e4a2da3293",
+    "eb74707e-77ff-47f0-ae89-3e06567d3ae8",
+    "5b9c3f66-7285-41f7-8dcc-282edaaab640"
+  ],
+  "ingestion_statuses": [
+    "COMPLETED",
+    "COMPLETED",
+    "COMPLETED"
+  ],
+  "malware_scan_bypassed": false,
+  "source_objects_created": true,
+  "note": "Native file-picker signoff remains a separate manual gate."
 }

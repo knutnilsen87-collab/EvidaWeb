@@ -1,51 +1,52 @@
 import type { WorkspaceView } from "../../navigation";
+import type { EvidaDocument } from "../../lib/api";
+import { getBestNextStep, getSourceBasisStats, sourceCoveragePercent } from "../../lib/bestNextStep";
 import "./ControlPanel.css";
 
 interface ControlPanelProps {
   activeCaseName: string | null;
   activeView: WorkspaceView;
+  documents?: EvidaDocument[];
+  queueBusy?: boolean;
+  actionSubmitting?: boolean;
   onNavigate: (view: WorkspaceView) => void;
   onNewCase: () => void;
 }
 
-function getNextStep(activeCaseName: string | null, activeView: WorkspaceView) {
-  if (!activeCaseName) {
-    return {
-      title: "Opprett første sak",
-      body: "Initialiser sak før import, karantene og kildeverifisering.",
-      label: "Opprett ny sak",
-      view: null
-    };
-  }
+export function ControlPanel({
+  activeCaseName,
+  activeView,
+  documents = [],
+  queueBusy = false,
+  actionSubmitting = false,
+  onNavigate,
+  onNewCase
+}: ControlPanelProps) {
+  const nextStep = getBestNextStep({
+    activeCaseName,
+    activeView,
+    documents,
+    queueState: { isBusy: queueBusy, total: 0, failed: 0 },
+    actionSubmitting
+  });
+  const sourceStats = getSourceBasisStats(documents);
+  const coverage = sourceCoveragePercent(sourceStats.readyPages, sourceStats.totalPages);
+  const actionLabel = nextStep.kind === "create_case" ? "Opprett ny sak" : nextStep.label;
 
-  if (activeView === "import") {
-    return {
-      title: "Bygg kildegrunnlag",
-      body: "Last opp dokumentene og send dem gjennom karantene-slusen.",
-      label: "Gå til kontroll",
-      view: "quarantine" as WorkspaceView
-    };
-  }
-
-  if (activeView === "quarantine") {
-    return {
-      title: "Verifiser kilder",
-      body: "Godkjenn kildeklare dokumenter før Saksrommet brukes aktivt.",
-      label: "Åpne Saksrom",
-      view: "saksrom" as WorkspaceView
-    };
-  }
-
-  return {
-    title: "Neste juridiske steg",
-    body: "Koble manglende kilder til påstander før utkastet produseres.",
-    label: "Åpne Bevismatrise",
-    view: "evidence" as WorkspaceView
+  const handlePrimaryAction = () => {
+    if (nextStep.disabled) return;
+    if (nextStep.kind === "create_case") {
+      onNewCase();
+      return;
+    }
+    if (nextStep.targetView) {
+      onNavigate(nextStep.targetView);
+      return;
+    }
+    if (nextStep.kind === "start_processing" || nextStep.kind === "inspect_error" || nextStep.kind === "focus_upload") {
+      onNavigate("import");
+    }
   };
-}
-
-export function ControlPanel({ activeCaseName, activeView, onNavigate, onNewCase }: ControlPanelProps) {
-  const nextStep = getNextStep(activeCaseName, activeView);
 
   return (
     <aside className="legal-os-control-panel control-panel" aria-label="Kontrollpanel">
@@ -56,39 +57,51 @@ export function ControlPanel({ activeCaseName, activeView, onNavigate, onNewCase
           <p>{nextStep.body}</p>
           <button
             className="control-primary-action action-btn"
+            disabled={nextStep.disabled}
             type="button"
-            onClick={() => (nextStep.view ? onNavigate(nextStep.view) : onNewCase())}
+            onClick={handlePrimaryAction}
           >
-            {nextStep.label}
+            {actionLabel}
           </button>
         </div>
       </section>
 
-      <section className="control-panel-section risk-module">
-        <span className="control-kicker">Risiko & varsler</span>
-        <ul className="alert-list">
-          <li className="alert-item red">Mangler kilde for 8 faktapåstander</li>
-          <li className="alert-item yellow">3 dokumenter har dårlig OCR</li>
-        </ul>
-      </section>
+      {activeCaseName ? (
+        <>
+          <section className="control-panel-section risk-module">
+            <span className="control-kicker">Risiko & varsler</span>
+            <ul className="alert-list">
+              {sourceStats.failedDocuments > 0 ? (
+                <li className="alert-item red">{sourceStats.failedDocuments} dokument krever kontroll</li>
+              ) : null}
+              {sourceStats.failedPages > 0 && sourceStats.readyPages > 0 ? (
+                <li className="alert-item yellow">{sourceStats.failedPages} sider mangler i foreløpig kildegrunnlag</li>
+              ) : null}
+              {sourceStats.failedDocuments === 0 && sourceStats.failedPages === 0 ? (
+                <li className="alert-item green">Ingen kjente kildeblokker akkurat nå</li>
+              ) : null}
+            </ul>
+          </section>
 
-      <section className="control-panel-section">
-        <span className="control-kicker">Kildegrunnlag</span>
-        <dl className="source-metrics">
-          <div>
-            <dt>Kildedekning</dt>
-            <dd>{activeCaseName ? "97%" : "0%"}</dd>
-          </div>
-          <div>
-            <dt>Karantene</dt>
-            <dd>{activeCaseName ? "12" : "0"}</dd>
-          </div>
-          <div>
-            <dt>Risikohull</dt>
-            <dd>{activeCaseName ? "3" : "0"}</dd>
-          </div>
-        </dl>
-      </section>
+          <section className="control-panel-section">
+            <span className="control-kicker">Kildegrunnlag</span>
+            <dl className="source-metrics">
+              <div>
+                <dt>Kildedekning</dt>
+                <dd>{coverage}%</dd>
+              </div>
+              <div>
+                <dt>Klare sider</dt>
+                <dd>{sourceStats.readyPages}</dd>
+              </div>
+              <div>
+                <dt>Krever kontroll</dt>
+                <dd>{sourceStats.failedPages + sourceStats.failedDocuments}</dd>
+              </div>
+            </dl>
+          </section>
+        </>
+      ) : null}
 
       <section className="control-panel-section assistant-module">
         <span className="control-kicker">Saksassistent</span>

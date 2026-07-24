@@ -18,10 +18,23 @@ interface TopBarProps {
 }
 
 export function TopBar({ activeCaseName, actions, identity, lastAction, onLogin }: TopBarProps) {
+  const buildId = import.meta.env.VITE_EVIDA_BUILD_ID || "dev-local";
+
   return (
     <header className="legal-os-topbar">
       <div className="top-bar-left">
         <img className="topbar-logo" src="/brand/logo.svg" alt="EVIDA" />
+        <div className="pilot-release-chip" aria-label="Pilotstatus">
+          <strong>Pilot</strong>
+          <span>Build {buildId}</span>
+          <span>Testdata only</span>
+        </div>
+        <div className="case-context" aria-label="Aktiv sak">
+          <p className="case-name">{activeCaseName ?? "Ingen sak valgt"}</p>
+          <p className={`case-status ${activeCaseName ? "active" : ""}`}>
+            {activeCaseName ? "Aktiv sak" : "Opprett sak for å starte"}
+          </p>
+        </div>
         <span className="topbar-live-status" aria-live="polite">
           {lastAction}
         </span>

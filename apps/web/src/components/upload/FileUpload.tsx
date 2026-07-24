@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { AnalysisStatus } from "../../engine/types";
 import { startCourtEngineAnalysis, uploadFilesForAnalysis } from "../../lib/api";
+import { SUPPORTED_UPLOAD_ACCEPT } from "../../lib/uploadPolicy";
 
 interface FileUploadProps {
   caseId: string;
@@ -39,7 +40,7 @@ export function FileUpload({ caseId, tenantId, setAnalysisStatus }: FileUploadPr
       <input
         type="file"
         multiple
-        accept=".pdf,.doc,.docx,.txt"
+        accept={SUPPORTED_UPLOAD_ACCEPT}
         disabled={isUploading}
         onChange={(event) => void handleUpload(event.currentTarget.files)}
       />

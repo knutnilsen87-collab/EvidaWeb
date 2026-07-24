@@ -102,11 +102,46 @@ class LocalDocumentStorageServiceTest {
         assertEquals("UPLOAD_REJECTED_FILE_TOO_LARGE", error.getReason());
     }
 
+    @Test
+    void rejectsInfectedFileBeforeFinalStorage() {
+        var storage = new LocalDocumentStorageService(file -> MalwareScanResult.infected("test"), quarantineRoot);
+        var file = new MockMultipartFile("file", "case.txt", "text/plain", "EICAR test fixture".getBytes(StandardCharsets.UTF_8));
+
+        var error = assertThrows(UploadSecurityException.class, () -> storage.storeQuarantineBlob(TENANT_ID, file, 1024));
+
+        assertEquals("MALWARE_DETECTED", error.code());
+        assertEquals(400, error.httpStatus().value());
+        assertFalse(Files.exists(quarantineRoot.resolve(TENANT_ID.toString()).resolve(sha256Unchecked("EICAR test fixture").substring(0, 2))));
+    }
+
+    @Test
+    void failsClosedWhenScannerUnavailableOrFailed() {
+        var unavailable = new LocalDocumentStorageService(file -> MalwareScanResult.unavailable("test"), quarantineRoot);
+        var failed = new LocalDocumentStorageService(file -> MalwareScanResult.failed("test"), quarantineRoot);
+        var file = new MockMultipartFile("file", "case.txt", "text/plain", "tekst".getBytes(StandardCharsets.UTF_8));
+
+        var unavailableError = assertThrows(UploadSecurityException.class, () -> unavailable.storeQuarantineBlob(TENANT_ID, file, 1024));
+        var failedError = assertThrows(UploadSecurityException.class, () -> failed.storeQuarantineBlob(TENANT_ID, file, 1024));
+
+        assertEquals("MALWARE_SCAN_UNAVAILABLE", unavailableError.code());
+        assertEquals(503, unavailableError.httpStatus().value());
+        assertEquals("MALWARE_SCAN_FAILED", failedError.code());
+        assertEquals(503, failedError.httpStatus().value());
+    }
+
     private LocalDocumentStorageService storage() {
         return new LocalDocumentStorageService(new DevBypassMalwareScanner(), quarantineRoot);
     }
 
     private String sha256(String value) throws Exception {
         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private String sha256Unchecked(String value) {
+        try {
+            return sha256(value);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

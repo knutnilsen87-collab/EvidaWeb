@@ -1,0 +1,23 @@
+{
+  "name": "evida-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "pilot:preflight": "tsx scripts/pilot/preflight-evida-real-data.ts",
+    "pilot:real-data-gate": "tsx scripts/pilot/test-evida-real-data-gate.ts",
+    "pilot:create-eicar-fixture": "tsx scripts/pilot/create-eicar-fixture.ts",
+    "pilot:test-clamav-runtime": "tsx scripts/pilot/test-clamav-runtime.ts",
+    "pilot:test-upload-malware-gate": "tsx scripts/pilot/test-upload-malware-gate.ts",
+    "pilot:test-source-bound-runtime": "tsx scripts/pilot/test-source-bound-runtime.ts",
+    "test:pilot": "vitest run scripts/pilot",
+    "test": "npm run test:pilot && npm --prefix apps/web run test --",
+    "build": "npm --prefix apps/web run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "dotenv": "^16.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.9"
+  }
+}

@@ -2,14 +2,14 @@ import { createContext, ReactNode, useContext, useEffect, useMemo, useState } fr
 import { auditClientEvent } from "../lib/api";
 import { authService, User } from "../lib/auth";
 
-type AuthContextValue = {
+export type AuthContextValue = {
   user: User | null;
   loading: boolean;
   login: (tenantId: string) => void;
   logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

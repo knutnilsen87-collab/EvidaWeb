@@ -37,8 +37,32 @@ public record EvidaProperties(
     public record Security(
             boolean localDevMode,
             List<String> allowedOrigins,
-            boolean malwareScannerConfigured
+            boolean malwareScannerConfigured,
+            boolean malwareScanEnabled,
+            String malwareScanHost,
+            int malwareScanPort,
+            int malwareScanTimeoutMillis
     ) {
+        public Security(boolean localDevMode, List<String> allowedOrigins, boolean malwareScannerConfigured) {
+            this(localDevMode, allowedOrigins, malwareScannerConfigured, false, "127.0.0.1", 3310, 5000);
+        }
+
+        @ConstructorBinding
+        public Security {
+            if (allowedOrigins == null) {
+                allowedOrigins = List.of();
+            }
+            if (malwareScanHost == null || malwareScanHost.isBlank()) {
+                malwareScanHost = "127.0.0.1";
+            }
+            if (malwareScanPort <= 0) {
+                malwareScanPort = 3310;
+            }
+            if (malwareScanTimeoutMillis <= 0) {
+                malwareScanTimeoutMillis = 5000;
+            }
+        }
+
         public static Security of(boolean localDevMode) {
             return new Security(localDevMode, List.of(), false);
         }
@@ -70,10 +94,38 @@ public record EvidaProperties(
             String tessdataPath,
             String tesseractPath,
             String ocrLanguages,
-            int maxPagesPerDocument
+            int maxPagesPerDocument,
+            int ocrRetryDpi,
+            double ocrMinConfidence,
+            boolean ocrEnhancementEnabled
     ) {
         public Parser() {
-            this(true, 40, 300, 60, "./data/tessdata", "", "nor+eng", 20_000);
+            this(true, 40, 300, 60, "./data/tessdata", "", "nor+eng", 20_000, 400, 0.55, true);
+        }
+
+        public Parser(
+                boolean ocrEnabled,
+                int ocrTextThresholdChars,
+                int ocrDpi,
+                int ocrTimeoutSeconds,
+                String tessdataPath,
+                String tesseractPath,
+                String ocrLanguages,
+                int maxPagesPerDocument
+        ) {
+            this(
+                    ocrEnabled,
+                    ocrTextThresholdChars,
+                    ocrDpi,
+                    ocrTimeoutSeconds,
+                    tessdataPath,
+                    tesseractPath,
+                    ocrLanguages,
+                    maxPagesPerDocument,
+                    Math.max(ocrDpi, 400),
+                    0.55,
+                    true
+            );
         }
 
         public Parser {
@@ -97,6 +149,12 @@ public record EvidaProperties(
             }
             if (maxPagesPerDocument <= 0) {
                 maxPagesPerDocument = 20_000;
+            }
+            if (ocrRetryDpi < ocrDpi) {
+                ocrRetryDpi = Math.max(ocrDpi, 400);
+            }
+            if (ocrMinConfidence <= 0 || ocrMinConfidence > 1) {
+                ocrMinConfidence = 0.55;
             }
         }
     }

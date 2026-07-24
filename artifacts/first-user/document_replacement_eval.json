@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-07-24T15:31:22.549Z",
+  "status": "pass",
+  "verdict": "pass",
+  "synthetic_only": true,
+  "old_document_id": "5af21d4a-1e91-419f-aa9e-67e4a2da3293",
+  "replacement_document_id": "b3490e55-a6eb-4c36-bfd6-9be2d6e83f0a",
+  "replacement_version": 2,
+  "supersedes_document_id": "5af21d4a-1e91-419f-aa9e-67e4a2da3293",
+  "old_source_query_result_count": 0,
+  "replacement_ingestion_status": "COMPLETED"
+}

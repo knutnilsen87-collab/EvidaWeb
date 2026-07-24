@@ -20,7 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
+import java.awt.Color;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -135,7 +137,7 @@ public class PdfBoxDocumentParser implements DocumentParser {
                 throw new DocumentParsingException("START_PAGE_OUT_OF_RANGE startPage=" + startPage + " pages=1");
             }
             try {
-                String text = Files.readString(filePath);
+                String text = stripUtf8Bom(Files.readString(filePath, StandardCharsets.UTF_8));
                 sink.accept(pageUnit(1, text, 0.90, TEXT_METHOD));
             } catch (IOException e) {
                 throw new DocumentParsingException("TXT_PARSE_FAILED " + safeMessage(e), e);
@@ -156,7 +158,7 @@ public class PdfBoxDocumentParser implements DocumentParser {
             int emittedPages = 0;
             for (int pageNumber = startPage; pageNumber <= pageCount; pageNumber++) {
                 try {
-                    sink.accept(parsePage(pdf, stripper, renderer, pageNumber));
+                    sink.accept(parsePage(pdf, stripper, renderer, pageNumber, pageCount > 1));
                     emittedPages++;
                 } catch (DocumentParsingException e) {
                     if (isOcrRuntimeUnavailable(e)) {
@@ -187,7 +189,7 @@ public class PdfBoxDocumentParser implements DocumentParser {
         }
     }
 
-    private PageUnit parsePage(PDDocument pdf, PDFTextStripper stripper, PDFRenderer renderer, int pageNumber) throws IOException {
+    private PageUnit parsePage(PDDocument pdf, PDFTextStripper stripper, PDFRenderer renderer, int pageNumber, boolean allowBlankPage) throws IOException {
         String text = extractText(pdf, stripper, pageNumber);
         if (hasEnoughText(text)) {
             return pageUnit(pageNumber, text, 0.90, TEXT_METHOD);
@@ -195,14 +197,29 @@ public class PdfBoxDocumentParser implements DocumentParser {
 
         PDPage page = pdf.getPage(pageNumber - 1);
         if (!pageContainsImages(page)) {
+            if (allowBlankPage && (text == null || text.isBlank())) {
+                return pageUnit(pageNumber, "Blank side uten lesbart kildeinnhold.", 1.0, "BLANK");
+            }
             throw new DocumentParsingException("PAGE_TEXT_BELOW_THRESHOLD page=" + pageNumber);
         }
 
-        String ocrText = ocrPage(renderer, pageNumber);
-        if (!hasEnoughText(ocrText)) {
+        OcrAttempt ocr = ocrPage(renderer, pageNumber);
+        if (!hasEnoughText(ocr.text())) {
             throw new DocumentParsingException("OCR_TEXT_BELOW_THRESHOLD page=" + pageNumber);
         }
-        return pageUnit(pageNumber, ocrText, 0.0, OCR_METHOD);
+        if (ocr.confidence() < parserProperties.ocrMinConfidence()) {
+            throw new DocumentParsingException(
+                    "OCR_CONFIDENCE_BELOW_THRESHOLD page=" + pageNumber
+                            + " confidence=" + String.format(Locale.ROOT, "%.3f", ocr.confidence())
+                            + " minimum=" + String.format(Locale.ROOT, "%.3f", parserProperties.ocrMinConfidence())
+            );
+        }
+        return pageUnit(
+                pageNumber,
+                ocr.text(),
+                ocr.confidence(),
+                ocr.enhancedRetry() ? "OCR_RETRY_ENHANCED" : OCR_METHOD
+        );
     }
 
     private void requirePdf(Document document) {
@@ -272,7 +289,7 @@ public class PdfBoxDocumentParser implements DocumentParser {
         return false;
     }
 
-    private String ocrPage(PDFRenderer renderer, int pageNumber) {
+    private OcrAttempt ocrPage(PDFRenderer renderer, int pageNumber) {
         OcrRuntimeStatus status = ocrRuntimeStatus;
         if (status == null || !status.usable()) {
             String reason = status == null ? "OCR_RUNTIME_NOT_PROBED" : status.safeFailureReason();
@@ -283,19 +300,29 @@ public class PdfBoxDocumentParser implements DocumentParser {
         }
 
         BufferedImage image = null;
-        ExecutorService executor = null;
+        BufferedImage retryImage = null;
         try {
             image = renderer.renderImageWithDPI(pageNumber - 1, parserProperties.ocrDpi());
-            BufferedImage ocrImage = image;
-            executor = Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(runnable, "evida-ocr-page-" + pageNumber);
-                thread.setDaemon(true);
-                return thread;
-            });
-            Future<String> future = executor.submit(() -> {
-                return ocrEngine.doOcr(ocrImage);
-            });
-            return normalize(future.get(parserProperties.ocrTimeoutSeconds(), TimeUnit.SECONDS));
+            OcrEngine.OcrResult first = recognizeWithTimeout(image, pageNumber, "initial");
+            OcrAttempt best = new OcrAttempt(normalize(first.text()), first.confidence(), false);
+            boolean retryRequired = parserProperties.ocrEnhancementEnabled()
+                    && (!hasEnoughText(best.text()) || best.confidence() < parserProperties.ocrMinConfidence());
+            if (!retryRequired) {
+                return best;
+            }
+
+            BufferedImage renderedRetry = renderer.renderImageWithDPI(pageNumber - 1, parserProperties.ocrRetryDpi());
+            retryImage = enhanceForOcr(renderedRetry);
+            if (retryImage != renderedRetry) {
+                renderedRetry.flush();
+            }
+            OcrEngine.OcrResult retry = recognizeWithTimeout(retryImage, pageNumber, "enhanced_retry");
+            OcrAttempt retried = new OcrAttempt(normalize(retry.text()), retry.confidence(), true);
+            if (retried.confidence() > best.confidence()
+                    || (!hasEnoughText(best.text()) && hasEnoughText(retried.text()))) {
+                return retried;
+            }
+            return best;
         } catch (TimeoutException e) {
             throw new DocumentParsingException("OCR_TIMEOUT page=" + pageNumber + " seconds=" + parserProperties.ocrTimeoutSeconds(), e);
         } catch (InterruptedException e) {
@@ -307,20 +334,61 @@ public class PdfBoxDocumentParser implements DocumentParser {
         } catch (IOException | UnsatisfiedLinkError | RuntimeException e) {
             throw new DocumentParsingException("OCR_FAILED page=" + pageNumber + " " + safeMessage(e), e);
         } finally {
-            if (executor != null) {
-                executor.shutdownNow();
-            }
             if (image != null) {
                 image.flush();
             }
+            if (retryImage != null) {
+                retryImage.flush();
+            }
         }
     }
+
+    private OcrEngine.OcrResult recognizeWithTimeout(
+            BufferedImage image,
+            int pageNumber,
+            String attempt
+    ) throws TimeoutException, InterruptedException, ExecutionException {
+        ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "evida-ocr-page-" + pageNumber + "-" + attempt);
+            thread.setDaemon(true);
+            return thread;
+        });
+        try {
+            Future<OcrEngine.OcrResult> future = executor.submit(() -> ocrEngine.recognize(image));
+            return future.get(parserProperties.ocrTimeoutSeconds(), TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private BufferedImage enhanceForOcr(BufferedImage source) {
+        BufferedImage enhanced = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+        for (int y = 0; y < source.getHeight(); y++) {
+            for (int x = 0; x < source.getWidth(); x++) {
+                Color color = new Color(source.getRGB(x, y));
+                int gray = (int) Math.round(0.299 * color.getRed() + 0.587 * color.getGreen() + 0.114 * color.getBlue());
+                int contrasted = gray < 180 ? Math.max(0, gray - 35) : Math.min(255, gray + 35);
+                int rgb = (contrasted << 16) | (contrasted << 8) | contrasted;
+                enhanced.setRGB(x, y, rgb);
+            }
+        }
+        return enhanced;
+    }
+
+    private record OcrAttempt(String text, double confidence, boolean enhancedRetry) {}
 
     private String normalize(String text) {
         if (text == null) {
             return "";
         }
         return text.replace("\r\n", "\n").replace('\r', '\n').trim();
+    }
+
+    private String stripUtf8Bom(String text) {
+        if (text != null && !text.isEmpty() && text.charAt(0) == '\uFEFF') {
+            return text.substring(1);
+        }
+        return text;
     }
 
     private boolean isOcrRuntimeUnavailable(DocumentParsingException e) {

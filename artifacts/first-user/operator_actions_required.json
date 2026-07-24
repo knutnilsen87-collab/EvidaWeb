@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-07-24T15:36:58.239Z",
+  "real_client_data_allowed": false,
+  "actions": [
+    {
+      "component": "Native file picker signoff",
+      "status": "krever godkjenning",
+      "why_important": "Native Windows-picker må godkjennes manuelt på pilotmaskinen.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Kjør native picker-smoke og oppdater signoff-artifakten med tester og evidens.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Client-data storage encryption",
+      "status": "kjører ikke",
+      "why_important": "Rå saksdokumenter og kildeutdrag må være beskyttet ved lagring.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Verifiser BitLocker på målmaskinen eller implementer applikasjonskryptering med forvaltet nøkkel.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Raw-storage marker inspection",
+      "status": "kjører ikke",
+      "why_important": "Syntetiske klientmarkører skal ikke kunne leses direkte fra lagringsmediet.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Kjør markerbasert rålagringsinspeksjon etter at lagringskryptering er verifisert.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Audit coverage",
+      "status": "kjører ikke",
+      "why_important": "Import, AI, eksport, sletting og policyendring må ha etterprøvbar auditkjede.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Lukk manglende audit-events og verifiser hashkjeden i runtime.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Signed Windows deliverable",
+      "status": "kjører ikke",
+      "why_important": "Distribusjonsartefakten må være signert med organisasjonens betrodde sertifikat.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Bygg og signer godkjent Windows-pakke i forvaltet release-miljø.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Managed workstation smoke",
+      "status": "krever godkjenning",
+      "why_important": "Målmaskinens policy, installasjon, oppstart og dokumentflyt må verifiseres.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Kjør smoke på Braathe/Jussys-forvaltet Windows-maskin.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Engineering approval",
+      "status": "krever godkjenning",
+      "why_important": "Engineering må eksplisitt godkjenne den eksakte releasekandidaten.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert engineering-godkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Product approval",
+      "status": "krever godkjenning",
+      "why_important": "Produkteier må eksplisitt godkjenne førstebrukeromfanget.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert produktgodkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Security/privacy approval",
+      "status": "krever godkjenning",
+      "why_important": "Sikkerhet/personvern må godkjenne behandling av ekte klientdata.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert sikkerhets- og personverngodkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Braathe/Jussys approval",
+      "status": "krever godkjenning",
+      "why_important": "Driftsmiljøet må godkjennes av ansvarlig IT-part.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert Braathe/Jussys-godkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Client/data-owner approval",
+      "status": "krever godkjenning",
+      "why_important": "Dataeier må godkjenne bruk av ekte saksdokumenter.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Innhent signert dataeiergodkjenning.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    }
+  ]
+}

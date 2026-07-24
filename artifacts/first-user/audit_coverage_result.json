@@ -1,15 +1,28 @@
 {
-    "generated_at":  "2026-05-19T12:29:11.9270554Z",
-    "status":  "blocked",
-    "verdict":  "blocked",
-    "name":  "audit_coverage",
-    "blocker":  "Client-data audit coverage is not complete across import, AI answer, export, delete, and policy changes.",
-    "required_evidence":  [
-                              "import audit",
-                              "AI answer audit",
-                              "export audit",
-                              "delete audit",
-                              "provider policy audit"
-                          ],
-    "real_client_data_allowed":  false
+  "generated_at": "2026-07-24T15:31:22.549Z",
+  "status": "blocked",
+  "verdict": "blocked",
+  "synthetic_only": true,
+  "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+  "chain_valid": true,
+  "event_count": 28,
+  "observed_event_types": [
+    "AUDIT_VERIFICATION_RUN",
+    "CASE_CREATED",
+    "DOCUMENT_APPROVED_PENDING_INGESTION",
+    "DOCUMENT_DELETED",
+    "DOCUMENT_INGEST_STARTED",
+    "DOCUMENT_INGEST_SUCCEEDED",
+    "DOCUMENT_REPLACED",
+    "DOCUMENT_UPLOADED",
+    "EXPORT_CREATED",
+    "SAKSROM_ANSWER_CREATED",
+    "SAKSROM_QUESTION_ASKED",
+    "SAKSROM_SUMMARY_CREATED",
+    "SAKSROM_SUMMARY_REQUESTED",
+    "SOURCE_OBJECTS_INVALIDATED"
+  ],
+  "missing_required_runtime_events": [],
+  "provider_or_policy_change_audited": false,
+  "blocker": "No authoritative provider/policy mutation endpoint and audit event exists."
 }

@@ -5,6 +5,7 @@ import { AuthProvider } from "../context/AuthContext";
 import { DocumentImport } from "./DocumentImport";
 import { uploadQueue } from "../lib/uploadQueue";
 import * as api from "../lib/api";
+import { authService } from "../lib/auth";
 
 // Stub Worker globally in JSDOM context inside vi.hoisted so it runs before imports
 const MockWorker = vi.hoisted(() => {
@@ -31,6 +32,7 @@ const MockWorker = vi.hoisted(() => {
 });
 
 const tenantId = "00000000-0000-0000-0000-000000000101";
+const backendCaseId = "11111111-2222-4333-8444-555555555555";
 
 function mockDoc(id = "doc_1", filename = "bevis_a.pdf", status = "quarantine", message = "Ok") {
   return {
@@ -53,7 +55,7 @@ function mockJob(documentId = "doc_1", status = "PENDING", pagesProcessed = 0, p
   return {
     id: `job_${documentId}`,
     tenantId,
-    caseId: "case_web_demo",
+    caseId: backendCaseId,
     documentId,
     status,
     pagesProcessed,
@@ -71,10 +73,15 @@ function mockJob(documentId = "doc_1", status = "PENDING", pagesProcessed = 0, p
 
 let fetchMock: any;
 
-function renderImport() {
+function renderImport(initialFiles: File[] = [], onInitialFilesAccepted?: () => void) {
   return render(
     <AuthProvider>
-      <DocumentImport caseId="case_web_demo" pollIntervalMs={10} />
+      <DocumentImport
+        caseId={backendCaseId}
+        initialFiles={initialFiles}
+        onInitialFilesAccepted={onInitialFilesAccepted}
+        pollIntervalMs={10}
+      />
     </AuthProvider>
   );
 }
@@ -82,7 +89,7 @@ function renderImport() {
 function renderImportWithContinue(onContinueToSaksrom: () => void) {
   return render(
     <AuthProvider>
-      <DocumentImport caseId="case_web_demo" onContinueToSaksrom={onContinueToSaksrom} pollIntervalMs={10} />
+      <DocumentImport caseId={backendCaseId} onContinueToSaksrom={onContinueToSaksrom} pollIntervalMs={10} />
     </AuthProvider>
   );
 }
@@ -105,6 +112,13 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     });
 
     // Provide default safe API mocks
+    vi.spyOn(authService, "checkAuth").mockResolvedValue({
+      id: "00000000-0000-0000-0000-000000000102",
+      email: "jurist@firma.no",
+      name: "Advokat Hansen",
+      tenantId,
+      roles: ["USER"]
+    });
     vi.spyOn(api, "checkDocumentDuplicates").mockResolvedValue([]);
     vi.spyOn(api, "uploadDocument").mockResolvedValue({
       id: "doc_default",
@@ -139,15 +153,23 @@ describe("DocumentImport UI & Ingestion Polling", () => {
   it("renders uploader dropzone, actions and table instead of Mock API card", async () => {
     renderImport();
 
+    expect(await screen.findByText("Last opp dokumentene som skal brukes i saken.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Dokumentflyt")).toHaveTextContent("Lastet opp");
+    expect(screen.getByLabelText("Dokumentflyt")).toHaveTextContent("Kontrolleres");
+    expect(screen.getByLabelText("Dokumentflyt")).toHaveTextContent("Kilder klare");
+    expect(screen.queryByText(/karantene-slusen/i)).not.toBeInTheDocument();
     expect(await screen.findByText("Slipp filer eller mapper her")).toBeInTheDocument();
+    expect(screen.getByText("Støtter PDF og TXT")).toBeInTheDocument();
+    expect(screen.queryByText(/DOCX/i)).not.toBeInTheDocument();
     expect(screen.getByText("Velg filer")).toBeInTheDocument();
     expect(screen.getByText("Velg mappe")).toBeInTheDocument();
+    expect(screen.getByLabelText("Velg filer")).not.toHaveAttribute("accept", expect.stringContaining(".zip"));
     expect(screen.queryByText("Mock API")).not.toBeInTheDocument();
   });
 
   it("enqueues files selected through input controls", async () => {
     // Keep uploads pending so files remain visible in progress list
-    vi.spyOn(api, "uploadDocument").mockReturnValue(new Promise(() => {}));
+    const uploadSpy = vi.spyOn(api, "uploadDocument").mockReturnValue(new Promise(() => {}));
 
     renderImport();
 
@@ -157,7 +179,83 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     expect(await screen.findByText(/my_contract.pdf/i)).toBeInTheDocument();
-    expect(screen.getByText(/Laster opp.../i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Laster opp dokumentet/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(uploadSpy).toHaveBeenCalledWith(file, tenantId, backendCaseId, expect.any(AbortSignal));
+    });
+  });
+
+  it("enqueues modal-provided files as soon as the backend case is ready", async () => {
+    const file = new File(["kilde"], "direkte_fra_modal.txt", { type: "text/plain" });
+    const onAccepted = vi.fn();
+
+    renderImport([file], onAccepted);
+
+    await waitFor(() => {
+      expect(api.uploadDocument).toHaveBeenCalledWith(file, tenantId, backendCaseId, expect.any(AbortSignal));
+      expect(onAccepted).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("auto-starts safe document control after a successful upload", async () => {
+    const file = new File(["test"], "auto_process.pdf", { type: "application/pdf" });
+    vi.spyOn(api, "uploadDocument").mockResolvedValue({
+      id: "doc_uploaded",
+      tenantId,
+      filename: "auto_process.pdf",
+      size: 100,
+      sha256: "hash_doc_uploaded",
+      status: "QUARANTINE",
+      message: "ok",
+      createdBy: "user_default"
+    });
+
+    fetchMock.mockImplementation(async (url: any) => {
+      const urlStr = String(url);
+      if (urlStr.includes("/api/auth/me")) {
+        return {
+          ok: true,
+          json: async () => ({
+            id: "00000000-0000-0000-0000-000000000102",
+            email: "jurist@firma.no",
+            name: "Advokat Hansen",
+            tenantId,
+            roles: ["USER"]
+          })
+        };
+      }
+      if (urlStr.includes("/api/documents/doc_uploaded/approve-ingestion")) {
+        return {
+          ok: true,
+          json: async () => ({
+            ...mockDoc("doc_uploaded", "auto_process.pdf", "approved_for_ingestion"),
+            ingestionJobId: "job_doc_uploaded",
+            ingestionJobStatus: "PENDING"
+          })
+        };
+      }
+      if (urlStr.includes("/api/ingestion-jobs")) {
+        return { ok: true, json: async () => [mockJob("doc_uploaded", "PENDING", 0, 10)] };
+      }
+      if (urlStr.includes("/api/documents")) {
+        return { ok: true, json: async () => [mockDoc("doc_uploaded", "auto_process.pdf", "approved_for_ingestion")] };
+      }
+      return { ok: true, json: async () => [] };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderImport();
+
+    const fileInput = await screen.findByLabelText("Velg filer");
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/documents/doc_uploaded/approve-ingestion"),
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+    expect(screen.queryByRole("button", { name: "Start behandling" })).not.toBeInTheDocument();
   });
 
   it("displays ignored system files counts and rejected files reasons", async () => {
@@ -226,7 +324,7 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     pagesProcessed = 10;
 
     await waitFor(() => {
-      expect(screen.getByText("Klar som kildegrunnlag")).toBeInTheDocument();
+      expect(screen.getAllByText("Kildegrunnlaget er klart").length).toBeGreaterThan(0);
     });
   });
 
@@ -264,8 +362,8 @@ describe("DocumentImport UI & Ingestion Polling", () => {
 
     renderImport();
 
-    expect(await screen.findByText("Delvis kildeklart")).toBeInTheDocument();
-    expect(screen.getByText(/72\/78 sider klare/i)).toBeInTheDocument();
+    expect(await screen.findByText("Delvis klart")).toBeInTheDocument();
+    expect(screen.getAllByText(/72 av 78 sider kan brukes/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/5 sider krever OCR/i)).toBeInTheDocument();
     expect(screen.getByText(/1 side krever kontroll/i)).toBeInTheDocument();
   });
@@ -357,7 +455,7 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     renderImport();
 
     expect(await screen.findByText("failed_file.pdf")).toBeInTheDocument();
-    expect(screen.getByText("OCR-feil på side 3")).toBeInTheDocument();
+    expect(screen.getAllByText("Dokumentet kunne ikke klargjøres. Se detaljer eller prøv igjen.").length).toBeGreaterThan(0);
 
     const retryBtn = await screen.findByRole("button", { name: "Prøv igjen" });
     await user.click(retryBtn);
@@ -368,7 +466,7 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     );
   });
 
-  it("Start Ingestion approves the document and never calls the retired synchronous /ingest endpoint", async () => {
+  it("manual fallback controls the document and never calls the retired synchronous /ingest endpoint", async () => {
     const user = userEvent.setup();
     let approved = false;
     fetchMock = vi.fn().mockImplementation(async (url: any, options?: any) => {
@@ -394,7 +492,7 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     renderImport();
-    const startBtn = await screen.findByRole("button", { name: "Start behandling" });
+    const startBtn = await screen.findByRole("button", { name: "Kontroller dokumentet" });
     await user.click(startBtn);
 
     await waitFor(() => {
@@ -405,10 +503,10 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     });
     const ingestCalls = fetchMock.mock.calls.filter(([u]: [any]) => String(u).match(/\/api\/documents\/doc_1\/ingest$/));
     expect(ingestCalls).toHaveLength(0);
-    expect(await screen.findByText(/ingestion-jobb er satt i kø/i)).toBeTruthy();
+    expect(await screen.findByText(/Dokumentet er satt i behandlingskø/i)).toBeTruthy();
   });
 
-  it("shows bulk start button with eligible counts and disables when 0", async () => {
+  it("shows one best next action for eligible and ready documents", async () => {
     fetchMock = vi.fn().mockImplementation(async (url: any) => {
       const urlStr = String(url);
       if (urlStr.includes("/api/auth/me")) {
@@ -426,8 +524,7 @@ describe("DocumentImport UI & Ingestion Polling", () => {
       if (urlStr.includes("/api/documents")) {
         return { ok: true, json: async () => [
           mockDoc("doc_1", "doc1.pdf", "quarantine"),
-          mockDoc("doc_2", "doc2.pdf", "quarantine"),
-          mockDoc("doc_3", "doc3.pdf", "source_ready")
+          mockDoc("doc_2", "doc2.pdf", "quarantine")
         ] };
       }
       if (urlStr.includes("/api/ingestion-jobs")) {
@@ -438,7 +535,7 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     renderImport();
-    expect(await screen.findByRole("button", { name: "Start behandling av 2 dokumenter" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Kontroller dokumentet" })).toBeInTheDocument();
 
     // Re-mock with 0 quarantine
     fetchMock = vi.fn().mockImplementation(async (url: any) => {
@@ -455,7 +552,7 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     renderImport();
-    expect(await screen.findByRole("button", { name: "Ingen dokumenter klare for behandling" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "Åpne Saksrom" })).toBeInTheDocument();
   });
 
   it("keeps a preliminary Saksrom continuation action visible when no documents are eligible for bulk start", async () => {
@@ -463,6 +560,18 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     const onContinue = vi.fn();
     fetchMock = vi.fn().mockImplementation(async (url: any) => {
       const urlStr = String(url);
+      if (urlStr.includes("/api/auth/me")) {
+        return {
+          ok: true,
+          json: async () => ({
+            id: "00000000-0000-0000-0000-000000000102",
+            email: "jurist@firma.no",
+            name: "Advokat Hansen",
+            tenantId: "00000000-0000-0000-0000-000000000101",
+            roles: ["USER"]
+          })
+        };
+      }
       if (urlStr.includes("/api/documents")) {
         return { ok: true, json: async () => [
           mockDoc("doc_ready", "klar.pdf", "source_ready"),
@@ -482,8 +591,7 @@ describe("DocumentImport UI & Ingestion Polling", () => {
 
     renderImportWithContinue(onContinue);
 
-    expect(await screen.findByRole("button", { name: "Ingen dokumenter klare for behandling" })).toBeDisabled();
-    const continueButton = screen.getByRole("button", {
+    const continueButton = await screen.findByRole("button", {
       name: "Fortsett til Saksrom med foreløpig kildegrunnlag"
     });
     expect(continueButton).toBeInTheDocument();
@@ -514,7 +622,7 @@ describe("DocumentImport UI & Ingestion Polling", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     renderImport();
-    expect(await screen.findByText("Behandling feilet")).toBeInTheDocument();
+    expect(await screen.findByText("Kunne ikke klargjøres")).toBeInTheDocument();
     
     const showProblemBtn = await screen.findByRole("button", { name: "Vis problem" });
     await user.click(showProblemBtn);
@@ -582,6 +690,6 @@ describe("DocumentImport UI & Ingestion Polling", () => {
 
     expect(await screen.findByText("EVIDA API-feil 404")).toBeInTheDocument();
     expect(windowOpenSpy).not.toHaveBeenCalled();
-    expect(screen.getByText("I karantene")).toBeInTheDocument();
+    expect(screen.getByText("Mottatt")).toBeInTheDocument();
   });
 });

@@ -1,3 +1,9 @@
+.citation-chip-anchor {
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+}
+
 .citation-chip {
   display: inline-flex;
   align-items: center;
@@ -36,4 +42,77 @@
 
 .citation-chip__page {
   color: rgba(255, 255, 255, 0.72);
+}
+
+.citation-chip-popover {
+  position: absolute;
+  z-index: 30;
+  bottom: calc(100% + 10px);
+  left: 0;
+  display: grid;
+  width: min(290px, 72vw);
+  gap: 0.42rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(19, 28, 31, 0.98), rgba(9, 12, 15, 0.98)),
+    var(--evida-bg-grain);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.42);
+  color: var(--evida-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(5px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.citation-chip-anchor:hover .citation-chip-popover,
+.citation-chip-anchor:focus-within .citation-chip-popover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.citation-chip-popover__eyebrow {
+  color: var(--evida-status-active);
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.citation-chip-popover strong {
+  overflow-wrap: anywhere;
+  color: var(--evida-text-primary);
+  font-size: 0.82rem;
+}
+
+.citation-chip-popover q {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 0.1rem;
+  color: rgba(255, 255, 255, 0.72);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.citation-chip-popover button {
+  justify-self: start;
+  border: 0;
+  padding: 0.15rem 0;
+  background: transparent;
+  color: var(--evida-status-active);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .citation-chip-popover {
+    transition: none;
+  }
 }

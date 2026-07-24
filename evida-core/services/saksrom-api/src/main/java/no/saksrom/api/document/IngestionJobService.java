@@ -52,7 +52,8 @@ public class IngestionJobService {
 
         if (Document.STATUS_QUARANTINE.equals(document.getStatus())) {
             document.markApprovedForIngestion();
-        } else if (Document.STATUS_INGESTION_FAILED.equals(document.getStatus())) {
+        } else if (Document.STATUS_INGESTION_FAILED.equals(document.getStatus())
+                || Document.STATUS_PARTIAL_SOURCE_READY.equals(document.getStatus())) {
             document.markApprovedPendingIngestionFromFailure();
         } else if (!Document.STATUS_APPROVED_PENDING_INGESTION.equals(document.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "DOCUMENT_NOT_APPROVABLE_FOR_INGESTION");
@@ -160,6 +161,14 @@ public class IngestionJobService {
     public Document documentForJob(IngestionJob job) {
         return documentRepository.findByIdAndTenantId(job.getDocumentId(), job.getTenantId())
                 .orElseThrow(() -> new IllegalStateException("Document missing for ingestion job " + job.getId()));
+    }
+
+    @Transactional
+    public void updateDocumentPageCount(UUID documentId, UUID tenantId, int pageCount) {
+        Document document = documentRepository.findByIdAndTenantIdForUpdate(documentId, tenantId)
+                .orElseThrow(() -> new IllegalStateException("Document missing for page count update " + documentId));
+        document.updatePageCount(pageCount);
+        documentRepository.save(document);
     }
 
     /**

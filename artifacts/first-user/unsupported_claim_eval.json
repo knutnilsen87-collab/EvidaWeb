@@ -1,8 +1,11 @@
 {
-    "generated_at":  "2026-05-19T12:29:11.9270554Z",
-    "status":  "partial",
-    "verdict":  "blocked",
-    "existing_invariant_reference":  "source-bound AI behavior is covered by first-user invariants",
-    "multi_doc_release_eval_verified":  false,
-    "blocker":  "Unsupported-claim behavior must be verified in the multi-document release evaluation."
+  "generated_at": "2026-07-24T15:31:22.549Z",
+  "status": "pass",
+  "verdict": "pass",
+  "synthetic_only": true,
+  "source_bound": true,
+  "source_count": 0,
+  "warnings": [
+    "NO_RELEVANT_SOURCE_MATCH"
+  ]
 }

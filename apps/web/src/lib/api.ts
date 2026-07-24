@@ -1,4 +1,5 @@
 import { authService } from "./auth";
+import { uploadSecurityMessage } from "./uploadPolicy";
 
 export type EvidaDocumentStatus =
   | "verified"
@@ -8,6 +9,7 @@ export type EvidaDocumentStatus =
   | "ingestion_failed"
   | "partial_source_ready"
   | "source_ready"
+  | "superseded"
   | "archived"
   | "deleted"
   | "processing"
@@ -24,6 +26,11 @@ export interface EvidaDocument {
   contentType?: string;
   storagePath?: string;
   ingestionError?: string | null;
+  versionNumber?: number;
+  versionRootId?: string;
+  supersedesDocumentId?: string | null;
+  supersededByDocumentId?: string | null;
+  activeVersion?: boolean;
 }
 
 export interface UploadResult {
@@ -60,6 +67,11 @@ export interface DocumentUploadResponse {
   sectionCount?: number;
   ingestionError?: string | null;
   createdAt?: string | null;
+  versionNumber?: number;
+  versionRootId?: string;
+  supersedesDocumentId?: string | null;
+  supersededByDocumentId?: string | null;
+  activeVersion?: boolean;
 }
 
 export interface IngestionResponse {
@@ -110,6 +122,7 @@ export interface SourceSearchResult {
 
 export interface SaksromAnswer {
   answer: string;
+  findings?: SaksromSummaryFinding[];
   sources: SourceReference[];
   sourceBound: boolean;
   warnings: string[];
@@ -130,6 +143,32 @@ export interface SaksromSummary {
   sourceBound: boolean;
   warnings: string[];
   coverage?: SourceCoverage | null;
+}
+
+export type SaksromSummaryStreamStage =
+  | "reading_sources"
+  | "extracting_findings"
+  | "linking_citations"
+  | "composing_summary"
+  | "complete"
+  | "failed"
+  | "cancelled";
+
+export type SaksromSummaryStreamEvent =
+  | { type: "stage"; stage: SaksromSummaryStreamStage; label: string }
+  | { type: "section_start"; sectionId: string; title: string }
+  | { type: "text_delta"; sectionId: string; text: string }
+  | { type: "citation"; sectionId: string; citation: SourceReference }
+  | { type: "finding"; theme: string; heading?: string; text: string; citations: SourceReference[] }
+  | { type: "warning"; code: string; text: string }
+  | { type: "complete"; summary?: SaksromSummary }
+  | { type: "error"; message: string };
+
+export class SaksromSummaryStreamUnavailableError extends Error {
+  constructor(message = "Saksrom summary stream er ikke tilgjengelig.") {
+    super(message);
+    this.name = "SaksromSummaryStreamUnavailableError";
+  }
 }
 
 export interface DocumentSourceCoverage {
@@ -228,9 +267,51 @@ export interface CaseFileDto {
   title: string;
   status: string;
   localFirst: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  documentCount?: number | null;
+  sourceCoveragePercent?: number | null;
 }
 
 const backendCaseIdCache = new Map<string, Promise<string>>();
+
+export const clearBackendCaseIdCacheForTests = () => {
+  if (import.meta.env.MODE === "test") {
+    backendCaseIdCache.clear();
+  }
+};
+
+export const fetchCases = async (tenantId: string): Promise<CaseFileDto[]> => {
+  if (!tenantId.trim()) {
+    throw new Error("tenantId mangler");
+  }
+
+  const response = await fetch(`${apiBaseUrl()}/api/v1/cases`, {
+    headers: authService.getHeaders(tenantId)
+  });
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+  return (await response.json()) as CaseFileDto[];
+};
+
+/** Moves a case to the backend's soft-delete tombstone state. Documents and audit remain. */
+export const moveCaseToTrash = async (caseId: string, tenantId: string): Promise<void> => {
+  if (!isUuid(caseId)) {
+    throw new Error("Gyldig case UUID mangler.");
+  }
+  if (!tenantId.trim()) {
+    throw new Error("tenantId mangler");
+  }
+
+  const response = await fetch(`${apiBaseUrl()}/api/v1/cases/${caseId}`, {
+    method: "DELETE",
+    headers: authService.getHeaders(tenantId)
+  });
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+};
 
 /**
  * Resolves a case display name (or legacy local id) to a backend-created case UUID.
@@ -254,13 +335,7 @@ export const ensureBackendCaseId = (caseIdOrName: string, tenantId: string): Pro
   }
 
   const resolved = (async () => {
-    const listResponse = await fetch(`${apiBaseUrl()}/api/v1/cases`, {
-      headers: authService.getHeaders(tenantId)
-    });
-    if (!listResponse.ok) {
-      throw new Error(await errorMessage(listResponse));
-    }
-    const cases = (await listResponse.json()) as CaseFileDto[];
+    const cases = await fetchCases(tenantId);
     const existing = cases.find((c) => c.title === caseIdOrName);
     if (existing) {
       return existing.id;
@@ -283,17 +358,16 @@ export const ensureBackendCaseId = (caseIdOrName: string, tenantId: string): Pro
 };
 
 function uploadHeaders(tenantId: string, caseId?: string): HeadersInit {
-  const mappedCaseId = toUuid(caseId);
   return {
     ...authService.getHeaders(tenantId),
-    ...(mappedCaseId && isUuid(mappedCaseId) ? { "X-Evida-Case-ID": mappedCaseId } : {})
+    ...(caseId && isUuid(caseId) ? { "X-Evida-Case-ID": caseId } : {})
   };
 }
 
 async function errorMessage(response: Response) {
   try {
     const body = (await response.json()) as Partial<DocumentUploadResponse>;
-    return body.message ?? body.status ?? `EVIDA API-feil ${response.status}`;
+    return uploadSecurityMessage(body.status) ?? body.message ?? body.status ?? `EVIDA API-feil ${response.status}`;
   } catch {
     return `EVIDA API-feil ${response.status}`;
   }
@@ -311,7 +385,12 @@ function normalizeDocument(document: DocumentUploadResponse): EvidaDocument {
     size: document.size,
     contentType: document.contentType,
     storagePath: document.storagePath,
-    ingestionError: document.ingestionError
+    ingestionError: document.ingestionError,
+    versionNumber: document.versionNumber,
+    versionRootId: document.versionRootId,
+    supersedesDocumentId: document.supersedesDocumentId,
+    supersededByDocumentId: document.supersededByDocumentId,
+    activeVersion: document.activeVersion
   };
 }
 
@@ -459,6 +538,9 @@ export const uploadDocument = async (
   if (!tenantId.trim()) {
     throw new Error("tenantId mangler");
   }
+  if (caseId && !isUuid(caseId)) {
+    throw new Error("Backend case UUID mangler for opplasting.");
+  }
 
   const formData = new FormData();
   formData.append("file", file);
@@ -475,6 +557,33 @@ export const uploadDocument = async (
   }
 
   return (await response.json()) as DocumentUploadResponse;
+};
+
+export const replaceDocumentVersion = async (
+  documentId: string,
+  file: File,
+  tenantId: string
+): Promise<EvidaDocument> => {
+  if (!documentId.trim()) {
+    throw new Error("documentId mangler");
+  }
+  if (!tenantId.trim()) {
+    throw new Error("tenantId mangler");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(`${apiBaseUrl()}/api/documents/${documentId}/replace`, {
+    method: "POST",
+    headers: uploadHeaders(tenantId),
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+
+  return normalizeDocument((await response.json()) as DocumentUploadResponse);
 };
 
 export const uploadDocuments = async (files: File[], tenantId: string, caseId?: string): Promise<UploadResult> => {
@@ -700,11 +809,15 @@ export const askSaksromQuestion = async (
     question: string;
     selectedSourceUnitIds?: string[];
     mode: "sporre" | "argumentere" | "simulere";
+    includePartial?: boolean;
+    sourceBasis?: "READY_PAGE_UNITS_ONLY";
   }
 ): Promise<SaksromAnswer> => {
   const mappedPayload = {
     ...payload,
-    caseId: toUuid(payload.caseId) || payload.caseId
+    caseId: toUuid(payload.caseId) || payload.caseId,
+    includePartial: payload.includePartial ?? true,
+    sourceBasis: payload.sourceBasis ?? "READY_PAGE_UNITS_ONLY"
   };
   const response = await fetch(`${apiBaseUrl()}/api/saksrom/ask`, {
     method: "POST",
@@ -742,6 +855,70 @@ export const fetchSaksromSummary = async (
   }
 
   return (await response.json()) as SaksromSummary;
+};
+
+export const streamSaksromSummary = async (
+  tenantId: string,
+  payload: {
+    caseId: string;
+    includePartial: boolean;
+    sourceBasis: "READY_PAGE_UNITS_ONLY";
+  },
+  onEvent: (event: SaksromSummaryStreamEvent) => void,
+  signal?: AbortSignal
+): Promise<void> => {
+  const mappedPayload = {
+    ...payload,
+    caseId: toUuid(payload.caseId) || payload.caseId
+  };
+  const response = await fetch(`${apiBaseUrl()}/api/saksrom/summary/stream`, {
+    method: "POST",
+    headers: getHeaders(tenantId),
+    body: JSON.stringify(mappedPayload),
+    signal
+  });
+
+  if (response.status === 404 || response.status === 405 || response.status === 501) {
+    throw new SaksromSummaryStreamUnavailableError();
+  }
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+  if (!response.body) {
+    throw new SaksromSummaryStreamUnavailableError("Backend returnerte ingen stream-body.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const emitLine = (line: string) => {
+    const trimmed = line.trim();
+    if (!trimmed || signal?.aborted) {
+      return;
+    }
+    onEvent(JSON.parse(trimmed) as SaksromSummaryStreamEvent);
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (signal?.aborted) {
+      return;
+    }
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    let newlineIndex = buffer.indexOf("\n");
+    while (newlineIndex >= 0) {
+      emitLine(buffer.slice(0, newlineIndex));
+      buffer = buffer.slice(newlineIndex + 1);
+      newlineIndex = buffer.indexOf("\n");
+    }
+  }
+
+  buffer += decoder.decode();
+  emitLine(buffer);
 };
 
 export const auditClientEvent = async (
@@ -823,4 +1000,25 @@ export const downloadDocumentUrl = async (
 
   const blob = await response.blob();
   return URL.createObjectURL(blob);
+};
+
+export const downloadCaseSourceReport = async (
+  caseId: string,
+  tenantId: string
+): Promise<{ url: string; filename: string }> => {
+  if (!isUuid(caseId) || !tenantId.trim()) {
+    throw new Error("Gyldig saks-ID og tenant kreves for eksport.");
+  }
+  const response = await fetch(`${apiBaseUrl()}/api/v1/exports/cases/${caseId}/source-report`, {
+    headers: authService.getHeaders(tenantId)
+  });
+  if (!response.ok) {
+    throw new Error(await errorMessage(response));
+  }
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] ?? `evida-source-report-${caseId}.md`;
+  return {
+    url: URL.createObjectURL(await response.blob()),
+    filename
+  };
 };

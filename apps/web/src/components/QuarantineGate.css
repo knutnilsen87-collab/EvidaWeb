@@ -147,9 +147,21 @@
   box-shadow: 0 0 8px var(--evida-status-critical);
 }
 
-.doc-content {
+.doc-preview-trigger {
   display: grid;
   gap: 0.5rem;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.doc-preview-trigger:focus-visible {
+  border-radius: var(--evida-radius-sm);
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
 }
 
 .doc-title {
@@ -166,8 +178,35 @@
   font-size: 0.8rem;
 }
 
-.btn-approve {
+.doc-preview-hint,
+.doc-action-feedback {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.doc-action-feedback.phase-submitting,
+.doc-action-feedback.phase-queued,
+.doc-action-feedback.phase-processing {
+  color: var(--evida-status-info);
+}
+
+.doc-action-feedback.phase-completed {
+  color: var(--evida-status-verified);
+}
+
+.doc-action-feedback.phase-failed {
+  color: #fecaca;
+}
+
+.doc-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
   margin-top: auto;
+}
+
+.btn-approve {
   border: 1px solid var(--evida-status-active);
   border-radius: var(--evida-radius-sm);
   padding: 0.75rem;
@@ -194,6 +233,96 @@
 .btn-approve:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.btn-secondary {
+  border-color: var(--evida-glass-border);
+  color: var(--evida-text-secondary);
+}
+
+.control-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(12px);
+}
+
+.control-preview-panel {
+  display: grid;
+  width: min(760px, 100%);
+  max-height: min(780px, calc(100vh - 3rem));
+  gap: var(--evida-space-4);
+  overflow: auto;
+  padding: var(--evida-space-5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.control-preview-panel header,
+.control-preview-panel footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--evida-space-3);
+}
+
+.control-preview-panel h2,
+.control-preview-panel p {
+  margin: 0;
+}
+
+.control-preview-panel header {
+  display: grid;
+  justify-content: stretch;
+}
+
+.control-preview-details {
+  display: grid;
+  gap: var(--evida-space-3);
+  margin: 0;
+}
+
+.control-preview-details div {
+  display: grid;
+  gap: 0.25rem;
+  padding-block: 0.7rem;
+  border-top: 1px solid var(--evida-glass-border);
+}
+
+.control-preview-details dt {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.control-preview-details dd {
+  margin: 0;
+  color: var(--evida-text-primary);
+  line-height: 1.55;
+}
+
+.control-preview-feedback {
+  border: 1px solid rgba(0, 212, 163, 0.22);
+  border-radius: var(--evida-radius-sm);
+  padding: 0.75rem 0.9rem;
+  background: rgba(0, 212, 163, 0.06);
+  color: var(--evida-text-primary);
+}
+
+.control-preview-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 @media (max-width: 720px) {

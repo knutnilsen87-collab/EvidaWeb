@@ -15,6 +15,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -73,6 +74,23 @@ class PdfBoxDocumentParserTest {
     }
 
     @Test
+    void blankPageInsideMultipagePdfIsAccountedAsBlankPageUnit() throws Exception {
+        Path pdf = tempDir.resolve("one-blank-page.pdf");
+        try (PDDocument document = new PDDocument()) {
+            addTextPage(document, "Side en har nok juridisk tekst til parserterskelen.");
+            document.addPage(new PDPage());
+            document.save(pdf.toFile());
+        }
+
+        ParsedDocument parsed = new PdfBoxDocumentParser().parse(document("one-blank-page.pdf"), pdf);
+
+        assertEquals(2, parsed.pages().size());
+        assertEquals("TEXT", parsed.pages().get(0).extractionMethod());
+        assertEquals("BLANK", parsed.pages().get(1).extractionMethod());
+        assertEquals("Blank side uten lesbart kildeinnhold.", parsed.pages().get(1).text());
+    }
+
+    @Test
     void imagePdfWithoutTessdataFailsClosedOnOcrPath() throws Exception {
         Path pdf = tempDir.resolve("image.pdf");
         try (PDDocument document = new PDDocument()) {
@@ -96,7 +114,16 @@ class PdfBoxDocumentParserTest {
             document.save(pdf.toFile());
         }
 
-        var parser = new PdfBoxDocumentParser();
+        var parser = new PdfBoxDocumentParser(new EvidaProperties.Parser(
+                true,
+                40,
+                72,
+                5,
+                tempDir.resolve("missing-tessdata").toString(),
+                "",
+                "nor+eng",
+                20_000
+        ));
         parser.validateOcrRuntime();
 
         DocumentParsingException error = assertThrows(
@@ -139,6 +166,76 @@ class PdfBoxDocumentParserTest {
         );
 
         assertTrue(error.getMessage().contains("OCR_TEXT_BELOW_THRESHOLD"));
+    }
+
+    @Test
+    void lowConfidenceOcrRetriesWithEnhancementAndStoresRetryConfidence() throws Exception {
+        Path pdf = imageOnlyPdf("low-confidence-retry.pdf", "Skannet tekst");
+        EvidaProperties.Parser properties = new EvidaProperties.Parser(
+                true,
+                40,
+                72,
+                5,
+                tempDir.resolve("tessdata").toString(),
+                "",
+                "nor+eng",
+                20_000,
+                144,
+                0.70,
+                true
+        );
+        java.util.concurrent.atomic.AtomicInteger attempts = new java.util.concurrent.atomic.AtomicInteger();
+        OcrEngine engine = new OcrEngine() {
+            @Override
+            public String doOcr(java.awt.image.BufferedImage image) {
+                return "";
+            }
+
+            @Override
+            public OcrResult recognize(java.awt.image.BufferedImage image) {
+                if (attempts.incrementAndGet() == 1) {
+                    return new OcrResult("svak tekst fra første forsøk med nok tegn til validering", 0.31);
+                }
+                return new OcrResult("forbedret juridisk OCR tekst med tilstrekkelig sikkerhet", 0.88);
+            }
+        };
+        PdfBoxDocumentParser parser = parserWithOcr(properties, engine);
+        parser.validateOcrRuntime();
+
+        ParsedDocument parsed = parser.parse(document("low-confidence-retry.pdf"), pdf);
+
+        assertEquals(2, attempts.get());
+        assertEquals("OCR_RETRY_ENHANCED", parsed.pages().getFirst().extractionMethod());
+        assertEquals(0.88, parsed.pages().getFirst().confidence(), 0.001);
+    }
+
+    @Test
+    void ocrBelowConfidenceAfterRetryFailsClosed() throws Exception {
+        Path pdf = imageOnlyPdf("low-confidence-fail.pdf", "Skannet tekst");
+        EvidaProperties.Parser properties = new EvidaProperties.Parser(
+                true, 40, 72, 5, tempDir.resolve("tessdata").toString(), "", "nor+eng",
+                20_000, 144, 0.75, true
+        );
+        OcrEngine engine = new OcrEngine() {
+            @Override
+            public String doOcr(java.awt.image.BufferedImage image) {
+                return "";
+            }
+
+            @Override
+            public OcrResult recognize(java.awt.image.BufferedImage image) {
+                return new OcrResult("lang nok OCR tekst men fortsatt utilstrekkelig confidence", 0.42);
+            }
+        };
+        PdfBoxDocumentParser parser = parserWithOcr(properties, engine);
+        parser.validateOcrRuntime();
+
+        DocumentParsingException error = assertThrows(
+                DocumentParsingException.class,
+                () -> parser.parse(document("low-confidence-fail.pdf"), pdf)
+        );
+
+        assertTrue(error.getMessage().contains("OCR_CONFIDENCE_BELOW_THRESHOLD"));
     }
 
     @Test
@@ -209,13 +306,14 @@ class PdfBoxDocumentParserTest {
                 () -> parser.parsePages(document("Masterdoc_001_Kompleks_Saksbehandling.pdf"), pdf, 1, emittedPages::add)
         );
 
-        assertEquals(72, emittedPages.size());
+        assertEquals(73, emittedPages.size());
         assertEquals(List.of(1, 2, 3, 4, 5), warning.ocrRuntimeMissingPages());
-        assertEquals(List.of(75), warning.textBelowThresholdPages());
+        assertEquals(List.of(), warning.textBelowThresholdPages());
         assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 10 && page.text().length() >= 40));
         assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 50 && page.text().length() >= 40));
         assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 60 && page.text().length() >= 40));
-        assertTrue(emittedPages.stream().noneMatch(page -> page.pageNumber() <= 5 || page.pageNumber() == 75));
+        assertTrue(emittedPages.stream().noneMatch(page -> page.pageNumber() <= 5));
+        assertTrue(emittedPages.stream().anyMatch(page -> page.pageNumber() == 75 && "BLANK".equals(page.extractionMethod())));
     }
 
     @Test
@@ -416,6 +514,17 @@ class PdfBoxDocumentParserTest {
         assertEquals("TEXT", parsed.pages().get(0).extractionMethod());
     }
 
+    @Test
+    void parsesUtf8TxtWithNordicCharactersWithoutBomLeak() throws Exception {
+        Path txt = tempDir.resolve("norsk.txt");
+        Files.writeString(txt, "\uFEFFSpørsmål: Hva står på siden om kilder?", StandardCharsets.UTF_8);
+
+        ParsedDocument parsed = new PdfBoxDocumentParser().parse(txtDocument("norsk.txt"), txt);
+
+        assertEquals("Spørsmål: Hva står på siden om kilder?", parsed.pages().get(0).text());
+        assertFalse(parsed.pages().get(0).text().startsWith("\uFEFF"));
+    }
+
     private Document txtDocument(String filename) {
         return new Document(
                 UUID.fromString("00000000-0000-0000-0000-000000001111"),
@@ -526,6 +635,18 @@ class PdfBoxDocumentParserTest {
             content.drawImage(JPEGFactory.createFromImage(document, image), 72, 600, 260, 100);
         } finally {
             image.flush();
+        }
+    }
+
+    private void addTextPage(PDDocument document, String text) throws Exception {
+        PDPage page = new PDPage();
+        document.addPage(page);
+        try (PDPageContentStream content = new PDPageContentStream(document, page)) {
+            content.beginText();
+            content.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+            content.newLineAtOffset(72, 720);
+            content.showText(text);
+            content.endText();
         }
     }
 

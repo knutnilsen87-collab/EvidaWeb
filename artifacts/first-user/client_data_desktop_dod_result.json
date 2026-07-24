@@ -1,99 +1,102 @@
 {
-    "generated_at":  "2026-05-19T12:29:11.9270554Z",
-    "verdict":  "blocked",
-    "real_client_data_allowed":  false,
-    "production_ready":  false,
-    "phase_results":  [
-                          {
-                              "phase":  0,
-                              "name":  "contract installed",
-                              "status":  "pass"
-                          },
-                          {
-                              "phase":  1,
-                              "name":  "windows policy and signing diagnostics",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  2,
-                              "name":  "client data storage safety",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  3,
-                              "name":  "runtime log marker scan",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  4,
-                              "name":  "document upload final closure",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  5,
-                              "name":  "multi-document source-bound AI",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  6,
-                              "name":  "audit/provenance coverage",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  7,
-                              "name":  "export/redaction",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  8,
-                              "name":  "security/release gate",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  9,
-                              "name":  "clean machine smoke",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  10,
-                              "name":  "approvals",
-                              "status":  "blocked"
-                          },
-                          {
-                              "phase":  11,
-                              "name":  "final readiness gate",
-                              "status":  "blocked"
-                          }
-                      ],
-    "artifacts":  [
-                      "artifacts/first-user/raw_storage_inspection.json",
-                      "artifacts/first-user/encryption_verification.json",
-                      "artifacts/first-user/backup_restore_result.json",
-                      "artifacts/first-user/deletion_retention_result.json",
-                      "artifacts/first-user/provider_policy_result.json",
-                      "artifacts/first-user/runtime_sensitive_log_scan.json",
-                      "artifacts/first-user/document_upload_final_result.json",
-                      "artifacts/first-user/manual_review_result.json",
-                      "artifacts/first-user/import_eta_result.json",
-                      "artifacts/first-user/ai_multi_doc_eval.json",
-                      "artifacts/first-user/prompt_injection_eval.json",
-                      "artifacts/first-user/unsupported_claim_eval.json",
-                      "artifacts/first-user/retrieval_snapshot_eval.json",
-                      "artifacts/first-user/audit_coverage_result.json",
-                      "artifacts/first-user/export_smoke_result.json",
-                      "artifacts/first-user/engineering_approval.json",
-                      "artifacts/first-user/product_approval.json",
-                      "artifacts/first-user/security_privacy_approval.json",
-                      "artifacts/first-user/client_data_pilot_approval.json",
-                      "artifacts/first-user/signature_verification.json",
-                      "artifacts/first-user/windows_policy_diagnostics.current.json",
-                      "artifacts/first-user/windows_managed_workstation_smoke.json",
-                      "artifacts/first-user/braathe_approval.json"
-                  ],
-    "next_unblockers":  [
-                            "Sign all Windows release binaries/installers.",
-                            "Run managed Windows workstation smoke under Jussys/Braathe policy.",
-                            "Run synthetic client-data marker import and raw-storage/log inspections.",
-                            "Complete multi-document AI, audit, export, release security, and formal approvals."
-                        ]
+  "generated_at": "2026-07-24T15:35:22.0513867Z",
+  "verdict": "blocked",
+  "real_client_data_allowed": false,
+  "production_ready": false,
+  "phase_results": [
+    {
+      "phase": 0,
+      "name": "contract installed",
+      "status": "pass"
+    },
+    {
+      "phase": 1,
+      "name": "windows policy and signing diagnostics",
+      "status": "blocked"
+    },
+    {
+      "phase": 2,
+      "name": "client data storage safety",
+      "status": "blocked"
+    },
+    {
+      "phase": 3,
+      "name": "runtime log marker scan",
+      "status": "pass"
+    },
+    {
+      "phase": 4,
+      "name": "document upload final closure",
+      "status": "blocked"
+    },
+    {
+      "phase": 5,
+      "name": "multi-document source-bound AI",
+      "status": "pass"
+    },
+    {
+      "phase": 6,
+      "name": "audit/provenance coverage",
+      "status": "blocked"
+    },
+    {
+      "phase": 7,
+      "name": "export/redaction",
+      "status": "pass"
+    },
+    {
+      "phase": 8,
+      "name": "security/release gate",
+      "status": "blocked"
+    },
+    {
+      "phase": 9,
+      "name": "clean machine smoke",
+      "status": "blocked"
+    },
+    {
+      "phase": 10,
+      "name": "approvals",
+      "status": "blocked"
+    },
+    {
+      "phase": 11,
+      "name": "final readiness gate",
+      "status": "blocked"
+    }
+  ],
+  "artifacts": [
+    "artifacts/first-user/raw_storage_inspection.json",
+    "artifacts/first-user/encryption_verification.json",
+    "artifacts/first-user/backup_restore_result.json",
+    "artifacts/first-user/deletion_retention_result.json",
+    "artifacts/first-user/provider_policy_result.json",
+    "artifacts/first-user/runtime_sensitive_log_scan.json",
+    "artifacts/first-user/document_upload_final_result.json",
+    "artifacts/first-user/manual_review_result.json",
+    "artifacts/first-user/import_eta_result.json",
+    "artifacts/first-user/ai_multi_doc_eval.json",
+    "artifacts/first-user/prompt_injection_eval.json",
+    "artifacts/first-user/unsupported_claim_eval.json",
+    "artifacts/first-user/retrieval_snapshot_eval.json",
+    "artifacts/first-user/audit_coverage_result.json",
+    "artifacts/first-user/export_smoke_result.json",
+    "artifacts/first-user/engineering_approval.json",
+    "artifacts/first-user/product_approval.json",
+    "artifacts/first-user/security_privacy_approval.json",
+    "artifacts/first-user/client_data_pilot_approval.json",
+    "artifacts/first-user/signature_verification.json",
+    "artifacts/first-user/windows_policy_diagnostics.current.json",
+    "artifacts/first-user/windows_managed_workstation_smoke.json",
+    "artifacts/first-user/braathe_approval.json",
+    "artifacts/first-user/document_replacement_eval.json"
+  ],
+  "next_unblockers": [
+    "Verify local client-data storage encryption and raw-marker protection.",
+    "Close authoritative provider/policy change audit coverage.",
+    "Build and sign the current Windows deployment package.",
+    "Run managed workstation and native-picker smoke.",
+    "Run release CodeQL/SCA and attach results.",
+    "Obtain all approvals tied to the final commit."
+  ]
 }

@@ -6,10 +6,9 @@ import {
   archiveDocument,
   EvidaDocument,
   fetchCaseDocuments,
-  ingestDocument,
   rejectDocument,
-  startCourtEngineAnalysis,
-  uploadDocuments
+  replaceDocumentVersion,
+  startBatchIngestion
 } from "../lib/api";
 import { uploadQueue } from "../lib/uploadQueue";
 import { BatchApprovalPanel } from "./BatchApprovalPanel";
@@ -18,9 +17,26 @@ import "./QuarantineGate.css";
 interface QuarantineGateProps {
   caseId: string;
   onAnalysisStatusChange?: (status: AnalysisStatus) => void;
+  onDocumentsChange?: (documents: EvidaDocument[]) => void;
+  onControlActionSubmitting?: (submitting: boolean) => void;
+  onOpenSaksrom?: () => void;
 }
 
-export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGateProps) {
+type DocumentControlAction = "approve" | "start" | "reject" | "archive" | "openSaksrom";
+type ActionPhase = "idle" | "preview_open" | "submitting" | "queued" | "processing" | "completed" | "failed";
+
+interface ActionFeedback {
+  phase: ActionPhase;
+  message: string;
+}
+
+export function QuarantineGate({
+  caseId,
+  onAnalysisStatusChange,
+  onDocumentsChange,
+  onControlActionSubmitting,
+  onOpenSaksrom
+}: QuarantineGateProps) {
   const [documents, setDocuments] = useState<EvidaDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,7 +45,14 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
   const [queueBusy, setQueueBusy] = useState(false);
   const [prevBusy, setPrevBusy] = useState(false);
   const [loadedFromBackend, setLoadedFromBackend] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<EvidaDocument | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<Record<string, ActionFeedback>>({});
   const { loading: authLoading, user } = useAuth();
+
+  const applyDocuments = (nextDocuments: EvidaDocument[]) => {
+    setDocuments(nextDocuments);
+    onDocumentsChange?.(nextDocuments);
+  };
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -37,7 +60,7 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
       setQueueBusy(state.isBusy);
       if (prevBusy && !state.isBusy && state.completed > 0) {
         void fetchCaseDocuments(caseId, user.tenantId).then((nextDocs) => {
-          setDocuments(nextDocs);
+          applyDocuments(nextDocs);
         });
       }
       setPrevBusy(state.isBusy);
@@ -54,7 +77,8 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
 
       if (!user) {
         setLoading(false);
-        setDocuments([]);
+          setDocuments([]);
+          onDocumentsChange?.([]);
         setLoadedFromBackend(false);
         setError("Du må være autentisert før dokumenter kan lastes.");
         return;
@@ -65,7 +89,7 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
       try {
         const nextDocuments = await fetchCaseDocuments(caseId, user.tenantId);
         if (!cancelled) {
-          setDocuments(nextDocuments);
+          applyDocuments(nextDocuments);
           setLoadedFromBackend(true);
         }
       } catch (caught) {
@@ -87,21 +111,41 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
     };
   }, [authLoading, caseId, user]);
 
+  const setDocumentFeedback = (documentId: string, feedback: ActionFeedback) => {
+    setActionFeedback((current) => ({ ...current, [documentId]: feedback }));
+  };
+
+  const refreshDocuments = async () => {
+    if (!user) {
+      return [];
+    }
+    const nextDocuments = await fetchCaseDocuments(caseId, user.tenantId);
+    applyDocuments(nextDocuments);
+    return nextDocuments;
+  };
+
   async function handleApprove(documentId: string) {
     if (!user) {
       setError("Du må være autentisert før dokumenter kan godkjennes.");
       return;
     }
     setIsProcessing(documentId);
+    onControlActionSubmitting?.(true);
+    setDocumentFeedback(documentId, { phase: "submitting", message: "Registrerer handling ..." });
     setError("");
+    setSuccess("");
     try {
       await approveDocumentForIngestion(documentId, user.tenantId);
-      setDocuments(await fetchCaseDocuments(caseId, user.tenantId));
-      setSuccess("Dokument er godkjent for ingestion.");
+      setDocumentFeedback(documentId, { phase: "queued", message: "Dokumentet er godkjent for behandling." });
+      await refreshDocuments();
+      setSuccess("Dokumentet er godkjent for behandling.");
+      setSelectedDocument(null);
     } catch (caught) {
+      setDocumentFeedback(documentId, { phase: "failed", message: "Handlingen kunne ikke fullføres. Prøv igjen." });
       setError(caught instanceof Error ? caught.message : "Kunne ikke godkjenne kilde");
     } finally {
       setIsProcessing(null);
+      onControlActionSubmitting?.(false);
     }
   }
 
@@ -111,15 +155,21 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
       return;
     }
     setIsProcessing(documentId);
+    onControlActionSubmitting?.(true);
+    setDocumentFeedback(documentId, { phase: "submitting", message: "Registrerer handling ..." });
     setError("");
     try {
       await rejectDocument(documentId, user.tenantId, "Avvist fra karantene-sluse");
-      setDocuments(await fetchCaseDocuments(caseId, user.tenantId));
+      setDocumentFeedback(documentId, { phase: "completed", message: "Handlingen er registrert." });
+      await refreshDocuments();
       setSuccess("Dokument er avvist.");
+      setSelectedDocument(null);
     } catch (caught) {
+      setDocumentFeedback(documentId, { phase: "failed", message: "Handlingen kunne ikke fullføres. Prøv igjen." });
       setError(caught instanceof Error ? caught.message : "Kunne ikke avvise dokument");
     } finally {
       setIsProcessing(null);
+      onControlActionSubmitting?.(false);
     }
   }
 
@@ -129,46 +179,52 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
       return;
     }
     setIsProcessing(documentId);
+    onControlActionSubmitting?.(true);
+    setDocumentFeedback(documentId, { phase: "submitting", message: "Registrerer handling ..." });
     setError("");
     try {
       await archiveDocument(documentId, user.tenantId);
-      setDocuments(await fetchCaseDocuments(caseId, user.tenantId));
+      setDocumentFeedback(documentId, { phase: "completed", message: "Handlingen er registrert." });
+      await refreshDocuments();
       setSuccess("Dokument er arkivert.");
+      setSelectedDocument(null);
     } catch (caught) {
+      setDocumentFeedback(documentId, { phase: "failed", message: "Handlingen kunne ikke fullføres. Prøv igjen." });
       setError(caught instanceof Error ? caught.message : "Kunne ikke arkivere dokument");
     } finally {
       setIsProcessing(null);
+      onControlActionSubmitting?.(false);
     }
   }
 
   async function handleIngest(documentId: string) {
     if (!user) {
-      setError("Du mÃ¥ vÃ¦re autentisert fÃ¸r ingestion kan startes.");
+      setError("Du må være autentisert før ingestion kan startes.");
       return;
     }
     setIsProcessing(documentId);
+    onControlActionSubmitting?.(true);
+    setDocumentFeedback(documentId, { phase: "submitting", message: "Registrerer handling ..." });
     setError("");
     setSuccess("");
     try {
-      const result = await ingestDocument(documentId, user.tenantId);
-      setDocuments(await fetchCaseDocuments(caseId, user.tenantId));
-      if (result.status === "SOURCE_READY") {
-        onAnalysisStatusChange?.("processing");
-        const analysis = await startCourtEngineAnalysis(user.tenantId, {
-          caseId,
-          fileIds: [documentId]
-        });
-        onAnalysisStatusChange?.(analysis.analysisStatus === "completed" ? "completed" : "processing");
-        setSuccess(`Ingestion fullfÃ¸rt med ${result.sourceUnitCount} kildeenhet(er).`);
-      } else {
-        onAnalysisStatusChange?.("failed");
-        setError(result.errorCode ?? "Ingestion feilet.");
+      const results = await startBatchIngestion(user.tenantId, [documentId], caseId);
+      const failed = results.find((result) => result.status === "FAILED");
+      if (failed) {
+        throw new Error(failed.error ?? "Ingestion feilet.");
       }
+      onAnalysisStatusChange?.("processing");
+      setDocumentFeedback(documentId, { phase: "queued", message: "Handling registrert. Dokumentet er satt i kø." });
+      await refreshDocuments();
+      setSuccess("Handling registrert. Dokumentet er satt i kø.");
+      setSelectedDocument(null);
     } catch (caught) {
       onAnalysisStatusChange?.("failed");
+      setDocumentFeedback(documentId, { phase: "failed", message: "Handlingen kunne ikke fullføres. Prøv igjen." });
       setError(caught instanceof Error ? caught.message : "Kunne ikke starte ingestion");
     } finally {
       setIsProcessing(null);
+      onControlActionSubmitting?.(false);
     }
   }
 
@@ -189,7 +245,44 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
     uploadQueue.addFiles(files);
   }
 
-  const verifiedCount = documents.filter((document) => document.status === "verified").length;
+  async function handleReplace(document: EvidaDocument, fileList: FileList | null) {
+    const file = fileList?.item(0);
+    if (!file) {
+      return;
+    }
+    if (!user) {
+      setError("Du mÃ¥ vÃ¦re autentisert fÃ¸r en dokumentversjon kan erstattes.");
+      return;
+    }
+
+    setIsProcessing(document.id);
+    onControlActionSubmitting?.(true);
+    setError("");
+    setSuccess("");
+    setDocumentFeedback(document.id, {
+      phase: "submitting",
+      message: "Laster opp ny versjon og ugyldiggjÃ¸r gammelt kildegrunnlag ..."
+    });
+    try {
+      const replacement = await replaceDocumentVersion(document.id, file, user.tenantId);
+      await refreshDocuments();
+      setSuccess(
+        `Ny versjon ${replacement.versionNumber ?? ""} er lagt i karantene. Gammelt kildegrunnlag er ugyldiggjort.`
+      );
+      setSelectedDocument(null);
+    } catch (caught) {
+      setDocumentFeedback(document.id, {
+        phase: "failed",
+        message: "Dokumentet ble ikke erstattet."
+      });
+      setError(caught instanceof Error ? caught.message : "Kunne ikke erstatte dokumentversjonen");
+    } finally {
+      setIsProcessing(null);
+      onControlActionSubmitting?.(false);
+    }
+  }
+
+  const verifiedCount = documents.filter((document) => document.status === "verified" || document.status === "source_ready").length;
   const pendingDocuments = documents.filter((document) => document.status !== "verified");
   const statusLabel = (document: EvidaDocument) => {
     switch (document.status) {
@@ -198,13 +291,91 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
       case "approved_for_ingestion":
         return "Klar for ingestion";
       case "ingesting":
-        return "Ingestion pÃ¥gÃ¥r";
+        return "Ingestion pågår";
+      case "processing":
+        return "Behandler ...";
       case "ingestion_failed":
         return document.ingestionError ?? "Ingestion feilet";
+      case "partial_source_ready":
+        return "Foreløpig kildeklar";
       case "source_ready":
         return "Kildeklar";
       default:
         return "Behandles";
+    }
+  };
+
+  const primaryActionFor = (document: EvidaDocument): DocumentControlAction | null => {
+    if (document.status === "quarantine") {
+      return "approve";
+    }
+    if (document.status === "approved_for_ingestion") {
+      return "start";
+    }
+    if (document.status === "ingestion_failed") {
+      return "start";
+    }
+    if (document.status === "partial_source_ready" || document.status === "source_ready") {
+      return "openSaksrom";
+    }
+    return null;
+  };
+
+  const canArchive = (document: EvidaDocument) =>
+    document.status === "quarantine" ||
+    document.status === "approved_for_ingestion" ||
+    document.status === "ingestion_failed";
+
+  const actionLabel = (action: DocumentControlAction) => {
+    switch (action) {
+      case "approve":
+        return "Godkjenn for ingestion";
+      case "start":
+        return "Start ingestion";
+      case "reject":
+        return "Avvis";
+      case "archive":
+        return "Arkiver";
+      case "openSaksrom":
+        return "Åpne Saksrom";
+    }
+  };
+
+  const actionAriaLabel = (document: EvidaDocument, action: DocumentControlAction) => {
+    switch (action) {
+      case "approve":
+        return `Godkjenn ${document.filename} for ingestion`;
+      case "start":
+        return `Start ingestion for ${document.filename}`;
+      case "reject":
+        return `Avvis ${document.filename}`;
+      case "archive":
+        return `Arkiver ${document.filename}`;
+      case "openSaksrom":
+        return `Åpne Saksrom for ${document.filename}`;
+    }
+  };
+
+  const runDocumentAction = (document: EvidaDocument, action: DocumentControlAction) => {
+    if (isProcessing === document.id) return;
+    switch (action) {
+      case "approve":
+        void handleApprove(document.id);
+        break;
+      case "start":
+        void handleIngest(document.id);
+        break;
+      case "reject":
+        void handleReject(document.id);
+        break;
+      case "archive":
+        void handleArchive(document.id);
+        break;
+      case "openSaksrom":
+        setDocumentFeedback(document.id, { phase: "completed", message: "Åpner Saksrom med tilgjengelig kildegrunnlag." });
+        setSelectedDocument(null);
+        onOpenSaksrom?.();
+        break;
     }
   };
 
@@ -262,53 +433,165 @@ export function QuarantineGate({ caseId, onAnalysisStatusChange }: QuarantineGat
           <article key={document.id} className="liquid-glass-panel doc-card">
             <div className={`status-indicator ${document.status}`} aria-hidden="true" />
 
-            <div className="doc-content">
+            <button
+              className="doc-preview-trigger"
+              type="button"
+              aria-label={`Åpne kontrollpreview for ${document.filename}`}
+              onClick={() => {
+                setSelectedDocument(document);
+                setDocumentFeedback(document.id, actionFeedback[document.id] ?? {
+                  phase: "preview_open",
+                  message: "Forhåndsvisning åpnet."
+                });
+              }}
+            >
               <h3 className="doc-title">{document.filename}</h3>
               <p className="doc-meta">
                 {document.pages} {document.pages === 1 ? "side" : "sider"} •{" "}
                 {statusLabel(document)}
               </p>
-            </div>
+              {actionFeedback[document.id] ? (
+                <span className={`doc-action-feedback phase-${actionFeedback[document.id].phase}`}>
+                  {actionFeedback[document.id].message}
+                </span>
+              ) : (
+                <span className="doc-preview-hint">Åpne forhåndsvisning før handling.</span>
+              )}
+            </button>
 
-            <button
-              className="btn-approve"
-              type="button"
-              aria-label={`Godkjenn ${document.filename} for ingestion`}
-              onClick={() => void handleApprove(document.id)}
-              disabled={document.status !== "quarantine" || isProcessing === document.id}
-            >
-              {isProcessing === document.id ? "Behandler..." : "Godkjenn for ingestion"}
-            </button>
-            <button
-              className="btn-approve"
-              type="button"
-              aria-label={`Start ingestion for ${document.filename}`}
-              onClick={() => void handleIngest(document.id)}
-              disabled={document.status !== "approved_for_ingestion" || isProcessing === document.id}
-            >
-              {isProcessing === document.id ? "Ingest..." : "Start ingestion"}
-            </button>
-            <button
-              className="btn-approve"
-              type="button"
-              aria-label={`Avvis ${document.filename}`}
-              onClick={() => void handleReject(document.id)}
-              disabled={document.status !== "quarantine" || isProcessing === document.id}
-            >
-              Avvis
-            </button>
-            <button
-              className="btn-approve"
-              type="button"
-              aria-label={`Arkiver ${document.filename}`}
-              onClick={() => void handleArchive(document.id)}
-              disabled={isProcessing === document.id}
-            >
-              Arkiver
-            </button>
+            <div className="doc-card-actions" aria-label={`Handlinger for ${document.filename}`}>
+              {primaryActionFor(document) ? (
+                <button
+                  className="btn-approve"
+                  type="button"
+                  aria-label={actionAriaLabel(document, primaryActionFor(document)!)}
+                  onClick={() => runDocumentAction(document, primaryActionFor(document)!)}
+                  disabled={isProcessing === document.id}
+                >
+                  {isProcessing === document.id ? "Registrerer ..." : actionLabel(primaryActionFor(document)!)}
+                </button>
+              ) : null}
+              {document.status === "quarantine" ? (
+                <button
+                  className="btn-approve"
+                  type="button"
+                  aria-label={`Avvis ${document.filename}`}
+                  onClick={() => runDocumentAction(document, "reject")}
+                  disabled={isProcessing === document.id}
+                >
+                  Avvis
+                </button>
+              ) : null}
+              {canArchive(document) ? (
+                <button
+                  className="btn-approve"
+                  type="button"
+                  aria-label={actionAriaLabel(document, "archive")}
+                  onClick={() => runDocumentAction(document, "archive")}
+                  disabled={isProcessing === document.id}
+                >
+                  Arkiver
+                </button>
+              ) : null}
+            </div>
           </article>
         ))}
       </div>
+
+      {selectedDocument ? (
+        <div className="control-preview-backdrop" role="presentation" onClick={() => setSelectedDocument(null)}>
+          <section
+            aria-labelledby="document-control-preview-title"
+            aria-modal="true"
+            className="control-preview-panel liquid-glass-panel"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header>
+              <span className="dash-eyebrow">Dokumentkontroll</span>
+              <h2 id="document-control-preview-title">{selectedDocument.filename}</h2>
+              <p>{statusLabel(selectedDocument)}</p>
+            </header>
+            <dl className="control-preview-details">
+              <div>
+                <dt>Sider</dt>
+                <dd>{selectedDocument.pages || "Ukjent"}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{selectedDocument.status}</dd>
+              </div>
+              <div>
+                <dt>Versjon</dt>
+                <dd>{selectedDocument.versionNumber ?? 1}</dd>
+              </div>
+              <div>
+                <dt>Hvorfor kreves handling?</dt>
+                <dd>
+                  {selectedDocument.status === "quarantine"
+                    ? "Dokumentet ligger i karantene og må godkjennes før det kan behandles."
+                    : selectedDocument.status === "approved_for_ingestion"
+                    ? "Dokumentet er godkjent og kan settes i behandlingskø."
+                    : selectedDocument.status === "ingestion_failed"
+                    ? "Forrige behandling feilet. Kontroller feilen før du prøver igjen."
+                    : "Dokumentet har en kontrollstatus som må gjennomgås."}
+                </dd>
+              </div>
+              <div>
+                <dt>Hva skjer ved handling?</dt>
+                <dd>
+                  {primaryActionFor(selectedDocument) === "approve"
+                    ? "EVIDA registrerer godkjenningen og setter dokumentet opp for sikker ingestion."
+                    : primaryActionFor(selectedDocument) === "start"
+                    ? "EVIDA ber backend starte eksisterende ingestion-jobb for dette dokumentet."
+                    : primaryActionFor(selectedDocument) === "openSaksrom"
+                    ? "EVIDA åpner Saksrom med ferdige PageUnits. Uferdige sider forblir merket som foreløpig kildegrunnlag."
+                    : "Ingen primær handling er tilgjengelig for denne statusen."}
+                </dd>
+              </div>
+              {selectedDocument.ingestionError ? (
+                <div>
+                  <dt>Varsel</dt>
+                  <dd>{selectedDocument.ingestionError}</dd>
+                </div>
+              ) : null}
+            </dl>
+            {actionFeedback[selectedDocument.id] ? (
+              <p className={`control-preview-feedback phase-${actionFeedback[selectedDocument.id].phase}`} role="status">
+                {actionFeedback[selectedDocument.id].message}
+              </p>
+            ) : null}
+            <footer>
+              <button className="btn-approve btn-secondary" type="button" onClick={() => setSelectedDocument(null)}>
+                Lukk
+              </button>
+              <label className="btn-approve btn-secondary">
+                Erstatt med ny versjon
+                <input
+                  accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
+                  aria-label={`Erstatt ${selectedDocument.filename} med ny versjon`}
+                  className="control-preview-file-input"
+                  disabled={isProcessing === selectedDocument.id}
+                  type="file"
+                  onChange={(event) => void handleReplace(selectedDocument, event.currentTarget.files)}
+                />
+              </label>
+              {primaryActionFor(selectedDocument) ? (
+                <button
+                  className="btn-approve"
+                  type="button"
+                  onClick={() => runDocumentAction(selectedDocument, primaryActionFor(selectedDocument)!)}
+                  disabled={isProcessing === selectedDocument.id}
+                >
+                  {isProcessing === selectedDocument.id
+                    ? "Registrerer handling ..."
+                    : actionLabel(primaryActionFor(selectedDocument)!)}
+                </button>
+              ) : null}
+            </footer>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

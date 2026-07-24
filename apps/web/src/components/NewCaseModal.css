@@ -1,7 +1,88 @@
 .new-case-modal {
   transform-origin: center;
+  width: min(860px, calc(100vw - 32px));
 }
 
 .new-case-backdrop {
   overscroll-behavior: contain;
+}
+
+.new-case-dropzone {
+  display: grid;
+  justify-items: center;
+  gap: 0.65rem;
+  min-height: 220px;
+  border: 1px dashed rgba(0, 212, 163, 0.32);
+  border-radius: 16px;
+  padding: 1.5rem;
+  background: rgba(0, 212, 163, 0.035);
+  color: var(--evida-text-secondary);
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.new-case-dropzone--active {
+  transform: translateY(-2px);
+  border-color: rgba(0, 212, 163, 0.75);
+  background: rgba(0, 212, 163, 0.1);
+}
+
+.new-case-dropzone > svg { width: 38px; color: var(--evida-status-active); }
+.new-case-dropzone strong { color: var(--evida-text-primary); font-size: 1.05rem; }
+.new-case-dropzone span { font-size: 0.86rem; }
+
+.new-case-dropzone__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.new-case-dropzone__actions label {
+  border: 1px solid rgba(0, 212, 163, 0.28);
+  border-radius: 999px;
+  padding: 0.6rem 0.9rem;
+  background: rgba(0, 212, 163, 0.08);
+  color: var(--evida-text-primary);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.new-case-dropzone__actions input { display: none; }
+.new-case-dropzone__error { margin: 0; color: #fca5a5; font-size: 0.86rem; }
+
+.new-case-name-field { display: grid; gap: 0.5rem; }
+.new-case-name-field > span {
+  color: var(--evida-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.new-case-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.new-case-progress li {
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  padding-top: 0.55rem;
+  color: var(--evida-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.new-case-progress li.active,
+.new-case-progress li.complete { border-color: var(--primary); color: var(--evida-text-primary); }
+
+@media (max-width: 640px) {
+  .new-case-dropzone { min-height: 190px; padding: 1rem; }
+  .new-case-progress { grid-template-columns: 1fr 1fr; }
 }

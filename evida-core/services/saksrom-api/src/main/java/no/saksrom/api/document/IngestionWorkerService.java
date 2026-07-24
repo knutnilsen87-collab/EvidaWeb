@@ -59,6 +59,7 @@ public class IngestionWorkerService {
 
             ParsedDocumentMetadata metadata = documentParser.inspect(document, filePath);
             int pagesTotal = metadata.pageCount();
+            jobService.updateDocumentPageCount(document.getId(), document.getTenantId(), pagesTotal);
             int firstMissingPage = jobService.firstMissingPage(document, job, pagesTotal);
             jobService.updateProgress(job.getId(), job.getTenantId(), firstMissingPage - 1, pagesTotal);
 

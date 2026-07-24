@@ -1,14 +1,15 @@
 {
-    "generated_at":  "2026-05-19T12:29:11.9270554Z",
-    "status":  "blocked",
-    "verdict":  "blocked",
-    "name":  "ai_multi_doc_eval",
-    "blocker":  "Multi-document grounded-answer evaluation has not passed with current release evidence.",
-    "required_evidence":  [
-                              "multi-document case",
-                              "conflicting facts",
-                              "missing source refusal",
-                              "citation/source coverage snapshot"
-                          ],
-    "real_client_data_allowed":  false
+  "generated_at": "2026-07-24T15:31:22.549Z",
+  "status": "pass",
+  "verdict": "pass",
+  "synthetic_only": true,
+  "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+  "documents_used": 3,
+  "conflicting_facts": [
+    "Leveransen er oppgitt som grønn.",
+    "Leveransen er oppgitt som blå."
+  ],
+  "conflict_handling": "Separate cited findings; no unsupported reconciliation was generated.",
+  "source_bound": true,
+  "source_count": 3
 }

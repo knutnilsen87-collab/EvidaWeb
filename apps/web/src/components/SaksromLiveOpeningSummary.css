@@ -4,10 +4,10 @@
 }
 
 .saksrom-live-summary__lead {
-  margin: 0;
+  margin: 0 0 1rem;
   color: rgba(255, 255, 255, 0.86);
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 .saksrom-live-summary__steps {
@@ -61,8 +61,9 @@
 
 .saksrom-live-summary__result {
   display: grid;
-  gap: 14px;
-  padding-top: 4px;
+  width: min(100%, 72ch);
+  gap: 18px;
+  padding-top: 6px;
 }
 
 .saksrom-live-summary__result h3,
@@ -72,27 +73,102 @@
 }
 
 .saksrom-live-summary__result h3 {
-  font-size: 16px;
-  line-height: 1.4;
+  font-family: var(--evida-font-header);
+  font-size: clamp(1.55rem, 2.4vw, 2rem);
+  line-height: 1.08;
+}
+
+.saksrom-live-summary__result-header {
+  display: grid;
+  gap: 0.45rem;
+  padding-bottom: 0.35rem;
+}
+
+.saksrom-live-summary__result-header > span {
+  color: var(--evida-status-active);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.saksrom-live-summary__result-header p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .saksrom-live-summary__section {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 12px;
+  padding-top: 16px;
 }
 
 .saksrom-live-summary__section h4 {
-  font-size: 14px;
+  color: rgba(220, 241, 239, 0.9);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
   line-height: 1.35;
+  text-transform: uppercase;
 }
 
 .saksrom-live-summary__section p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.74);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14.5px;
+  line-height: 1.72;
+}
+
+.saksrom-live-summary__findings {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.saksrom-live-summary__findings > li {
+  padding-left: 0.25rem;
+  color: rgba(255, 255, 255, 0.78);
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.68;
+}
+
+.saksrom-live-summary__findings > li > span:first-child {
+  display: inline;
+}
+
+.saksrom-live-summary__findings strong {
+  color: rgba(176, 222, 232, 0.96);
+}
+
+.legal-token--party {
+  color: rgba(159, 211, 224, 0.96);
+  font-weight: 720;
+}
+
+.legal-token--amount {
+  color: rgba(158, 226, 188, 0.94);
+  font-weight: 760;
+}
+
+.legal-token--reference {
+  color: rgba(226, 197, 144, 0.88);
+  font-weight: 720;
+}
+
+.saksrom-live-summary__findings small,
+.saksrom-live-summary__empty {
+  display: block;
+  margin-top: 0.4rem;
+  color: rgba(255, 205, 120, 0.72);
+  font-size: 0.76rem;
+}
+
+.saksrom-live-summary__findings .saksrom-live-summary__sources {
+  margin-top: 0.45rem;
 }
 
 .saksrom-live-summary__sources,

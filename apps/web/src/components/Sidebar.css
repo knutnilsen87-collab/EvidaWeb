@@ -3,20 +3,24 @@
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: 3rem;
+  gap: 1.7rem;
   width: 240px;
   min-height: 100vh;
   padding: 0 1.15rem 2rem 1.5rem;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0;
   background: rgba(10, 10, 12, 1);
+  overflow-x: hidden;
+  transition:
+    width 0.28s ease,
+    padding 0.28s ease;
 }
 
 .logo-container {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 3rem 0;
+  padding: 2.4rem 0 1rem;
 }
 
 .sidebar-logo {
@@ -31,9 +35,102 @@
   opacity: 1;
 }
 
+.sidebar-focus-toggle {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 36px;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.sidebar-focus-toggle:hover {
+  border-color: rgba(0, 212, 163, 0.26);
+  background: rgba(0, 212, 163, 0.07);
+  color: var(--evida-text-primary);
+}
+
+.sidebar-active-case {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid rgba(0, 212, 163, 0.16);
+  border-radius: 14px;
+  padding: 0.85rem;
+  background:
+    linear-gradient(145deg, rgba(0, 212, 163, 0.065), rgba(255, 255, 255, 0.02)),
+    rgba(255, 255, 255, 0.018);
+}
+
+.sidebar-active-case__compact {
+  display: none;
+}
+
+.sidebar-active-case__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sidebar-active-case__chips span {
+  border: 1px solid rgba(0, 212, 163, 0.18);
+  border-radius: 999px;
+  padding: 0.18rem 0.4rem;
+  color: rgba(170, 237, 220, 0.84);
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sidebar-active-case > small {
+  color: var(--evida-status-active);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sidebar-active-case > strong {
+  overflow-wrap: anywhere;
+  color: var(--evida-text-primary);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.sidebar-active-case dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.2rem 0 0;
+}
+
+.sidebar-active-case dl div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.sidebar-active-case dt {
+  color: var(--evida-text-muted);
+  font-size: 0.66rem;
+}
+
+.sidebar-active-case dd {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .sidebar-nav {
   display: grid;
-  gap: 3rem;
+  gap: 2.25rem;
 }
 
 .nav-group {
@@ -44,7 +141,7 @@
 .group-title {
   margin: 0;
   color: var(--evida-text-muted);
-  font-size: 0.72rem;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -53,14 +150,13 @@
 .nav-item {
   display: grid;
   min-height: 52px;
-  gap: 4px;
-  padding: 0.75rem 0.85rem;
+  gap: 0.35rem;
+  padding: 0.85rem 0.85rem;
   border: 1px solid transparent;
   border-radius: var(--evida-radius-md);
   background: transparent;
   color: rgba(255, 255, 255, 0.62);
   cursor: pointer;
-  font-size: 0.95rem;
   letter-spacing: 0;
   text-align: left;
   transition:
@@ -105,14 +201,21 @@
   background: rgba(255, 255, 255, 0.075);
 }
 
-.nav-item span {
+.sidebar-nav-item-title {
   color: var(--evida-text-primary);
+  font-size: 15px;
   font-weight: 650;
+  line-height: 1.35;
 }
 
-.nav-item small {
-  color: var(--evida-text-muted);
-  font-size: 0.75rem;
+.sidebar-nav-icon {
+  display: none;
+}
+
+.sidebar-nav-item-description {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .nav-item.active {
@@ -127,6 +230,141 @@
   border-color: rgba(4, 120, 87, 0.32);
   background: rgba(255, 255, 255, 0.045);
   color: var(--evida-text-primary);
+}
+
+.nav-item--locked {
+  border-color: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: default;
+  opacity: 0.72;
+}
+
+.nav-item--locked:hover {
+  transform: none;
+  border-color: rgba(255, 170, 0, 0.2);
+  background: rgba(255, 170, 0, 0.04);
+}
+
+.nav-lock-icon {
+  width: fit-content;
+  border: 1px solid rgba(255, 200, 90, 0.24);
+  border-radius: 999px;
+  padding: 0.12rem 0.42rem;
+  background: rgba(255, 170, 0, 0.07);
+  color: rgba(255, 200, 90, 0.86);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.sidebar--collapsed {
+  width: 76px;
+  align-items: center;
+  gap: 1rem;
+  padding-right: 0.65rem;
+  padding-left: 0.65rem;
+}
+
+.sidebar--collapsed .logo-container {
+  justify-content: center;
+  padding-bottom: 0.35rem;
+}
+
+.sidebar--collapsed .sidebar-logo {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  object-position: left;
+}
+
+.sidebar--collapsed .sidebar-focus-toggle {
+  width: 42px;
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.sidebar--collapsed .sidebar-focus-toggle__label,
+.sidebar--collapsed .sidebar-active-case > :not(.sidebar-active-case__compact),
+.sidebar--collapsed .group-title,
+.sidebar--collapsed .new-case-btn__label,
+.sidebar--collapsed .sidebar-nav-item-title,
+.sidebar--collapsed .sidebar-nav-item-description,
+.sidebar--collapsed .nav-lock-icon {
+  display: none;
+}
+
+.sidebar--collapsed .sidebar-active-case {
+  width: 44px;
+  min-height: 44px;
+  place-items: center;
+  padding: 0;
+}
+
+.sidebar--collapsed .sidebar-active-case__compact {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(0, 212, 163, 0.12);
+  color: var(--evida-status-active);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sidebar--collapsed .sidebar-nav {
+  width: 100%;
+  gap: 1.2rem;
+}
+
+.sidebar--collapsed .nav-group {
+  justify-items: center;
+  gap: 0.45rem;
+}
+
+.sidebar--collapsed .new-case-btn,
+.sidebar--collapsed .nav-item {
+  width: 44px;
+  min-height: 44px;
+  place-items: center;
+  padding: 0;
+}
+
+.sidebar--collapsed .new-case-btn {
+  justify-content: center;
+}
+
+.sidebar--collapsed .sidebar-nav-icon {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.sidebar--collapsed .nav-item.active .sidebar-nav-icon {
+  color: var(--evida-status-active);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (max-width: 860px) {

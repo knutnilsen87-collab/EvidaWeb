@@ -165,3 +165,51 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 767px) {
+  .pdf-viewer-container {
+    gap: 0.75rem;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+  }
+
+  .pdf-viewer-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .pdf-viewer-toolbar strong,
+  .pdf-viewer-toolbar small {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .pdf-canvas {
+    min-height: 0;
+    flex: 1;
+    border-radius: 12px;
+    padding: 0.75rem;
+  }
+
+  .pdf-page-stack {
+    gap: 0.9rem;
+  }
+
+  .pdf-page {
+    min-height: 140px;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .pdf-page h2 {
+    font-size: 1.1rem;
+    line-height: 1.25;
+  }
+
+  .pdf-page p {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+}

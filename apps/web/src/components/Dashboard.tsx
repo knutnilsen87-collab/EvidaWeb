@@ -8,7 +8,7 @@ interface DashboardProps {
   onNavigate: (view: "saksrom" | "chronology" | "evidence" | "arguments" | "risk" | "quarantine") => void;
 }
 
-export function Dashboard({ activeCaseName, onNewCase, onOpenWizard, onNavigate }: DashboardProps) {
+export function Dashboard({ activeCaseName, onNewCase, onNavigate }: DashboardProps) {
   const prefersReducedMotion = useReducedMotion();
   const criticalAlerts = [
     "Mangler kilde for 3 påstander i bevismatrisen.",
@@ -23,21 +23,15 @@ export function Dashboard({ activeCaseName, onNewCase, onOpenWizard, onNavigate 
         <div className="portal-content">
           <span className="portal-kicker">EVIDA // Command Portal</span>
           <h1 className="portal-title serif-title" id="dashboard-title">
-            Juridisk analyse, forenklet.
+            Bygg en kildebundet oversikt over saken
           </h1>
+          <p className="portal-supporting-text">
+            Last opp dokumentene. EVIDA viser hvilke kilder som kan brukes, hva som mangler, og hvor hvert funn kommer fra.
+          </p>
 
-          <div className="command-portal-grid" aria-label="Hurtigvalg for ny arbeidsflyt">
-            <button className="large-action-btn" type="button" onClick={onNewCase}>
-              Opprett sak manuelt
-            </button>
-            <button className="large-action-btn" type="button" onClick={onOpenWizard}>
-              Hurtiganalyse av dokument
-            </button>
-            <button className="large-action-btn" type="button" onClick={onNewCase}>
-              Fortsett eksisterende sak
-            </button>
-            <button className="large-action-btn primary-wizard" type="button" onClick={onOpenWizard}>
-              Jeg vet ikke hvor jeg skal starte
+          <div className="command-portal-grid command-portal-grid--single" aria-label="Anbefalt start">
+            <button className="large-action-btn primary-wizard" type="button" onClick={onNewCase}>
+              Opprett sak og last opp dokumenter
             </button>
           </div>
         </div>

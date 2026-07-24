@@ -1,0 +1,74 @@
+.saksrom-status-line {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(245, 241, 232, 0.7);
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.saksrom-status-line__indicator {
+  display: inline-grid;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(0, 212, 163, 0.12);
+  color: var(--evida-status-active);
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.saksrom-status-line--ready .saksrom-status-line__indicator {
+  animation: source-status-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes source-status-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 212, 163, 0);
+  }
+  45% {
+    box-shadow: 0 0 0 5px rgba(0, 212, 163, 0.08);
+  }
+}
+
+.saksrom-status-line__copy {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.saksrom-status-line__copy small {
+  color: rgba(245, 241, 232, 0.5);
+  font-size: 0.7rem;
+  font-weight: 550;
+}
+
+.saksrom-status-line--preliminary .saksrom-status-line__indicator {
+  background: rgba(255, 204, 120, 0.1);
+  color: rgba(255, 204, 120, 0.9);
+}
+
+.saksrom-status-line--preliminary {
+  color: rgba(244, 209, 148, 0.82);
+}
+
+.saksrom-status-line--processing {
+  color: rgba(218, 225, 224, 0.66);
+}
+
+.saksrom-status-line--processing .saksrom-status-line__indicator {
+  background: rgba(218, 225, 224, 0.08);
+  color: rgba(218, 225, 224, 0.72);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saksrom-status-line--ready .saksrom-status-line__indicator {
+    animation: none;
+  }
+}

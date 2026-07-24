@@ -11,12 +11,18 @@ import {
   IngestionJobResponse
 } from "../lib/api";
 import { uploadQueue, QueueState, QueueItem } from "../lib/uploadQueue";
+import { describePartialPages, getBestNextStep, getSourceBasisStats } from "../lib/bestNextStep";
+import { SUPPORTED_UPLOAD_ACCEPT, SUPPORTED_UPLOAD_HELP_TEXT } from "../lib/uploadPolicy";
+import { prepareDroppedUpload, prepareUploadFiles } from "../lib/uploadPreparation";
 import "./DocumentImport.css";
 
 interface DocumentImportProps {
   caseId: string;
   onAnalysisStatusChange?: (status: string) => void;
+  onDocumentsChange?: (documents: EvidaDocument[]) => void;
   onContinueToSaksrom?: () => void;
+  initialFiles?: File[];
+  onInitialFilesAccepted?: () => void;
   pollIntervalMs?: number;
 }
 
@@ -64,7 +70,7 @@ const formatPartialCoverageDetails = (
   const belowThresholdPages = countPagesInSpec(warningValue(warning, "text_below_threshold"));
   const readyPages = job?.pagesProcessed ?? Math.max(0, (doc.pages || 0) - missingOcrPages - belowThresholdPages);
   const totalPages = job?.pagesTotal || doc.pages || readyPages + missingOcrPages + belowThresholdPages;
-  const parts = [`${readyPages}/${totalPages || "?"} sider klare`];
+  const parts = [totalPages ? describePartialPages(readyPages, totalPages) : `${readyPages} sider kan brukes.`];
   if (missingOcrPages > 0) {
     parts.push(`${missingOcrPages} sider krever OCR`);
   }
@@ -77,7 +83,15 @@ const formatPartialCoverageDetails = (
   return `${parts.join(". ")}.`;
 };
 
-export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSaksrom, pollIntervalMs = 3000 }: DocumentImportProps) {
+export function DocumentImport({
+  caseId,
+  onAnalysisStatusChange,
+  onDocumentsChange,
+  onContinueToSaksrom,
+  initialFiles = [],
+  onInitialFilesAccepted,
+  pollIntervalMs = 3000
+}: DocumentImportProps) {
   const { user, loading } = useAuth();
   const tenantId = user?.tenantId || "";
 
@@ -96,10 +110,14 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [processingDocId, setProcessingDocId] = useState<string | null>(null);
+  const [autoStartingDocIds, setAutoStartingDocIds] = useState<Set<string>>(() => new Set());
+  const [autoStartFailures, setAutoStartFailures] = useState<Record<string, string>>({});
   const [problemDoc, setProblemDoc] = useState<EvidaDocument | null>(null);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoStartedDocIdsRef = useRef<Set<string>>(new Set());
+  const initialFilesAcceptedRef = useRef(false);
 
   // 1. Subscribe to Upload Queue
   useEffect(() => {
@@ -108,6 +126,12 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
       setQueueState(state);
     });
   }, [tenantId, caseId]);
+
+  useEffect(() => {
+    if (!tenantId || !caseId || initialFiles.length === 0 || initialFilesAcceptedRef.current) return;
+    initialFilesAcceptedRef.current = true;
+    void enqueueFiles(initialFiles).then(onInitialFilesAccepted);
+  }, [caseId, initialFiles, onInitialFilesAccepted, tenantId]);
 
   // Refresh documents when caseId or tenantId changes
   useEffect(() => {
@@ -124,6 +148,21 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
     }
   }, [queueState.completed, queueState.isBusy]);
 
+  useEffect(() => {
+    if (!tenantId || !caseId) return;
+
+    const uploadedDocIds = queueState.items
+      .filter((item) => item.status === "QUARANTINE" && item.uploadedDocId && !autoStartedDocIdsRef.current.has(item.uploadedDocId))
+      .map((item) => item.uploadedDocId as string);
+
+    if (uploadedDocIds.length === 0) return;
+
+    uploadedDocIds.forEach((docId) => {
+      autoStartedDocIdsRef.current.add(docId);
+      void startDocumentProcessing([docId], { auto: true });
+    });
+  }, [queueState.items, tenantId, caseId]);
+
   const refreshDocuments = async () => {
     if (!tenantId || !caseId) return;
     setLoadingDocs(true);
@@ -131,6 +170,7 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
     try {
       const docs = await fetchCaseDocuments(caseId, tenantId);
       setDocuments(docs);
+      onDocumentsChange?.(docs);
 
       // Check ingestion jobs for non-ready / non-failed-safe documents
       const activeOrFailedDocs = docs.filter(
@@ -336,47 +376,79 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
   };
 
   // 3. User Actions
-  const handleStartIngest = async (docId: string) => {
+  const startDocumentProcessing = async (docIds: string[], options: { auto?: boolean } = {}) => {
     if (!tenantId) return;
+    if (docIds.length === 0) return;
+    const docId = docIds.length === 1 ? docIds[0] : "batch-all";
     setProcessingDocId(docId);
+    if (options.auto) {
+      setAutoStartingDocIds((prev) => {
+        const next = new Set(prev);
+        docIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
     setActionError(null);
-    setActionSuccess(null);
+    if (!options.auto) {
+      setActionSuccess(null);
+    }
     try {
       // Approve queues an async ingestion job; the worker claims it and the status list
       // below polls progress. The old synchronous /ingest endpoint is retired (410 Gone).
-      await approveDocumentForIngestion(docId, tenantId);
+      if (docIds.length === 1) {
+        await approveDocumentForIngestion(docIds[0], tenantId);
+      } else {
+        const results = await startBatchIngestion(tenantId, docIds, caseId);
+        const failed = results.filter(r => r.status === "FAILED");
+        const successCount = results.length - failed.length;
+        if (failed.length > 0) {
+          throw new Error(`${failed.length} dokumenter kunne ikke behandles. Se detaljer.`);
+        }
+        if (!options.auto && successCount > 0) {
+          setActionSuccess(`${successCount} dokumenter er satt i behandlingskø.`);
+        }
+      }
 
-      setActionSuccess("Dokument godkjent — ingestion-jobb er satt i kø.");
+      setAutoStartFailures((prev) => {
+        const next = { ...prev };
+        docIds.forEach((id) => {
+          delete next[id];
+        });
+        return next;
+      });
+      if (!options.auto) {
+        setActionSuccess("Dokumentet er satt i behandlingskø.");
+      }
       void refreshDocuments();
     } catch (err: any) {
-      setActionError(err?.message || "Kunne ikke starte ingestion.");
+      const message = err?.message || "Kunne ikke starte dokumentkontroll.";
+      if (options.auto) {
+        setAutoStartFailures((prev) => ({
+          ...prev,
+          ...Object.fromEntries(docIds.map((id) => [id, message]))
+        }));
+        setActionError(`${message} Du kan starte kontrollen manuelt.`);
+      } else {
+        setActionError(message);
+      }
     } finally {
       setProcessingDocId(null);
+      if (options.auto) {
+        setAutoStartingDocIds((prev) => {
+          const next = new Set(prev);
+          docIds.forEach((id) => next.delete(id));
+          return next;
+        });
+      }
     }
   };
 
+  const handleStartIngest = async (docId: string) => {
+    await startDocumentProcessing([docId]);
+  };
+
   const handleStartBatchIngest = async (docIds: string[]) => {
-    if (!tenantId || docIds.length === 0) return;
-    setProcessingDocId("batch-all");
-    setActionError(null);
-    setActionSuccess(null);
-    try {
-      const results = await startBatchIngestion(tenantId, docIds, caseId);
-      const failed = results.filter(r => r.status === "FAILED");
-      const successCount = results.length - failed.length;
-      
-      if (failed.length > 0) {
-        setActionError(`${failed.length} dokumenter kunne ikke behandles. Se detaljer.`);
-      }
-      if (successCount > 0) {
-        setActionSuccess(`${successCount} dokumenter er satt i behandlingskø.`);
-      }
-      void refreshDocuments();
-    } catch (err: any) {
-      setActionError(err?.message || "Kunne ikke starte batch-behandling.");
-    } finally {
-      setProcessingDocId(null);
-    }
+    await startDocumentProcessing(docIds);
   };
 
   const handleRetryJob = async (docId: string, jobId: string) => {
@@ -395,6 +467,12 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
     }
   };
 
+  async function enqueueFiles(files: File[]) {
+    const prepared = await prepareUploadFiles(files);
+    uploadQueue.addRejectedFiles(prepared.rejected);
+    uploadQueue.addFiles(prepared.files);
+  }
+
   // 4. File Drag and Drop Traversal
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -411,77 +489,15 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
     e.stopPropagation();
     setIsDragActive(false);
 
-    if (e.dataTransfer.items) {
-      const files: File[] = [];
-      const entries: FileSystemEntry[] = [];
-
-      for (let i = 0; i < e.dataTransfer.items.length; i++) {
-        const item = e.dataTransfer.items[i];
-        if (item.kind === "file") {
-          const entry = item.webkitGetAsEntry();
-          if (entry) {
-            entries.push(entry);
-          }
-        }
-      }
-
-      if (entries.length > 0) {
-        const traversedFiles = await traverseEntries(entries);
-        uploadQueue.addFiles(traversedFiles);
-      }
-    } else if (e.dataTransfer.files) {
-      uploadQueue.addFiles(Array.from(e.dataTransfer.files));
-    }
-  };
-
-  const traverseEntries = async (entries: FileSystemEntry[]): Promise<File[]> => {
-    const files: File[] = [];
-
-    const traverse = async (entry: FileSystemEntry) => {
-      if (entry.isFile) {
-        const fileEntry = entry as FileSystemFileEntry;
-        const file = await new Promise<File>((resolve, reject) => {
-          fileEntry.file(resolve, reject);
-        });
-        files.push(file);
-      } else if (entry.isDirectory) {
-        const dirEntry = entry as FileSystemDirectoryEntry;
-        const reader = dirEntry.createReader();
-
-        const readAllEntries = async (): Promise<FileSystemEntry[]> => {
-          let allResults: FileSystemEntry[] = [];
-          const readBatch = async (): Promise<void> => {
-            const results = await new Promise<FileSystemEntry[]>((resolve, reject) => {
-              reader.readEntries(resolve, reject);
-            });
-            if (results.length > 0) {
-              allResults = [...allResults, ...results];
-              // Yield to event loop to avoid UI freezing
-              await new Promise((resolve) => setTimeout(resolve, 0));
-              await readBatch();
-            }
-          };
-          await readBatch();
-          return allResults;
-        };
-
-        const subEntries = await readAllEntries();
-        for (const subEntry of subEntries) {
-          await traverse(subEntry);
-        }
-      }
-    };
-
-    for (const entry of entries) {
-      await traverse(entry);
-    }
-
-    return files;
+    const prepared = await prepareDroppedUpload(e.dataTransfer);
+    uploadQueue.addRejectedFiles(prepared.rejected);
+    uploadQueue.addFiles(prepared.files);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      uploadQueue.addFiles(Array.from(e.target.files));
+      void enqueueFiles(Array.from(e.target.files));
+      e.target.value = "";
     }
   };
 
@@ -496,19 +512,19 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
   const getStatusText = (status: string) => {
     switch (status) {
       case "QUEUED":
-        return "I kø";
+        return "Dokumentet er mottatt og venter.";
       case "HASHING":
-        return "Beregner hash...";
+        return "Sikkerhetskontrolleres ...";
       case "DUPLICATE_CHECK":
-        return "Sjekker duplikater...";
+        return "Sikkerhetskontrolleres ...";
       case "SKIPPED_DUPLICATE":
-        return "Duplikat (Hoppet over)";
+        return "Duplikat hoppet over";
       case "UPLOADING":
-        return "Laster opp...";
+        return "Laster opp dokumentet ...";
       case "QUARANTINE":
-        return "Karantene";
+        return "Dokumentet er mottatt og kontrolleres.";
       case "FAILED":
-        return "Feilet";
+        return "Dokumentet kunne ikke lastes opp.";
       case "CANCELLED":
         return "Avbrutt";
       default:
@@ -524,13 +540,77 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
   ).length;
   const failedBasisCount = documents.filter((d) => d.status === "ingestion_failed" || d.status === "rejected").length;
   const coverage = documents.length > 0 ? Math.round((sourceReadyCount / documents.length) * 100) : 0;
-  const canContinueToSaksrom = Boolean(onContinueToSaksrom) && documents.length > 0;
+  const sourceStats = getSourceBasisStats(documents, jobs);
+  const computedNextStep = getBestNextStep({
+    activeCaseName: "active",
+    activeView: "import",
+    documents,
+    jobs,
+    queueState
+  });
+  const bestNextStep = autoStartingDocIds.size > 0
+    ? {
+        kind: "wait_processing" as const,
+        title: "Dokumentet kontrolleres",
+        body: "Kontrollerer dokumentet for lesbarhet og kildegrunnlag ...",
+        label: "Behandler dokumentet ...",
+        disabled: true
+      }
+    : computedNextStep;
+  const eligibleForManualProcessing = documents.filter((d) => (
+    d.status === "quarantine" || d.status === "approved_for_ingestion"
+  ) && !autoStartingDocIds.has(d.id));
+  const handleBestNextStep = () => {
+    if (bestNextStep.disabled) return;
+    if (bestNextStep.kind === "focus_upload") {
+      document.getElementById("select-files-input")?.click();
+      return;
+    }
+    if (bestNextStep.kind === "start_processing") {
+      void handleStartBatchIngest(eligibleForManualProcessing.map((d) => d.id));
+      return;
+    }
+    if (bestNextStep.kind === "continue_partial" || bestNextStep.kind === "open_saksrom") {
+      onContinueToSaksrom?.();
+      return;
+    }
+    if (bestNextStep.kind === "inspect_error") {
+      const failed = documents.find((d) => d.status === "ingestion_failed" || d.status === "rejected");
+      if (failed) {
+        setProblemDoc(failed);
+      }
+    }
+  };
+  const intakePhase = sourceReadyCount > 0
+    ? "Kilder klare"
+    : pendingBasisCount > 0 || queueState.isBusy
+    ? "Kontrolleres"
+    : "Lastet opp";
+  const intakeSteps = ["Lastet opp", "Kontrolleres", "Kilder klare", "Oppsummering klar"];
 
   return (
     <div className="document-import-workspace">
       <div className="workspace-header">
         <h1>Dokumentinntak</h1>
-        <p>Last opp dokumenter til karantene-slusen. De vil hashes og sjekkes for duplikater før de sendes til prosessering.</p>
+        <p>Last opp dokumentene som skal brukes i saken.</p>
+        <p className="document-intake-support">
+          Dokumentene kontrolleres for duplikater og lesbarhet før de brukes som kilder.
+        </p>
+        <ol className="document-intake-stepper" aria-label="Dokumentflyt">
+          {intakeSteps.map((step) => {
+            const activeIndex = intakeSteps.indexOf(intakePhase);
+            const stepIndex = intakeSteps.indexOf(step);
+            return (
+              <li
+                className={stepIndex <= activeIndex ? "stepper-step stepper-step--active" : "stepper-step"}
+                key={step}
+                aria-current={step === intakePhase ? "step" : undefined}
+              >
+                {step}
+              </li>
+            );
+          })}
+        </ol>
       </div>
 
       {/* Main Upload Dropzone */}
@@ -546,17 +626,18 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
           <h3>Slipp filer eller mapper her</h3>
-          <p>Støtter PDF, DOCX, TXT, PNG, JPG</p>
+          <p>{SUPPORTED_UPLOAD_HELP_TEXT}</p>
           <div className="picker-actions">
             <label className="picker-btn">
               Velg filer
-              <input id="select-files-input" type="file" multiple onChange={handleFileChange} style={{ display: "none" }} />
+              <input id="select-files-input" type="file" accept={SUPPORTED_UPLOAD_ACCEPT} multiple onChange={handleFileChange} style={{ display: "none" }} />
             </label>
             <label className="picker-btn">
               Velg mappe
               <input
                 id="select-folder-input"
                 type="file"
+                accept={SUPPORTED_UPLOAD_ACCEPT}
                 {...{ webkitdirectory: "", directory: "" }}
                 multiple
                 onChange={handleFileChange}
@@ -693,32 +774,37 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
         <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <h2>Behandlingsstatus for kildegrunnlag</h2>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button
-              className="btn-primary btn-bulk-start"
-              disabled={documents.filter(d => d.status === "quarantine").length === 0 || processingDocId === "batch-all"}
-              onClick={() => void handleStartBatchIngest(documents.filter(d => d.status === "quarantine").map(d => d.id))}
-              style={{
-                background: documents.filter(d => d.status === "quarantine").length === 0 ? "rgba(255, 255, 255, 0.05)" : "var(--primary)",
-                color: documents.filter(d => d.status === "quarantine").length === 0 ? "rgba(255, 255, 255, 0.3)" : "black",
-                cursor: documents.filter(d => d.status === "quarantine").length === 0 ? "not-allowed" : "pointer",
-                padding: "6px 12px",
-                border: "none",
-                borderRadius: "4px",
-                fontWeight: 600,
-                fontSize: "0.9rem"
-              }}
-              title={documents.filter(d => d.status === "quarantine").length === 0 ? "Ingen dokumenter er klare for behandling." : undefined}
-            >
-              {documents.filter(d => d.status === "quarantine").length === 0 ? "Ingen dokumenter klare for behandling" : `Start behandling av ${documents.filter(d => d.status === "quarantine").length} dokumenter`}
-            </button>
             <button className="btn-refresh" onClick={() => void refreshDocuments()} disabled={loadingDocs}>
               {loadingDocs ? "Oppdaterer..." : "Oppdater"}
             </button>
           </div>
         </div>
 
-        {canContinueToSaksrom ? (
-          <div className="preliminary-saksrom-action" aria-label="Foreløpig Saksrom-handling">
+        <div className="document-next-step" aria-label="Anbefalt neste steg">
+          <div>
+            <span className="document-next-step__kicker">Anbefalt neste steg</span>
+            <strong>{bestNextStep.title}</strong>
+            <span>{bestNextStep.body}</span>
+          </div>
+          <button
+            className="btn-preliminary-saksrom"
+            disabled={bestNextStep.disabled || (bestNextStep.kind === "start_processing" && eligibleForManualProcessing.length === 0)}
+            onClick={handleBestNextStep}
+            type="button"
+          >
+            {bestNextStep.label}
+          </button>
+          {sourceStats.documentCount > 0 ? (
+            <small>
+              {sourceStats.readyPages > 0 && sourceStats.totalPages > 0
+                ? `${sourceStats.readyPages} av ${sourceStats.totalPages} sider klare`
+                : `${sourceReadyCount} av ${documents.length} dokumenter klare`}
+            </small>
+          ) : null}
+        </div>
+
+        {sourceReadyCount > 0 && (pendingBasisCount > 0 || failedBasisCount > 0) ? (
+          <div className="preliminary-source-note" aria-label="Foreløpig kildegrunnlag">
             <div>
               <strong>Arbeidet kan fortsette mens kildegrunnlaget oppdateres.</strong>
               <span>
@@ -727,13 +813,6 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
                 {failedBasisCount > 0 ? ` ${failedBasisCount} dokumenter krever kontroll.` : ""}
               </span>
             </div>
-            <button
-              className="btn-preliminary-saksrom"
-              onClick={onContinueToSaksrom}
-              type="button"
-            >
-              Fortsett til Saksrom med foreløpig kildegrunnlag
-            </button>
             <small>Kildedekning: {coverage}%</small>
           </div>
         ) : null}
@@ -758,6 +837,8 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
                 {documents.map((doc) => {
                   const job = jobs[doc.id];
                   const isProcessing = processingDocId === doc.id;
+                  const isAutoStarting = autoStartingDocIds.has(doc.id);
+                  const autoStartFailure = autoStartFailures[doc.id];
 
                   let displayStatus: string = doc.status;
                   let detailsText = "";
@@ -765,49 +846,56 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
                   let showStart = false;
 
                   if (doc.status === "quarantine") {
-                    displayStatus = "I karantene";
-                    detailsText = "Venter på godkjenning for prosessering";
-                    showStart = true;
+                    displayStatus = "Mottatt";
+                    detailsText = autoStartFailure || "Dokumentet er mottatt og kontrolleres.";
+                    showStart = Boolean(autoStartFailure);
                   } else if (doc.status === "approved_for_ingestion") {
-                    displayStatus = "Godkjent";
-                    detailsText = "Klar til prosessering";
-                    showStart = true;
+                    displayStatus = "Kontrolleres";
+                    detailsText = "Kontrollerer dokumentet for lesbarhet og kildegrunnlag ...";
+                    showStart = Boolean(autoStartFailure);
                   } else if (doc.status === "ingesting") {
-                    displayStatus = "Behandles nå";
+                    displayStatus = "Kontrolleres";
                     if (job) {
                       detailsText = `Side ${job.pagesProcessed} av ${job.pagesTotal || "?"}`;
                     } else {
-                      detailsText = "Starter prosessering...";
+                      detailsText = "Kontrollerer dokumentet for lesbarhet og kildegrunnlag ...";
                     }
                   } else if (doc.status === "ingestion_failed") {
-                    displayStatus = "Behandling feilet";
-                    detailsText = translateError(doc.ingestionError || job?.errorMessage);
+                    displayStatus = "Kunne ikke klargjøres";
+                    detailsText = "Dokumentet kunne ikke klargjøres. Se detaljer eller prøv igjen.";
                     showRetry = true;
                   } else if (doc.status === "partial_source_ready") {
-                    displayStatus = "Delvis kildeklart";
+                    displayStatus = "Delvis klart";
                     detailsText = formatPartialCoverageDetails(doc, job);
                     showRetry = Boolean(job?.id);
                   } else if (doc.status === "source_ready") {
-                    displayStatus = "Klar som kildegrunnlag";
-                    detailsText = "Klar for AI-analyse";
+                    displayStatus = "Kildegrunnlaget er klart";
+                    detailsText = "Kildegrunnlaget er klart.";
                   } else if (doc.status === "verified") {
-                    displayStatus = "Verifisert";
-                    detailsText = "Godkjent kildegrunnlag";
+                    displayStatus = "Kildegrunnlaget er klart";
+                    detailsText = "Kildegrunnlaget er klart.";
+                  }
+
+                  if (isAutoStarting) {
+                    displayStatus = "Kontrolleres";
+                    detailsText = "Kontrollerer dokumentet for lesbarhet og kildegrunnlag ...";
+                    showStart = false;
+                    showRetry = false;
                   }
 
                   // If job status is active but doc status is laggy
                   if (job && (job.status === "PENDING" || job.status === "RUNNING")) {
-                    displayStatus = job.status === "PENDING" ? "Venter på behandling" : "Behandles nå";
+                    displayStatus = "Kontrolleres";
                     detailsText = `Side ${job.pagesProcessed} av ${job.pagesTotal || "?"}`;
                     showStart = false;
                     showRetry = false;
                   } else if (job && job.status === "FAILED") {
-                    displayStatus = "Behandling feilet";
-                    detailsText = translateError(job.errorMessage);
+                    displayStatus = "Kunne ikke klargjøres";
+                    detailsText = "Dokumentet kunne ikke klargjøres. Se detaljer eller prøv igjen.";
                     showRetry = true;
                     showStart = false;
                   } else if (job && job.status === "COMPLETED_WITH_WARNINGS") {
-                    displayStatus = "Delvis kildeklart";
+                    displayStatus = "Delvis klart";
                     detailsText = formatPartialCoverageDetails(doc, job);
                     showRetry = true;
                     showStart = false;
@@ -815,19 +903,19 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
 
                   return (
                     <tr key={doc.id} className={`doc-row status-${doc.status}`}>
-                      <td className="doc-name-cell">
+                      <td className="doc-name-cell" data-label="Dokument">
                         <div className="doc-indicator" />
                         <span className="doc-filename" title={doc.filename}>
                           {doc.filename}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className={`status-pill status-${doc.status}`}>
                           {displayStatus}
                         </span>
                       </td>
-                      <td>{job ? `${job.pagesProcessed}/${job.pagesTotal || "?"}` : doc.pages || "-"}</td>
-                      <td className="doc-action-cell">
+                      <td data-label="Prosesserte sider">{job ? `${job.pagesProcessed}/${job.pagesTotal || "?"}` : doc.pages || "-"}</td>
+                      <td className="doc-action-cell" data-label="Handlinger">
                         <span className="details-text">{detailsText}</span>
                         {showStart && (
                           <button
@@ -835,7 +923,7 @@ export function DocumentImport({ caseId, onAnalysisStatusChange, onContinueToSak
                             disabled={isProcessing}
                             onClick={() => void handleStartIngest(doc.id)}
                           >
-                            {isProcessing ? "Starter..." : "Start behandling"}
+                            {isProcessing ? "Starter ..." : "Kontroller dokumentet"}
                           </button>
                         )}
                         {showRetry && job && (

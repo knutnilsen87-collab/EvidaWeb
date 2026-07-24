@@ -23,6 +23,7 @@ public class DocumentQuarantineService {
     private final DocumentRepository documentRepository;
     private final DocumentStorageService storageService;
     private final IngestionJobRepository jobRepository;
+    private final DocumentSourceUnitRepository sourceUnitRepository;
     private final AuditService auditService;
 
     @Autowired
@@ -31,12 +32,14 @@ public class DocumentQuarantineService {
             DocumentRepository documentRepository,
             DocumentStorageService storageService,
             IngestionJobRepository jobRepository,
+            DocumentSourceUnitRepository sourceUnitRepository,
             AuditService auditService
     ) {
         this.ingestionService = ingestionService;
         this.documentRepository = documentRepository;
         this.storageService = storageService;
         this.jobRepository = jobRepository;
+        this.sourceUnitRepository = sourceUnitRepository;
         this.auditService = auditService;
     }
 
@@ -50,8 +53,79 @@ public class DocumentQuarantineService {
                 documentRepository,
                 new LocalDocumentStorageService(new DevBypassMalwareScanner(), Path.of(quarantineRoot)),
                 null,
+                null,
                 null
         );
+    }
+
+    @Transactional
+    public DocumentController.DocumentUploadResponse replaceDocument(
+            UUID previousDocumentId,
+            MultipartFile file,
+            UUID tenantId,
+            AuthenticatedUser user,
+            long maxFileSizeBytes
+    ) {
+        Document previous = documentRepository.findByIdAndTenantIdForUpdate(previousDocumentId, tenantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aktiv dokumentversjon ble ikke funnet."));
+        if (!previous.isActiveVersion()
+                || Document.STATUS_SUPERSEDED.equals(previous.getStatus())
+                || Document.STATUS_DELETED.equals(previous.getStatus())
+                || Document.STATUS_ARCHIVED.equals(previous.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Kun aktiv dokumentversjon kan erstattes.");
+        }
+
+        DocumentStorageService.StoredDocument stored = storageService.storeQuarantineBlob(tenantId, file, maxFileSizeBytes);
+        if (previous.getSha256().equalsIgnoreCase(stored.sha256())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Erstatningsfilen er identisk med aktiv versjon.");
+        }
+
+        UUID replacementId = UUID.randomUUID();
+        int estimatedPages = estimatePages(file);
+        LargeDocumentIngestionService.DocumentIngestionPlan plan = ingestionService.plan(replacementId, estimatedPages);
+        Document replacement = new Document(
+                replacementId,
+                tenantId,
+                previous.getCaseId(),
+                user.userId(),
+                safeFilename(file),
+                file.getOriginalFilename() == null ? safeFilename(file) : file.getOriginalFilename(),
+                file.getContentType() == null ? "application/octet-stream" : file.getContentType(),
+                stored.size(),
+                plan.pageCount(),
+                stored.sha256(),
+                stored.storagePath(),
+                "QUARANTINE_LOCAL"
+        );
+        replacement.initializeReplacementOf(previous);
+        previous.markSuperseded();
+
+        if (sourceUnitRepository != null) {
+            sourceUnitRepository.deleteByTenantIdAndDocumentId(tenantId, previousDocumentId);
+            audit(
+                    "SOURCE_OBJECTS_INVALIDATED",
+                    previous,
+                    user.userId(),
+                    "{\"replacementDocumentId\":\"" + replacementId + "\"}"
+            );
+        }
+        documentRepository.save(previous);
+        // The database enforces one active version per version root. Flush the
+        // superseded state before inserting its replacement so Hibernate cannot
+        // reorder the insert ahead of the update and trip the partial unique index.
+        documentRepository.flush();
+        Document saved = documentRepository.save(replacement);
+        documentRepository.flush();
+        previous.linkSupersededBy(replacementId);
+        documentRepository.save(previous);
+        audit(
+                "DOCUMENT_REPLACED",
+                saved,
+                user.userId(),
+                "{\"supersedesDocumentId\":\"" + previousDocumentId
+                        + "\",\"versionNumber\":" + saved.getVersionNumber() + "}"
+        );
+        return responseFrom(saved, "Ny dokumentversjon ligger i karantene. Tidligere kildegrunnlag er invalidert.", plan.sourceUnitMode(), plan.sections().size());
     }
 
     DocumentQuarantineService(
@@ -336,7 +410,7 @@ public class DocumentQuarantineService {
     }
 
     private List<String> hiddenStatuses() {
-        return List.of(Document.STATUS_DELETED, Document.STATUS_ARCHIVED);
+        return List.of(Document.STATUS_DELETED, Document.STATUS_ARCHIVED, Document.STATUS_SUPERSEDED);
     }
 
     private DocumentController.DocumentUploadResponse responseFrom(
@@ -370,6 +444,12 @@ public class DocumentQuarantineService {
                 latestJob == null ? 0 : latestJob.getPagesProcessed(),
                 latestJob == null ? null : latestJob.getPagesTotal(),
                 latestJob == null ? null : latestJob.getErrorMessage()
+                ,
+                document.getVersionNumber(),
+                document.getVersionRootId(),
+                document.getSupersedesDocumentId(),
+                document.getSupersededByDocumentId(),
+                document.isActiveVersion()
         );
     }
 

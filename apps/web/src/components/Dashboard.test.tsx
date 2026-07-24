@@ -21,7 +21,7 @@ describe("Dashboard", () => {
       <Dashboard activeCaseName="Holands Hage" onNavigate={onNavigate} onNewCase={vi.fn()} onOpenWizard={vi.fn()} />
     );
 
-    await user.click(screen.getByRole("button", { name: /Karantene-slusen/i }));
+    await user.click(screen.getByRole("button", { name: /Karantene/i }));
     expect(onNavigate).toHaveBeenCalledWith("quarantine");
   });
 
@@ -30,20 +30,13 @@ describe("Dashboard", () => {
     const onNewCase = vi.fn();
     render(<Dashboard activeCaseName={null} onNavigate={vi.fn()} onNewCase={onNewCase} onOpenWizard={vi.fn()} />);
 
-    expect(screen.getByRole("heading", { name: "Juridisk analyse, forenklet." })).toBeInTheDocument();
-    expect(screen.getByLabelText("Hurtigvalg for ny arbeidsflyt")).toHaveClass("command-portal-grid");
-    await user.click(screen.getByRole("button", { name: /Opprett sak manuelt/i }));
+    expect(screen.getByRole("heading", { name: "Bygg en kildebundet oversikt over saken" })).toBeInTheDocument();
+    expect(screen.getByText(/Last opp dokumentene/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Anbefalt start")).toHaveClass("command-portal-grid");
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.queryByText("97%")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Opprett sak og last opp dokumenter/i }));
 
     expect(onNewCase).toHaveBeenCalledTimes(1);
-  });
-
-  it("opens the wizard from the unsure starting point", async () => {
-    const user = userEvent.setup();
-    const onOpenWizard = vi.fn();
-    render(<Dashboard activeCaseName={null} onNavigate={vi.fn()} onNewCase={vi.fn()} onOpenWizard={onOpenWizard} />);
-
-    await user.click(screen.getByRole("button", { name: /Jeg vet ikke hvor jeg skal starte/i }));
-
-    expect(onOpenWizard).toHaveBeenCalledTimes(1);
   });
 });
