@@ -19,7 +19,7 @@
     "runtime_sensitive_log_scan": "pass",
     "client_data_desktop_dod": "blocked_remaining_external_and_storage_gates",
     "production_dod_status": "blocked_release_artifacts_failed",
-    "backend_tests_status": "pass_154_tests_2_skipped",
+    "backend_tests_status": "pass_143_tests_3_skipped_clean_commit",
     "control_plane_maven_tests": "pass",
     "secret_scan_status": "pass",
     "toolchain_status": "pass"
@@ -121,7 +121,7 @@
       "kind": "command",
       "ref": "npm test && mvnw clean test && npm run build",
       "result": "PASS",
-      "notes": "181 web tests, 11 pilot tests and 154 Spring tests pass; two OCR environment tests intentionally skipped."
+      "notes": "Clean commit verification passed: 181 web tests, 11 pilot tests and 143 Spring tests; three environment-dependent OCR tests skipped. The integrated working tree also passed 154 Spring tests with two skips before commit curation."
     },
     {
       "id": "EV-SOURCE-BOUND-RUNTIME",

@@ -1,8 +1,9 @@
 {
   "generated_at": "2026-07-24T15:40:22.4981374Z",
-  "commit": "94659c5ed8cf103aaf012666e117957e0d27bcec",
+  "commit": "0af742b43ac48d93b2bf7a7949f9c978d3e49c14",
   "branch": "travel-checkpoint-evida-web-court-engine",
   "surface": "web-spring-local-pilot",
+  "build_source": "clean_detached_worktree",
   "signed": false,
   "excluded_local_files": [
     "apps/web/dist/dev-fixture-tmp.pdf"
@@ -10,8 +11,8 @@
   "files": [
     {
       "path": "evida-core/services/saksrom-api/target/evida-api-0.1.0.jar",
-      "bytes": 80394400,
-      "sha256": "6af70432f0aa0e5689c5fa5719338b084699e7fe90a6d1b1a9b8df88e722c0a3"
+      "bytes": 80376561,
+      "sha256": "bff6dd1987861d981839bccaac0a85f0248c5a773d73f84a00cb3e11ab638e54"
     },
     {
       "path": "artifacts/release/sbom-web.cdx.json",

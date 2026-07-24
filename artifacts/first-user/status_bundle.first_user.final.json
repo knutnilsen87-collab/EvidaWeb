@@ -3,7 +3,7 @@
   "bundle_version": 2,
   "domain": "casepilot_first_user_release",
   "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-24",
-  "commit_sha": "pending-final-git-commit",
+  "commit_sha": "0af742b43ac48d93b2bf7a7949f9c978d3e49c14",
   "created_at": "2026-05-13T11:38:36Z",
   "updated_at": "2026-07-24T15:34:36.0510617Z",
   "current_state": {
@@ -124,7 +124,7 @@
       "Client-data desktop DoD result is blocked by required external and release-evidence gates.",
       "Managed Windows/Braathe/Jussys smoke has not run on target infrastructure.",
       "Signed release and signed SBOM/SCA/SAST evidence are missing.",
-      "Synthetic client-data marker import/raw-storage/log-flow evidence is missing.",
+      "Raw-storage encryption evidence is blocked; synthetic marker log-flow evidence passed with zero findings.",
       "Formal product, engineering, security/privacy, Braathe/IT, and pilot approvals are missing."
     ]
   },
@@ -155,9 +155,7 @@
       "unsigned_release",
       "client_data_dod_incomplete",
       "managed_windows_unverified",
-      "runtime_log_scan_missing",
       "real_client_data_blocked",
-      "release_manifest_schema_mismatch",
       "production_ready_only_policy_active",
       "partial_counts_as_blocked",
       "document_replace_disabled_until_versioned_supersede",
@@ -355,7 +353,7 @@
     "phase_2_client_data_security": "completed_blocked_storage_encryption_and_managed_host_evidence",
     "phase_3_document_ai_export": "completed_pass_except_full_policy_change_audit",
     "phase_4_release_target_machine": "completed_local_evidence_external_signing_and_target_smoke_blocked",
-    "phase_5_regression_evidence": "completed_pass_automated",
+    "phase_5_regression_evidence": "completed_pass_automated_clean_commit_143_backend_181_web_11_pilot",
     "repo_health_verdict": "improved"
   }
 }
