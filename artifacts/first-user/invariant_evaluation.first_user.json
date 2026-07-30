@@ -1,7 +1,7 @@
 {
   "artifact": "invariant_evaluation.first_user",
-  "generated_at": "2026-07-24T15:35:22.0513867Z",
-  "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-24",
+  "generated_at": "2026-07-30T18:13:27Z",
+  "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-30",
   "verdict": "blocked",
   "critical_invariants": [
     {
@@ -44,7 +44,7 @@
       "evidence": [
         "artifacts/first-user/runtime_sensitive_log_scan.json"
       ],
-      "reason": "Runtime marker scan passed across 1,723 files with zero findings."
+      "reason": "Runtime marker scan passed across 1,724 files with zero findings."
     },
     {
       "id": "INV-DATA-002",
@@ -143,8 +143,11 @@
     {
       "id": "INV-RELEASE-001",
       "status": "incomplete",
-      "evidence": [],
-      "reason": "Signed app/installer, signed SBOM, CI SCA/SAST, and release provenance evidence are not complete."
+      "evidence": [
+        "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753592",
+        "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753749"
+      ],
+      "reason": "CI, secret scan, production image builds, Java and JavaScript/TypeScript CodeQL and CycloneDX SBOM generation pass on commit b3200fc. Trusted signed delivery, signed SBOM/provenance and target deployment evidence remain incomplete."
     },
     {
       "id": "INV-APPROVAL-001",

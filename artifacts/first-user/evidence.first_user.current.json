@@ -1,8 +1,8 @@
 {
   "artifact": "evidence.first_user.current",
   "generated_at": "2026-05-13T11:38:36Z",
-  "updated_at": "2026-07-24T15:35:22.0513867Z",
-  "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-24",
+  "updated_at": "2026-07-30T18:13:27Z",
+  "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-30",
   "scope": "controlled first-user evaluation with synthetic/redacted test data only; real client data remains blocked by client-data desktop DoD",
   "verdict": "blocked",
   "summary": {
@@ -11,7 +11,7 @@
     "release_artifact_integrity": "pass",
     "control_plane_static_gate": "pass",
     "code_signing": "blocked_no_signed_current_deliverable",
-    "signed_sbom_and_ci_security_scan": "blocked_workflow_added_not_yet_run",
+    "signed_sbom_and_ci_security_scan": "blocked_signing_provenance_missing_codeql_and_sbom_ci_pass",
     "clean_machine_smoke": "blocked_manual_required",
     "human_approval": "blocked_manual_required",
     "real_client_data_allowed": false,
@@ -19,7 +19,7 @@
     "runtime_sensitive_log_scan": "pass",
     "client_data_desktop_dod": "blocked_remaining_external_and_storage_gates",
     "production_dod_status": "blocked_release_artifacts_failed",
-    "backend_tests_status": "pass_143_tests_3_skipped_clean_commit",
+    "backend_tests_status": "pass_current_candidate_local_and_github_ci",
     "control_plane_maven_tests": "pass",
     "secret_scan_status": "pass",
     "toolchain_status": "pass"
@@ -121,7 +121,7 @@
       "kind": "command",
       "ref": "npm test && mvnw clean test && npm run build",
       "result": "PASS",
-      "notes": "Clean commit verification passed: 181 web tests, 11 pilot tests and 143 Spring tests; three environment-dependent OCR tests skipped. The integrated working tree also passed 154 Spring tests with two skips before commit curation."
+      "notes": "Candidate verification passed locally and in GitHub CI: 181 web tests, 13 pilot tests, full Spring regression, lint, dependency audits, secret scan, production Compose validation and web/API image builds."
     },
     {
       "id": "EV-SOURCE-BOUND-RUNTIME",
@@ -139,10 +139,17 @@
     },
     {
       "id": "EV-RELEASE-SECURITY-CURRENT",
-      "kind": "artifact",
-      "ref": "artifacts/release/release_manifest.json",
+      "kind": "ci",
+      "ref": "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753749",
       "result": "BLOCKED",
-      "notes": "SBOMs, npm audit and scoped gitleaks pass locally; CodeQL workflow has not run and current Windows deliverable is unsigned."
+      "notes": "Java and JavaScript/TypeScript CodeQL plus web/backend CycloneDX SBOM generation pass on commit b3200fc. The aggregate client-data release invariant remains blocked because trusted signed delivery, signed SBOM/provenance and target deployment evidence are missing."
+    },
+    {
+      "id": "EV-CI-CURRENT",
+      "kind": "ci",
+      "ref": "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753592",
+      "result": "PASS",
+      "notes": "Spring, web, pilot contracts, npm audits, secret scan, production Compose validation and production web/API image builds pass on commit b3200fc."
     }
   ],
   "first_user_pack": {
@@ -171,7 +178,7 @@
     "Verify storage encryption and raw marker protection on the managed target machine.",
     "Run native Windows file-picker and managed-machine smoke.",
     "Build and sign the approved Windows deployment package.",
-    "Run pushed CodeQL/release-security workflow.",
+    "Configure live OIDC/HTTPS and verify encrypted target volumes.",
     "Complete engineering, product, security/privacy, Braathe/IT and data-owner approvals."
   ],
   "machine_readable_gates": {

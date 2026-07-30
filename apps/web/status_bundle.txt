@@ -3207,3 +3207,89 @@ $env:EVIDA_TESSERACT_PATH="C:\Program Files\Tesseract-OCR\tesseract.exe"
 - restore the previous deployment configuration
 - use encrypted backup only through the documented explicit restore procedure
 - this branch introduces no required database migration
+
+## Final Candidate Addendum - 2026-07-30
+
+This addendum is the authoritative current status where older sections in this
+file conflict with it.
+
+### Candidate Identity
+- status_bundle_version: `2026-07-30.2`
+- branch: `codex/web-real-client-readiness`
+- release_candidate_code_commit: `b3200fcf5a573a36d7335a77284df31b4a586f7e`
+- status_bundle_revision: the Git commit containing this addendum
+- previous_implementation_commit: `bfa8ca74eb3e11bc5587122df760805cf0f16ef6`
+- repository_tracking: local branch and `origin/codex/web-real-client-readiness` were synchronized before this documentation update
+- repository_health_verdict: improved
+
+### Authoritative Release Decision
+- controlled_synthetic_or_redacted_evaluation: allowed
+- first_user_release: blocked
+- real_client_data_allowed: false
+- production_legal_work_allowed: false
+- decision: NO-GO for real client documents
+- reason: applicable P0 client-data gates and human approvals are not all PASS
+- required_residual_risk_language: Approved for controlled first-user evaluation with synthetic/redacted test data only. Not approved for real client data or production legal work unless separately approved.
+
+### GitHub Verification Bound To Candidate
+- ci_workflow: PASS
+- ci_run: `https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753592`
+- ci_run_number: 2
+- ci_head_sha: `b3200fcf5a573a36d7335a77284df31b4a586f7e`
+- ci_completed_at: `2026-07-30T18:04:54Z`
+- ci_jobs_green: Spring tests, web lint/audit/tests/build, pilot contracts, secret scan, production Compose validation and production image builds
+- release_security_workflow: PASS
+- release_security_run: `https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753749`
+- release_security_run_number: 3
+- release_security_head_sha: `b3200fcf5a573a36d7335a77284df31b4a586f7e`
+- release_security_completed_at: `2026-07-30T18:06:11Z`
+- release_security_jobs_green: Java CodeQL, JavaScript/TypeScript CodeQL and web/backend CycloneDX SBOM generation
+- dependency_review: N/A on push; configured to run on pull requests
+
+### Superseded Historical Findings
+- the 2026-07-29 statement that Vitest was inconclusive is superseded: web and pilot Vitest suites now have terminal PASS evidence
+- the 2026-07-29 statement that release-security CI failed is superseded: both CodeQL languages and both SBOM jobs are green on the candidate commit
+- the 2026-07-29 statement that the worktree was not a release candidate is superseded for the curated tracked scope: the verified changes are committed and pushed
+- unrelated pre-existing untracked files remain outside the candidate and were not broadly staged
+
+### Current Verified Technical Baseline
+- web_tests: PASS; 35 files, 181 tests
+- pilot_contract_tests: PASS; 4 files, 13 tests
+- backend_regression: PASS locally and in GitHub CI
+- cross_platform_filename_sanitization: PASS on Windows and Linux CI
+- frontend_lint_and_build: PASS
+- root_and_web_dependency_audits: PASS; 0 vulnerabilities
+- secret_scan: PASS
+- production_compose_and_images: PASS
+- codeql_java_and_javascript_typescript: PASS
+- cyclonedx_web_and_backend_sboms: PASS
+- secure_startup_health: PASS
+- clamav_eicar_upload_gate: PASS
+- scanner_unavailable_fail_closed: PASS
+- source_bound_saksrom_runtime: PASS
+- browser_upload_reload_summary_chat_and_source_click: PASS with synthetic fixture
+- physical_document_and_case_deletion: PASS
+- encrypted_backup_and_isolated_restore: PASS
+- sensitive_runtime_log_scan: PASS; 1,724 files, 0 marker findings
+
+### Remaining Blocking Gates
+- native Windows file-picker signoff on the managed pilot workstation
+- clean-profile/restart persistence smoke on the managed target
+- managed Braathe/Jussys workstation and IT approval
+- verified encrypted document and PostgreSQL volumes
+- raw-storage marker inspection after encryption attestation
+- authoritative provider/policy mutation ownership and audit event
+- real OIDC tenant, MFA, invited users and production role claims
+- live HTTPS domain, certificates, firewall and secrets provisioning
+- trusted signed release/delivery artifact
+- signed pilot agreement and DPA
+- Engineering, Product, Security/Privacy, Braathe/IT and client/data-owner approvals tied to the candidate and this status-bundle revision
+- controlled phase-9 execution with an approved real document; prohibited until the real-client-data gate returns PASS
+
+### Rollback And Ownership
+- rollback_code: redeploy the previously approved image/commit
+- rollback_configuration: restore the previous Compose and gateway configuration
+- rollback_data: use encrypted backup only through the documented explicit restore decision
+- database_migration_required_by_candidate: no
+- duplicate_authority_introduced: no
+- unresolved_provider_policy_authority: intentionally remains blocked rather than adding a second provider-routing owner
