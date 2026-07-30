@@ -4,6 +4,7 @@
   "domain": "casepilot_first_user_release",
   "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-30",
   "commit_sha": "8b009976ef431fb5ed5d8b00f1d7e63104d8fda0",
+  "evidence_commit_sha": "ce7ec8fafe750ba8f05123c4b6f46a00949c7a98",
   "created_at": "2026-05-13T11:38:36Z",
   "updated_at": "2026-07-30T21:08:00Z",
   "current_state": {
@@ -114,8 +115,8 @@
       "artifacts/release/gitleaks_scripts_result.json"
     ],
     "ci_refs": [
-      "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753592",
-      "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753749"
+      "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30582210394",
+      "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30582210433"
     ],
     "manual_smoke_refs": [],
     "evidence_quality": "fail_closed_partial_current_evidence",
@@ -357,7 +358,7 @@
     "phase_2_client_data_security": "completed_blocked_storage_encryption_and_managed_host_evidence",
     "phase_3_document_ai_export": "completed_pass_except_full_policy_change_audit",
     "phase_4_release_target_machine": "completed_local_evidence_external_signing_and_target_smoke_blocked",
-    "phase_5_regression_evidence": "completed_pass_local_175_backend_181_web_17_pilot_runtime_policy_audit_compose_api_image; prior_candidate_ci_codeql_sbom_green",
+    "phase_5_regression_evidence": "completed_pass_local_175_backend_181_web_17_pilot_runtime_policy_audit_compose_api_image; candidate_ce7ec8f_ci_and_release_security_green",
     "repo_health_verdict": "improved"
   }
 }

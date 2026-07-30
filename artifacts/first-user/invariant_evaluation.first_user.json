@@ -146,10 +146,10 @@
       "id": "INV-RELEASE-001",
       "status": "incomplete",
       "evidence": [
-        "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753592",
-        "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753749"
+        "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30582210394",
+        "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30582210433"
       ],
-      "reason": "CI, secret scan, production image builds, Java and JavaScript/TypeScript CodeQL and CycloneDX SBOM generation pass on commit b3200fc. Trusted signed delivery, signed SBOM/provenance and target deployment evidence remain incomplete."
+      "reason": "CI, secret scan, production image builds, Java and JavaScript/TypeScript CodeQL and CycloneDX SBOM generation pass on evidence commit ce7ec8f. Trusted signed delivery/provenance and target deployment evidence remain incomplete."
     },
     {
       "id": "INV-APPROVAL-001",

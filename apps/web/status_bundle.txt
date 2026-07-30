@@ -45,6 +45,8 @@ Remaining external gates:
 
 Primary evidence: `artifacts/first-user/status_bundle.first_user.final.json`, `artifacts/first-user/real_client_data_gate_latest.json`, `artifacts/first-user/provider_policy_result.json`, `artifacts/first-user/audit_coverage_result.json`, and `docs/release/EVIDA_EXTERNAL_CLOSURE_PACK.md`.
 
+GitHub verification for evidence commit `ce7ec8fafe750ba8f05123c4b6f46a00949c7a98`: CI run `30582210394` PASS and Release Security run `30582210433` PASS.
+
 ## 1. Executive Summary
 EVIDA Web er opprettet som en separat React/Vite/TypeScript webprototype under `apps/web`.
 

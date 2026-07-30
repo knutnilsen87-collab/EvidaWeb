@@ -140,16 +140,16 @@
     {
       "id": "EV-RELEASE-SECURITY-CURRENT",
       "kind": "ci",
-      "ref": "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753749",
+      "ref": "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30582210433",
       "result": "BLOCKED",
-      "notes": "Java and JavaScript/TypeScript CodeQL plus web/backend CycloneDX SBOM generation pass on commit b3200fc. The aggregate client-data release invariant remains blocked because trusted signed delivery, signed SBOM/provenance and target deployment evidence are missing."
+      "notes": "Release Security passes on evidence commit ce7ec8f, including Java and JavaScript/TypeScript CodeQL plus web/backend CycloneDX SBOM generation. The aggregate client-data release invariant remains blocked because trusted signed delivery/provenance and target deployment evidence are missing."
     },
     {
       "id": "EV-CI-CURRENT",
       "kind": "ci",
-      "ref": "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30568753592",
+      "ref": "https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30582210394",
       "result": "PASS",
-      "notes": "Spring, web, pilot contracts, npm audits, secret scan, production Compose validation and production web/API image builds pass on commit b3200fc."
+      "notes": "Spring, web, pilot contracts, npm audits, secret scan, production Compose validation and production web/API image builds pass on evidence commit ce7ec8f."
     }
   ],
   "first_user_pack": {
