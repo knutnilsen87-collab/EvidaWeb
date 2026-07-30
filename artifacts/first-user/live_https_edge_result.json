@@ -1,0 +1,22 @@
+{
+    "generated_at":  "2026-07-30T21:00:57.6357549Z",
+    "gate":  "LIVE-HTTPS-DOMAIN-CERT-FIREWALL",
+    "status":  "blocked",
+    "verdict":  "blocked",
+    "base_url":  "",
+    "expected_dns_name":  "",
+    "https_status":  null,
+    "certificate":  null,
+    "probed_non_public_ports":  [
+                                    18080,
+                                    3000,
+                                    4173,
+                                    5432,
+                                    3310
+                                ],
+    "unexpected_open_ports":  [
+
+                              ],
+    "probe_error":  null,
+    "blocker":  "Requires a live HTTPS endpoint with a valid hostname certificate, sufficient validity, and no directly exposed API, web-dev, database, or ClamAV ports."
+}

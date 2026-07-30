@@ -1,9 +1,15 @@
 {
-    "generated_at":  "2026-05-19T12:29:11.9270554Z",
-    "status":  "partial",
-    "verdict":  "blocked",
-    "external_ai_default_off":  "referenced by first-user invariants",
-    "client_data_provider_allowlist_verified":  false,
-    "blocker":  "Provider routing is not yet approved for real client data.",
-    "real_client_data_allowed":  false
+  "generated_at": "2026-07-30T21:03:36.441Z",
+  "status": "pass",
+  "verdict": "pass",
+  "synthetic_only": true,
+  "authority": "backend-provider-policy",
+  "global_provider_kill_switch_open": false,
+  "tenant_provider_approved": false,
+  "ai_provider_calls_enabled": false,
+  "change_ticket": "SYNTHETIC-1785445430948",
+  "policy_version": 0,
+  "mutation_audited": true,
+  "audit_chain_valid": true,
+  "note": "Global kill switch and tenant approval must both be true before any external provider call is permitted."
 }

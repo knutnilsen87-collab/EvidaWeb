@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-30T17:56:19.093Z",
+  "generated_at": "2026-07-30T21:03:36.441Z",
   "status": "pass",
   "verdict": "pass",
   "synthetic_only": true,
-  "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
+  "case_id": "ec696ef3-ff46-4ed0-b1c3-a7a532590d0c",
   "documents_used": 3,
   "conflicting_facts": [
     "Leveransen er oppgitt som grønn.",

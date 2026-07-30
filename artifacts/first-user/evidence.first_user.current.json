@@ -1,7 +1,7 @@
 {
   "artifact": "evidence.first_user.current",
   "generated_at": "2026-05-13T11:38:36Z",
-  "updated_at": "2026-07-30T18:13:27Z",
+  "updated_at": "2026-07-30T21:08:00Z",
   "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-30",
   "scope": "controlled first-user evaluation with synthetic/redacted test data only; real client data remains blocked by client-data desktop DoD",
   "verdict": "blocked",
@@ -121,14 +121,14 @@
       "kind": "command",
       "ref": "npm test && mvnw clean test && npm run build",
       "result": "PASS",
-      "notes": "Candidate verification passed locally and in GitHub CI: 181 web tests, 13 pilot tests, full Spring regression, lint, dependency audits, secret scan, production Compose validation and web/API image builds."
+      "notes": "Current local verification passes 181 web tests, 17 pilot tests and 175 Spring tests (3 intentional environment-dependent skips), plus lint, production web build, Compose validation and API image build. Prior candidate CI, dependency audits and secret scan are also green."
     },
     {
       "id": "EV-SOURCE-BOUND-RUNTIME",
       "kind": "command",
       "ref": "npm run pilot:test-source-bound-runtime",
       "result": "PASS",
-      "notes": "Synthetic ClamAV upload, ingestion, multi-document source binding, unsupported claim, active-route prompt injection, export, versioned replacement/source invalidation and audit-chain runtime passed."
+      "notes": "Isolated synthetic-tenant runtime passes ClamAV upload, ingestion, multi-document source binding, unsupported claim, active-route prompt injection, export, versioned replacement/source invalidation, authoritative provider-policy mutation and valid case/global audit chains."
     },
     {
       "id": "EV-BACKUP-RESTORE",
@@ -170,16 +170,20 @@
       "artifacts/first-user/raw_storage_inspection.json",
       "artifacts/first-user/encryption_verification.json",
       "artifacts/first-user/audit_coverage_result.json",
-      "artifacts/first-user/export_smoke_result.json"
+      "artifacts/first-user/export_smoke_result.json",
+      "artifacts/first-user/provider_policy_result.json",
+      "artifacts/first-user/production_identity_result.json",
+      "artifacts/first-user/live_https_edge_result.json",
+      "artifacts/first-user/pilot_agreement_dpa_approval.json"
     ],
     "real_client_data_allowed": false
   },
   "manual_gates_remaining": [
     "Verify storage encryption and raw marker protection on the managed target machine.",
     "Run native Windows file-picker and managed-machine smoke.",
-    "Build and sign the approved Windows deployment package.",
-    "Configure live OIDC/HTTPS and verify encrypted target volumes.",
-    "Complete engineering, product, security/privacy, Braathe/IT and data-owner approvals."
+    "Sign and cosign-verify the approved digest-pinned web/API release images.",
+    "Configure live OIDC/HTTPS and run the production identity and edge probes.",
+    "Sign the pilot agreement/DPA and complete engineering, product, security/privacy, Braathe/IT and data-owner approvals."
   ],
   "machine_readable_gates": {
     "toolchain": {

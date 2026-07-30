@@ -1,11 +1,11 @@
 {
   "bundle_id": "SB-FIRST-USER-EVIDA-LOCAL-2026-05-13",
-  "bundle_version": 3,
+  "bundle_version": 4,
   "domain": "casepilot_first_user_release",
   "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-30",
-  "commit_sha": "b3200fcf5a573a36d7335a77284df31b4a586f7e",
+  "commit_sha": "8b009976ef431fb5ed5d8b00f1d7e63104d8fda0",
   "created_at": "2026-05-13T11:38:36Z",
-  "updated_at": "2026-07-30T18:13:27Z",
+  "updated_at": "2026-07-30T21:08:00Z",
   "current_state": {
     "lifecycle_state": "evidence_collected",
     "status": "blocked",
@@ -16,7 +16,7 @@
   },
   "summary": {
     "short_summary": "Automated local readiness improved substantially; first-user and real-client-data release remain blocked by explicit technical and external gates.",
-    "technical_summary": "Synthetic runtime passes secure startup, upload/ClamAV, multi-document source binding, unsupported-claim refusal, active-route prompt-injection containment, export, audit-chain integrity, endpoint RBAC, versioned replacement/source invalidation, physical deletion, OCR retry/confidence tests, encrypted backup/restore, and sensitive-log scanning. GitHub CI, Java and JavaScript/TypeScript CodeQL, secret scan, production image builds and CycloneDX SBOM generation pass on the candidate commit. Remaining P0 blockers are target storage encryption/raw inspection, provider-policy change audit ownership, signed delivery/provenance, managed-machine/native-picker smoke, live OIDC/HTTPS deployment and approvals.",
+    "technical_summary": "Synthetic runtime passes secure startup, upload/ClamAV, multi-document source binding, unsupported-claim refusal, active-route prompt-injection containment, export, endpoint RBAC, versioned replacement/source invalidation, physical deletion, OCR retry/confidence, encrypted backup/restore and sensitive-log scanning. Provider-policy is now one tenant-scoped backend authority with a global kill switch, an audited admin mutation path and database-serialized audit chains. Production startup now requires an HTTPS OIDC issuer, MFA evidence and an explicit role allowlist. Current local regression passes 181 web, 17 pilot and 175 Spring tests. Remaining P0 blockers are target storage encryption/raw inspection, trusted signing/provenance, managed-machine/native-picker smoke, live OIDC/HTTPS execution, signed pilot agreement/DPA and approvals.",
     "user_visible_summary": "Morten must not use real case documents yet. Synthetic/redacted testing is working; storage protection, signed deployment, target-machine smoke and approvals remain."
   },
   "scope_lock": {
@@ -52,7 +52,6 @@
     "broken_invariants": [],
     "untested_invariants": [
       "INV-DATA-002",
-      "INV-AUDIT-001",
       "INV-WIN-001",
       "INV-DATA-003",
       "INV-RELEASE-001",
@@ -86,6 +85,9 @@
       "artifacts/first-user/backup_restore_result.json",
       "artifacts/first-user/deletion_retention_result.json",
       "artifacts/first-user/provider_policy_result.json",
+      "artifacts/first-user/production_identity_result.json",
+      "artifacts/first-user/live_https_edge_result.json",
+      "artifacts/first-user/pilot_agreement_dpa_approval.json",
       "artifacts/first-user/runtime_sensitive_log_scan.json",
       "artifacts/first-user/document_upload_final_result.json",
       "artifacts/first-user/manual_review_result.json",
@@ -139,7 +141,7 @@
     "p0_status": "blocked",
     "document_upload_status": "pass_automated_runtime_native_picker_manual_required",
     "ai_source_control_status": "pass_active_local_source_bound_route",
-    "audit_status": "blocked_provider_policy_change_audit_missing",
+    "audit_status": "pass_authoritative_provider_policy_and_runtime_hash_chains",
     "signing_status": "blocked_no_signed_current_windows_deliverable",
     "client_data_safety_status": "blocked_storage_encryption_not_verified",
     "multi_doc_eval_status": "pass_synthetic_runtime",
@@ -161,12 +163,11 @@
       "real_client_data_blocked",
       "production_ready_only_policy_active",
       "partial_counts_as_blocked",
-      "target_storage_encryption_unverified",
-      "provider_policy_mutation_audit_unresolved"
+      "target_storage_encryption_unverified"
     ]
   },
   "action_layer": {
-    "recommended_next_action": "On the managed pilot environment: verify encrypted storage, run raw-marker/native-picker/restart smoke, configure live OIDC and HTTPS, build and sign the approved delivery package with provenance, then obtain approvals tied to the candidate and this bundle revision.",
+    "recommended_next_action": "On the managed pilot environment: verify encrypted storage, run raw-marker/native-picker/restart smoke, execute the live OIDC/HTTPS probes, sign the digest-pinned OCI images with provenance, then obtain agreement and role approvals tied to the candidate and this bundle revision.",
     "fallback_action": "Continue synthetic/redacted testing only; keep real_client_data_allowed=false.",
     "rollback_path": "Do not distribute release candidate; revoke build artifact if already shared. Delete local test data with Evida reset command if needed."
   },
@@ -179,9 +180,9 @@
     "approved_by_review": false,
     "remaining_unknowns": [
       "Managed Windows/Braathe/Jussys install and runtime behavior.",
-      "Trusted signature for the current Windows deployment deliverable.",
+      "Trusted signature and provenance for the current digest-pinned web/API OCI images.",
       "BitLocker or equivalent application-layer protection for raw documents and extracted source text.",
-      "Provider/policy change audit ownership and evidence.",
+      "Live production OIDC/MFA/role-claim behavior and HTTPS edge evidence.",
       "Trusted signing and provenance for the current deployment deliverable and SBOMs.",
       "Native Windows file-picker smoke.",
       "Engineering, product, security/privacy, Braathe/IT and data-owner approvals."
@@ -214,13 +215,13 @@
       "runtime_log_scan_status": "pass_1724_files_zero_findings",
       "document_upload_status": "pass_automated_runtime_native_picker_manual_required",
       "ai_source_control_status": "pass_active_local_source_bound_route",
-      "audit_status": "blocked_provider_policy_change_audit_missing",
+      "audit_status": "pass_authoritative_provider_policy_and_runtime_hash_chains",
       "export_status": "pass_synthetic_runtime",
       "release_security_status": "pass_ci_codeql_sbom_unsigned_delivery_still_blocks_client_data",
       "approval_status": "blocked_missing_approvals"
     },
     "action_layer": {
-      "recommended_next_action": "Use real_client_data_gate_latest.json as the fail-closed ledger; close storage encryption, policy audit ownership, signed delivery/provenance, live OIDC/HTTPS, managed-machine/native-picker smoke and approvals.",
+      "recommended_next_action": "Use real_client_data_gate_latest.json as the fail-closed ledger; close storage encryption/raw inspection, signed OCI delivery/provenance, live OIDC/HTTPS, managed-machine/native-picker smoke, signed pilot agreement/DPA and approvals.",
       "fallback_action": "Continue synthetic/redacted evaluation only."
     },
     "closure_layer": {
@@ -228,9 +229,9 @@
       "approved_by_review": false,
       "remaining_unknowns": [
         "Managed Windows/Braathe/Jussys install and runtime behavior.",
-        "Trusted signature for the current Windows deployment deliverable.",
+        "Trusted signature and provenance for the current digest-pinned web/API OCI images.",
         "BitLocker or equivalent application-layer protection for raw documents and extracted source text.",
-        "Provider/policy change audit ownership and evidence.",
+        "Live production OIDC/MFA/role-claim behavior and HTTPS edge evidence.",
         "Trusted signing and provenance for the current deployment deliverable and SBOMs.",
         "Native Windows file-picker smoke.",
         "Engineering, product, security/privacy, Braathe/IT and data-owner approvals."
@@ -356,7 +357,7 @@
     "phase_2_client_data_security": "completed_blocked_storage_encryption_and_managed_host_evidence",
     "phase_3_document_ai_export": "completed_pass_except_full_policy_change_audit",
     "phase_4_release_target_machine": "completed_local_evidence_external_signing_and_target_smoke_blocked",
-    "phase_5_regression_evidence": "completed_pass_candidate_b3200fc_ci_backend_181_web_13_pilot_codeql_sbom_images",
+    "phase_5_regression_evidence": "completed_pass_local_175_backend_181_web_17_pilot_runtime_policy_audit_compose_api_image; prior_candidate_ci_codeql_sbom_green",
     "repo_health_verdict": "improved"
   }
 }

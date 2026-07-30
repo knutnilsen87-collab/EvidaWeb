@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T17:57:03.724Z",
+  "generated_at": "2026-07-30T21:04:50.961Z",
   "gate": "EVIDA-REAL-CLIENT-DATA-GATE",
   "status": "blocked",
   "exit_code": 2,
@@ -204,28 +204,24 @@
       "status": "blocked",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\encryption_verification.json: blocked",
       "evidence": {
-        "generated_at": "2026-07-24T15:21:08.5328602Z",
+        "generated_at": "2026-07-30T21:00:57.2527890Z",
+        "gate": "TARGET-STORAGE-ENCRYPTION",
         "status": "blocked",
         "verdict": "blocked",
-        "current_user_is_administrator": false,
-        "bitlocker_verification": {
-          "verified": false,
-          "command": "manage-bde.exe -status C:",
-          "result": "BitLocker Drive Encryption: Configuration Tool version 10.0.26100\r\nCopyright (C) 2013 Microsoft Corporation. All rights reserved.\r\n\r\nERROR: An attempt to access a required resource was denied.\r\n\r\nCheck that you have administrative rights on the computer."
+        "target_only": true,
+        "attested_by": "",
+        "change_ticket": "",
+        "document_volume": {
+          "path": "",
+          "status": "blocked",
+          "blocker": "Data directory is missing or was not supplied."
         },
-        "application_storage": {
-          "raw_document_encryption_verified": false,
-          "plaintext_file_write_detected": true,
-          "source": "evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/LocalDocumentStorageService.java",
-          "database_source_text_encryption_verified": false
+        "postgres_volume": {
+          "path": "",
+          "status": "blocked",
+          "blocker": "Data directory is missing or was not supplied."
         },
-        "backup_storage": {
-          "encryption": "AES-256-GCM",
-          "verified": true,
-          "evidence": "artifacts/first-user/backup_restore_result.json"
-        },
-        "blocker": "Current Spring document bytes and extracted source text do not have verified application-layer encryption, and OS volume encryption cannot be verified without an elevated managed target-machine check.",
-        "remediation": "Enable and verify BitLocker/device encryption on the managed pilot machine or implement application-layer encryption for document bytes and source text with managed key storage; rerun raw-storage marker inspection."
+        "blocker": "Both target data directories must be on fully encrypted, protected BitLocker volumes and tied to an operator and change ticket."
       }
     },
     {
@@ -237,22 +233,25 @@
       "status": "blocked",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\raw_storage_inspection.json: blocked",
       "evidence": {
-        "generated_at": "2026-07-24T15:21:08.5328602Z",
+        "generated_at": "2026-07-30T21:00:57.2853454Z",
+        "gate": "RAW-STORAGE-MARKER-INSPECTION",
         "status": "blocked",
         "verdict": "blocked",
-        "inspected_database": false,
-        "marker_client_data_used": false,
-        "static_inspection": {
-          "local_document_storage_plaintext_write_detected": true,
-          "source_text_database_encryption_verified": false
-        },
-        "blocker": "A synthetic marker test cannot produce a passing result while raw document and source-text encryption are not implemented or the underlying volume encryption is not verified.",
+        "synthetic_only": true,
+        "encryption_gate_passed": false,
+        "marker_run_evidence": "",
+        "marker_run_verified": false,
+        "offline_raw_storage_files_inspected": 0,
+        "invalid_paths": [],
+        "scan_errors": [],
+        "marker_findings": [],
         "required_markers": [
           "EVIDA_SECRET_MARKER_CLIENT_NAME_123",
           "EVIDA_SECRET_MARKER_CASE_FACT_456",
           "EVIDA_SECRET_MARKER_PERSONAL_NUMBER_789",
           "EVIDA_SECRET_MARKER_PRIVILEGED_NOTE_ABC"
-        ]
+        ],
+        "blocker": "Requires PASS encryption evidence, a completed synthetic marker lifecycle, explicit offline raw-storage files, and zero plaintext marker findings."
       }
     },
     {
@@ -264,16 +263,16 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\deletion_retention_result.json: pass",
       "evidence": {
-        "generated_at": "2026-07-30T17:56:19.093Z",
+        "generated_at": "2026-07-30T21:03:36.441Z",
         "status": "pass",
         "verdict": "pass",
         "gate": "DATA-DELETE-RETENTION-001",
         "synthetic_only": true,
-        "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
+        "case_id": "ec696ef3-ff46-4ed0-b1c3-a7a532590d0c",
         "deleted_document_ids": [
-          "ee3730e3-ca71-47ea-8623-2e5b66f48fb4",
-          "ee96d624-d672-46dc-9a88-6b2f4b4df594",
-          "73c27612-5a08-454f-99a8-4c68f73e4190"
+          "277fea11-eb2f-40dd-9225-1b0ec948394b",
+          "4d01b72f-df54-46e5-94bf-de392cba1eb5",
+          "d2619d51-bdde-4414-b1e7-b847793ce0b2"
         ],
         "documents_hidden_after_delete": true,
         "source_units_removed_after_delete": true,
@@ -291,7 +290,7 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\runtime_sensitive_log_scan.json: pass",
       "evidence": {
-        "generated_at": "2026-07-30T17:55:44.4022793Z",
+        "generated_at": "2026-07-30T20:56:39.0549514Z",
         "gate": "DATA-LOG-001",
         "status": "pass",
         "roots": [
@@ -313,11 +312,11 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\ai_multi_doc_eval.json: pass",
       "evidence": {
-        "generated_at": "2026-07-30T17:56:19.093Z",
+        "generated_at": "2026-07-30T21:03:36.441Z",
         "status": "pass",
         "verdict": "pass",
         "synthetic_only": true,
-        "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
+        "case_id": "ec696ef3-ff46-4ed0-b1c3-a7a532590d0c",
         "documents_used": 3,
         "conflicting_facts": [
           "Leveransen er oppgitt som grønn.",
@@ -337,7 +336,7 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\prompt_injection_eval.json: pass",
       "evidence": {
-        "generated_at": "2026-07-30T17:56:19.093Z",
+        "generated_at": "2026-07-30T21:03:36.441Z",
         "status": "pass",
         "verdict": "pass",
         "synthetic_only": true,
@@ -357,7 +356,7 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\unsupported_claim_eval.json: pass",
       "evidence": {
-        "generated_at": "2026-07-30T17:56:19.093Z",
+        "generated_at": "2026-07-30T21:03:36.441Z",
         "status": "pass",
         "verdict": "pass",
         "synthetic_only": true,
@@ -369,20 +368,45 @@
       }
     },
     {
+      "name": "Authoritative provider policy",
+      "whyImportant": "Ekstern AI-bruk må ha én tenant-avgrenset backend-myndighet og auditert endringsvei.",
+      "suggestedAction": "Kjør source-bound runtime-evalueringen og verifiser at provider-policy og auditkjede er PASS.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\provider_policy_result.json: pass",
+      "evidence": {
+        "generated_at": "2026-07-30T21:03:36.441Z",
+        "status": "pass",
+        "verdict": "pass",
+        "synthetic_only": true,
+        "authority": "backend-provider-policy",
+        "global_provider_kill_switch_open": false,
+        "tenant_provider_approved": false,
+        "ai_provider_calls_enabled": false,
+        "change_ticket": "SYNTHETIC-1785445430948",
+        "policy_version": 0,
+        "mutation_audited": true,
+        "audit_chain_valid": true,
+        "note": "Global kill switch and tenant approval must both be true before any external provider call is permitted."
+      }
+    },
+    {
       "name": "Audit coverage",
       "whyImportant": "Import, AI, eksport, sletting og policyendring må ha etterprøvbar auditkjede.",
       "suggestedAction": "Lukk manglende audit-events og verifiser hashkjeden i runtime.",
       "requiresInstall": false,
       "requiresManualApproval": false,
-      "status": "blocked",
-      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\audit_coverage_result.json: blocked",
+      "status": "pass",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\audit_coverage_result.json: pass",
       "evidence": {
-        "generated_at": "2026-07-30T17:56:19.093Z",
-        "status": "blocked",
-        "verdict": "blocked",
+        "generated_at": "2026-07-30T21:03:36.441Z",
+        "status": "pass",
+        "verdict": "pass",
         "synthetic_only": true,
-        "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
+        "case_id": "ec696ef3-ff46-4ed0-b1c3-a7a532590d0c",
         "chain_valid": true,
+        "provider_policy_chain_valid": true,
         "event_count": 29,
         "observed_event_types": [
           "AUDIT_VERIFICATION_RUN",
@@ -395,6 +419,7 @@
           "DOCUMENT_REPLACED",
           "DOCUMENT_UPLOADED",
           "EXPORT_CREATED",
+          "PROVIDER_POLICY_CHANGED",
           "SAKSROM_ANSWER_CREATED",
           "SAKSROM_QUESTION_ASKED",
           "SAKSROM_SUMMARY_CREATED",
@@ -402,8 +427,9 @@
           "SOURCE_OBJECTS_INVALIDATED"
         ],
         "missing_required_runtime_events": [],
-        "provider_or_policy_change_audited": false,
-        "blocker": "No authoritative provider/policy mutation endpoint and audit event exists."
+        "provider_or_policy_change_audited": true,
+        "policy_authority": "backend-provider-policy",
+        "blocker": null
       }
     },
     {
@@ -415,11 +441,11 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\export_smoke_result.json: pass",
       "evidence": {
-        "generated_at": "2026-07-30T17:56:19.093Z",
+        "generated_at": "2026-07-30T21:03:36.441Z",
         "status": "pass",
         "verdict": "pass",
         "synthetic_only": true,
-        "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
+        "case_id": "ec696ef3-ff46-4ed0-b1c3-a7a532590d0c",
         "http_status": 200,
         "ai_draft_warning_present": true,
         "source_section_present": true,
@@ -427,39 +453,83 @@
       }
     },
     {
-      "name": "Signed Windows deliverable",
-      "whyImportant": "Distribusjonsartefakten må være signert med organisasjonens betrodde sertifikat.",
-      "suggestedAction": "Bygg og signer godkjent Windows-pakke i forvaltet release-miljø.",
+      "name": "Production OIDC/MFA/role claims",
+      "whyImportant": "Produksjonsidentitet må bevise MFA, godkjent adminrolle og tenantavvisning på live mål.",
+      "suggestedAction": "Kjør scripts/pilot/test-production-identity.ps1 med et kortlivet MFA-token på live-miljøet.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "blocked",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\production_identity_result.json: blocked",
+      "evidence": {
+        "generated_at": "2026-07-30T21:00:57.2485763Z",
+        "gate": "PRODUCTION-OIDC-MFA-ROLE-CLAIMS",
+        "status": "blocked",
+        "verdict": "blocked",
+        "base_url": "",
+        "expected_tenant_id": null,
+        "bearer_token_persisted": false,
+        "readiness_http_status": null,
+        "policy_http_status": null,
+        "admin_policy_http_status": null,
+        "cross_tenant_http_status": null,
+        "production_local_dev_mode": null,
+        "provider_policy_authority": null,
+        "mfa_evidence": "Successful request proves the production API accepted configured amr/acr evidence.",
+        "role_evidence": "Successful provider-policy disable proves the JWT mapped to ADMIN_TENANT permission.",
+        "tenant_evidence": "A different tenant header must be rejected with HTTP 403.",
+        "probe_error": null,
+        "blocker": "Requires a live production HTTPS deployment and an invited admin user's short-lived MFA-authenticated token. The token is never written to the artifact."
+      }
+    },
+    {
+      "name": "Live HTTPS/domain/certificate/firewall",
+      "whyImportant": "Klienttrafikk må bruke gyldig HTTPS, og interne porter skal ikke være offentlig eksponert.",
+      "suggestedAction": "Kjør scripts/pilot/test-live-edge.ps1 mot produksjonsdomenet.",
+      "requiresInstall": false,
+      "requiresManualApproval": false,
+      "status": "blocked",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\live_https_edge_result.json: blocked",
+      "evidence": {
+        "generated_at": "2026-07-30T21:00:57.6357549Z",
+        "gate": "LIVE-HTTPS-DOMAIN-CERT-FIREWALL",
+        "status": "blocked",
+        "verdict": "blocked",
+        "base_url": "",
+        "expected_dns_name": "",
+        "https_status": null,
+        "certificate": null,
+        "probed_non_public_ports": [
+          18080,
+          3000,
+          4173,
+          5432,
+          3310
+        ],
+        "unexpected_open_ports": [],
+        "probe_error": null,
+        "blocker": "Requires a live HTTPS endpoint with a valid hostname certificate, sufficient validity, and no directly exposed API, web-dev, database, or ClamAV ports."
+      }
+    },
+    {
+      "name": "Trusted release signing",
+      "whyImportant": "Digest-pinnede web/API-images må være signert med organisasjonens betrodde releaseidentitet.",
+      "suggestedAction": "Signer release-images og kjør scripts/pilot/test-release-signatures.ps1 i forvaltet release-miljø.",
       "requiresInstall": false,
       "requiresManualApproval": false,
       "status": "blocked",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\signature_verification.json: blocked",
       "evidence": {
-        "generated_at": "2026-07-24T15:21:42.4158992Z",
+        "generated_at": "2026-07-30T21:00:57.3455158Z",
+        "gate": "TRUSTED-RELEASE-SIGNING",
         "status": "blocked",
         "verdict": "blocked",
-        "current_release_surface": "apps/web plus saksrom-api",
-        "current_release_has_signed_windows_deliverable": false,
-        "legacy_artifacts": [
-          {
-            "path": "evida-core/desktop-tauri/src-tauri/target/release/bundle/msi/Evida_0.1.0_x64_en-US.msi",
-            "status": "NotSigned",
-            "status_message": "The file F:\\prosjekter_MAIN\\EVIDA\\evida-core\\desktop-tauri\\src-tauri\\target\\release\\bundle\\msi\\Evida_0.1.0_x64_en-US.msi is not digitally signed. You cannot run this script on the current system. For more information about running scripts and setting execution policy, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170",
-            "signer": null,
-            "sha256": "a1b940193a08a2e95606af6fa443fdfa9b04809c6db5a0790b60a3ff49a3e05b",
-            "deprecated_desktop_tauri": true
-          },
-          {
-            "path": "evida-core/desktop-tauri/src-tauri/target/release/bundle/nsis/Evida_0.1.0_x64-setup.exe",
-            "status": "NotSigned",
-            "status_message": "The file F:\\prosjekter_MAIN\\EVIDA\\evida-core\\desktop-tauri\\src-tauri\\target\\release\\bundle\\nsis\\Evida_0.1.0_x64-setup.exe is not digitally signed. You cannot run this script on the current system. For more information about running scripts and setting execution policy, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170",
-            "signer": null,
-            "sha256": "26d299095696fe4d7ed169bf1340c024863c07e96044b4916a052085127c10a4",
-            "deprecated_desktop_tauri": true
-          }
-        ],
-        "blocker": "No trusted code-signing certificate and no signed Windows deliverable exists for the current web/Spring pilot surface. Legacy Tauri artifacts are outside the current product directive and cannot satisfy this gate.",
-        "required_action": "Build the approved Windows deployment package in the managed release environment, sign with the organization certificate, and verify it on the target machine."
+        "release_surface": "web and Spring Boot OCI images",
+        "release_commit": "",
+        "certificate_identity": "",
+        "certificate_oidc_issuer": "",
+        "cosign_available": false,
+        "images": [],
+        "blocker": "Provide digest-pinned release images, the trusted signing identity/issuer, the exact release commit, and verify every signature with cosign."
       }
     },
     {
@@ -495,6 +565,27 @@
           }
         ],
         "blocker": "Requires access to the managed target workstation and organization policy context."
+      }
+    },
+    {
+      "name": "Signed pilot agreement and DPA",
+      "whyImportant": "Pilotavtale og databehandleravtale må være signert før ekte klientdata behandles.",
+      "suggestedAction": "Signer pilotavtale og DPA, bind dokumentreferansene til releasekandidaten og oppdater approval-artefakten.",
+      "requiresInstall": false,
+      "requiresManualApproval": true,
+      "status": "manual_required",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\pilot_agreement_dpa_approval.json: blocked",
+      "evidence": {
+        "generated_at": "2026-07-30T20:52:00Z",
+        "status": "blocked",
+        "verdict": "blocked",
+        "approved": false,
+        "pilot_agreement_reference": null,
+        "dpa_reference": null,
+        "release_commit": null,
+        "signed_by": [],
+        "required_before_real_client_data": true,
+        "blocker": "Signed pilot agreement and DPA tied to the exact release commit are not available."
       }
     },
     {
@@ -602,10 +693,10 @@
         "fixture": "test-fixtures\\uploads\\safe-test-document.txt",
         "primary_case_id": "f3120338-1c3d-4609-883a-93309f658093",
         "isolation_case_id": "2f0a4c3c-ba3a-4114-b0cf-faeff9a0bf8a",
-        "document_id": "5abcc3c8-8945-4884-bf96-92e13b968ec7",
+        "document_id": "b14ea1bb-f624-4f36-b1d4-c277959df558",
         "in_correct_case": true,
         "absent_from_other_case": true,
-        "ingestion_job_id": "9b17c6a9-0891-4b39-96f4-206a6b9dedb1",
+        "ingestion_job_id": "879f5ad8-09fe-48c4-b524-63e74e927a36",
         "ingestion_status": "COMPLETED",
         "pipeline_bypassed": false
       }
@@ -640,20 +731,29 @@
       "requires_manual_approval": false
     },
     {
-      "component": "Audit coverage",
+      "component": "Production OIDC/MFA/role claims",
       "status": "kjører ikke",
-      "why_important": "Import, AI, eksport, sletting og policyendring må ha etterprøvbar auditkjede.",
+      "why_important": "Produksjonsidentitet må bevise MFA, godkjent adminrolle og tenantavvisning på live mål.",
       "real_client_data_allowed": false,
-      "suggested_action": "Lukk manglende audit-events og verifiser hashkjeden i runtime.",
+      "suggested_action": "Kjør scripts/pilot/test-production-identity.ps1 med et kortlivet MFA-token på live-miljøet.",
       "requires_download_or_install": false,
       "requires_manual_approval": false
     },
     {
-      "component": "Signed Windows deliverable",
+      "component": "Live HTTPS/domain/certificate/firewall",
       "status": "kjører ikke",
-      "why_important": "Distribusjonsartefakten må være signert med organisasjonens betrodde sertifikat.",
+      "why_important": "Klienttrafikk må bruke gyldig HTTPS, og interne porter skal ikke være offentlig eksponert.",
       "real_client_data_allowed": false,
-      "suggested_action": "Bygg og signer godkjent Windows-pakke i forvaltet release-miljø.",
+      "suggested_action": "Kjør scripts/pilot/test-live-edge.ps1 mot produksjonsdomenet.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Trusted release signing",
+      "status": "kjører ikke",
+      "why_important": "Digest-pinnede web/API-images må være signert med organisasjonens betrodde releaseidentitet.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Signer release-images og kjør scripts/pilot/test-release-signatures.ps1 i forvaltet release-miljø.",
       "requires_download_or_install": false,
       "requires_manual_approval": false
     },
@@ -663,6 +763,15 @@
       "why_important": "Målmaskinens policy, installasjon, oppstart og dokumentflyt må verifiseres.",
       "real_client_data_allowed": false,
       "suggested_action": "Kjør smoke på Braathe/Jussys-forvaltet Windows-maskin.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Signed pilot agreement and DPA",
+      "status": "krever godkjenning",
+      "why_important": "Pilotavtale og databehandleravtale må være signert før ekte klientdata behandles.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Signer pilotavtale og DPA, bind dokumentreferansene til releasekandidaten og oppdater approval-artefakten.",
       "requires_download_or_install": false,
       "requires_manual_approval": true
     },
@@ -717,12 +826,12 @@
     "fixture": "test-fixtures\\uploads\\safe-test-document.txt",
     "primary_case_id": "f3120338-1c3d-4609-883a-93309f658093",
     "isolation_case_id": "2f0a4c3c-ba3a-4114-b0cf-faeff9a0bf8a",
-    "document_id": "5abcc3c8-8945-4884-bf96-92e13b968ec7",
+    "document_id": "b14ea1bb-f624-4f36-b1d4-c277959df558",
     "in_correct_case": true,
     "absent_from_other_case": true,
-    "ingestion_job_id": "9b17c6a9-0891-4b39-96f4-206a6b9dedb1",
+    "ingestion_job_id": "879f5ad8-09fe-48c4-b524-63e74e927a36",
     "ingestion_status": "COMPLETED",
     "pipeline_bypassed": false
   },
-  "reason": "11 eksplisitte operatorhandlinger gjenstår."
+  "reason": "13 eksplisitte operatorhandlinger gjenstår."
 }

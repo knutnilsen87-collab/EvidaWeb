@@ -1,24 +1,20 @@
 {
-  "generated_at": "2026-07-24T15:21:08.5328602Z",
-  "status": "blocked",
-  "verdict": "blocked",
-  "current_user_is_administrator": false,
-  "bitlocker_verification": {
-    "verified": false,
-    "command": "manage-bde.exe -status C:",
-    "result": "BitLocker Drive Encryption: Configuration Tool version 10.0.26100\r\nCopyright (C) 2013 Microsoft Corporation. All rights reserved.\r\n\r\nERROR: An attempt to access a required resource was denied.\r\n\r\nCheck that you have administrative rights on the computer."
-  },
-  "application_storage": {
-    "raw_document_encryption_verified": false,
-    "plaintext_file_write_detected": true,
-    "source": "evida-core/services/saksrom-api/src/main/java/no/saksrom/api/document/LocalDocumentStorageService.java",
-    "database_source_text_encryption_verified": false
-  },
-  "backup_storage": {
-    "encryption": "AES-256-GCM",
-    "verified": true,
-    "evidence": "artifacts/first-user/backup_restore_result.json"
-  },
-  "blocker": "Current Spring document bytes and extracted source text do not have verified application-layer encryption, and OS volume encryption cannot be verified without an elevated managed target-machine check.",
-  "remediation": "Enable and verify BitLocker/device encryption on the managed pilot machine or implement application-layer encryption for document bytes and source text with managed key storage; rerun raw-storage marker inspection."
+    "generated_at":  "2026-07-30T21:00:57.2527890Z",
+    "gate":  "TARGET-STORAGE-ENCRYPTION",
+    "status":  "blocked",
+    "verdict":  "blocked",
+    "target_only":  true,
+    "attested_by":  "",
+    "change_ticket":  "",
+    "document_volume":  {
+                            "path":  "",
+                            "status":  "blocked",
+                            "blocker":  "Data directory is missing or was not supplied."
+                        },
+    "postgres_volume":  {
+                            "path":  "",
+                            "status":  "blocked",
+                            "blocker":  "Data directory is missing or was not supplied."
+                        },
+    "blocker":  "Both target data directories must be on fully encrypted, protected BitLocker volumes and tied to an operator and change ticket."
 }

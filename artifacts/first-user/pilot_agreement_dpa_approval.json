@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-07-30T20:52:00Z",
+  "status": "blocked",
+  "verdict": "blocked",
+  "approved": false,
+  "pilot_agreement_reference": null,
+  "dpa_reference": null,
+  "release_commit": null,
+  "signed_by": [],
+  "required_before_real_client_data": true,
+  "blocker": "Signed pilot agreement and DPA tied to the exact release commit are not available."
+}

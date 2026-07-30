@@ -1,0 +1,20 @@
+{
+    "generated_at":  "2026-07-30T21:00:57.2485763Z",
+    "gate":  "PRODUCTION-OIDC-MFA-ROLE-CLAIMS",
+    "status":  "blocked",
+    "verdict":  "blocked",
+    "base_url":  "",
+    "expected_tenant_id":  null,
+    "bearer_token_persisted":  false,
+    "readiness_http_status":  null,
+    "policy_http_status":  null,
+    "admin_policy_http_status":  null,
+    "cross_tenant_http_status":  null,
+    "production_local_dev_mode":  null,
+    "provider_policy_authority":  null,
+    "mfa_evidence":  "Successful request proves the production API accepted configured amr/acr evidence.",
+    "role_evidence":  "Successful provider-policy disable proves the JWT mapped to ADMIN_TENANT permission.",
+    "tenant_evidence":  "A different tenant header must be rejected with HTTP 403.",
+    "probe_error":  null,
+    "blocker":  "Requires a live production HTTPS deployment and an invited admin user\u0027s short-lived MFA-authenticated token. The token is never written to the artifact."
+}

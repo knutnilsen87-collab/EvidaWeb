@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-07-30T17:56:19.093Z",
+  "generated_at": "2026-07-30T21:03:36.441Z",
   "status": "pass",
   "verdict": "pass",
   "gate": "DATA-DELETE-RETENTION-001",
   "synthetic_only": true,
-  "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
+  "case_id": "ec696ef3-ff46-4ed0-b1c3-a7a532590d0c",
   "deleted_document_ids": [
-    "ee3730e3-ca71-47ea-8623-2e5b66f48fb4",
-    "ee96d624-d672-46dc-9a88-6b2f4b4df594",
-    "73c27612-5a08-454f-99a8-4c68f73e4190"
+    "277fea11-eb2f-40dd-9225-1b0ec948394b",
+    "4d01b72f-df54-46e5-94bf-de392cba1eb5",
+    "d2619d51-bdde-4414-b1e7-b847793ce0b2"
   ],
   "documents_hidden_after_delete": true,
   "source_units_removed_after_delete": true,

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T17:57:03.724Z",
+  "generated_at": "2026-07-30T21:04:50.961Z",
   "real_client_data_allowed": false,
   "actions": [
     {
@@ -30,20 +30,29 @@
       "requires_manual_approval": false
     },
     {
-      "component": "Audit coverage",
+      "component": "Production OIDC/MFA/role claims",
       "status": "kjører ikke",
-      "why_important": "Import, AI, eksport, sletting og policyendring må ha etterprøvbar auditkjede.",
+      "why_important": "Produksjonsidentitet må bevise MFA, godkjent adminrolle og tenantavvisning på live mål.",
       "real_client_data_allowed": false,
-      "suggested_action": "Lukk manglende audit-events og verifiser hashkjeden i runtime.",
+      "suggested_action": "Kjør scripts/pilot/test-production-identity.ps1 med et kortlivet MFA-token på live-miljøet.",
       "requires_download_or_install": false,
       "requires_manual_approval": false
     },
     {
-      "component": "Signed Windows deliverable",
+      "component": "Live HTTPS/domain/certificate/firewall",
       "status": "kjører ikke",
-      "why_important": "Distribusjonsartefakten må være signert med organisasjonens betrodde sertifikat.",
+      "why_important": "Klienttrafikk må bruke gyldig HTTPS, og interne porter skal ikke være offentlig eksponert.",
       "real_client_data_allowed": false,
-      "suggested_action": "Bygg og signer godkjent Windows-pakke i forvaltet release-miljø.",
+      "suggested_action": "Kjør scripts/pilot/test-live-edge.ps1 mot produksjonsdomenet.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": false
+    },
+    {
+      "component": "Trusted release signing",
+      "status": "kjører ikke",
+      "why_important": "Digest-pinnede web/API-images må være signert med organisasjonens betrodde releaseidentitet.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Signer release-images og kjør scripts/pilot/test-release-signatures.ps1 i forvaltet release-miljø.",
       "requires_download_or_install": false,
       "requires_manual_approval": false
     },
@@ -53,6 +62,15 @@
       "why_important": "Målmaskinens policy, installasjon, oppstart og dokumentflyt må verifiseres.",
       "real_client_data_allowed": false,
       "suggested_action": "Kjør smoke på Braathe/Jussys-forvaltet Windows-maskin.",
+      "requires_download_or_install": false,
+      "requires_manual_approval": true
+    },
+    {
+      "component": "Signed pilot agreement and DPA",
+      "status": "krever godkjenning",
+      "why_important": "Pilotavtale og databehandleravtale må være signert før ekte klientdata behandles.",
+      "real_client_data_allowed": false,
+      "suggested_action": "Signer pilotavtale og DPA, bind dokumentreferansene til releasekandidaten og oppdater approval-artefakten.",
       "requires_download_or_install": false,
       "requires_manual_approval": true
     },

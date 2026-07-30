@@ -1,7 +1,7 @@
-﻿{
-  "generated_at": "2026-07-30T17:56:12.5749277Z",
+{
+  "generated_at": "2026-07-30T21:07:36.0173271Z",
   "status": "pass",
-  "build_id": "3417082",
+  "build_id": "8b00997",
   "backend_url": "http://127.0.0.1:18080",
   "frontend_url": "http://127.0.0.1:5173",
   "malware_scan": "required_and_verified",

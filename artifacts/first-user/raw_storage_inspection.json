@@ -1,18 +1,27 @@
 {
-  "generated_at": "2026-07-24T15:21:08.5328602Z",
-  "status": "blocked",
-  "verdict": "blocked",
-  "inspected_database": false,
-  "marker_client_data_used": false,
-  "static_inspection": {
-    "local_document_storage_plaintext_write_detected": true,
-    "source_text_database_encryption_verified": false
-  },
-  "blocker": "A synthetic marker test cannot produce a passing result while raw document and source-text encryption are not implemented or the underlying volume encryption is not verified.",
-  "required_markers": [
-    "EVIDA_SECRET_MARKER_CLIENT_NAME_123",
-    "EVIDA_SECRET_MARKER_CASE_FACT_456",
-    "EVIDA_SECRET_MARKER_PERSONAL_NUMBER_789",
-    "EVIDA_SECRET_MARKER_PRIVILEGED_NOTE_ABC"
-  ]
+    "generated_at":  "2026-07-30T21:00:57.2853454Z",
+    "gate":  "RAW-STORAGE-MARKER-INSPECTION",
+    "status":  "blocked",
+    "verdict":  "blocked",
+    "synthetic_only":  true,
+    "encryption_gate_passed":  false,
+    "marker_run_evidence":  "",
+    "marker_run_verified":  false,
+    "offline_raw_storage_files_inspected":  0,
+    "invalid_paths":  [
+
+                      ],
+    "scan_errors":  [
+
+                    ],
+    "marker_findings":  [
+
+                        ],
+    "required_markers":  [
+                             "EVIDA_SECRET_MARKER_CLIENT_NAME_123",
+                             "EVIDA_SECRET_MARKER_CASE_FACT_456",
+                             "EVIDA_SECRET_MARKER_PERSONAL_NUMBER_789",
+                             "EVIDA_SECRET_MARKER_PRIVILEGED_NOTE_ABC"
+                         ],
+    "blocker":  "Requires PASS encryption evidence, a completed synthetic marker lifecycle, explicit offline raw-storage files, and zero plaintext marker findings."
 }

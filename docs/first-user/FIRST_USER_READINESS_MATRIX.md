@@ -60,12 +60,12 @@ Production-ready-only policy is active for client data: `PARTIAL`, `SKIPPED`, `U
 | FU-050 | Review | Known limitations shown to first user | P0 | release notes | review | Product | PASS |
 | FU-051 | Client-data DoD | Client-data desktop DoD contract exists | P0 client-data | docs review | release owner review | Product/Platform | PASS |
 | FU-052 | Managed Windows | Braathe/Jussys/managed workstation compatibility verified | P0 client-data | `windows_policy_diagnostics.current.json` | managed workstation smoke + IT approval | Desktop/IT | BLOCKED |
-| FU-053 | Release security | App and installer are signed and publisher is trusted | P0 client-data | `signature_verification.json` | Windows install smoke | Release/Security | BLOCKED |
+| FU-053 | Release security | Digest-pinned deployment images are signed and release identity is trusted | P0 client-data | `signature_verification.json` | target deployment smoke | Release/Security | BLOCKED |
 | FU-054 | Data protection | Local client-data storage protection verified | P0 client-data | `encryption_verification.json` + `raw_storage_inspection.json` | security review | Platform/Security | BLOCKED |
 | FU-055 | Data protection | Runtime sensitive log scan with marker documents passes | P0 client-data | `runtime_sensitive_log_scan.json` | diagnostics review | Security | PASS |
 | FU-056 | Upload | Document upload final closure evidence exists | P0 client-data | `document_upload_final_result.json` + `manual_review_result.json` + `import_eta_result.json` | desktop smoke | Document/Product | BLOCKED |
 | FU-057 | AI | Multi-document source-bound AI client-data eval passes | P0 client-data | `ai_multi_doc_eval.json` + retrieval/prompt/unsupported-claim eval artifacts | adversarial smoke | AI/Security | PASS |
-| FU-058 | Audit | Full audit coverage for client-data actions | P0 client-data | `audit_coverage_result.json` | audit inspect | Platform | BLOCKED |
+| FU-058 | Audit | Full audit coverage for client-data actions | P0 client-data | `audit_coverage_result.json` | audit inspect | Platform | PASS |
 | FU-059 | Export | Export with source basis and audit event passes | P0 client-data | `export_smoke_result.json` | export inspect after restart | Product/Platform | PASS |
 | FU-060 | Release security | Signed SBOM, SCA, SAST and CI provenance complete | P0 client-data | release security artifacts | release owner review | Security/Release | BLOCKED |
 | FU-061 | Smoke | Clean-machine client-data desktop smoke passes | P0 client-data | `clean_machine_smoke_result.json` | clean Windows profile/machine | Desktop/QA | BLOCKED |
@@ -75,17 +75,18 @@ Production-ready-only policy is active for client data: `PARTIAL`, `SKIPPED`, `U
 
 ## Current Evidence Snapshot
 
-Updated 2026-07-30 after executing the technical work in phases 0-10 of the web real-client-readiness roadmap. Secure startup, browser upload/reload, ClamAV rejection, source-bound Saksrom, endpoint RBAC, physical document deletion, encrypted backup/restore, production containers, HTTPS/OIDC deployment configuration and local release-security checks are verified with synthetic data. First-user release and real client data remain NO-GO because target-volume encryption attestation, provider/policy mutation audit ownership, signed delivery, managed-workstation/native-picker signoff, live IdP/HTTPS deployment and required human/legal approvals are external or unresolved release gates. Any remaining `BLOCKED` or `PARTIAL` P0 row means NO-GO.
+Updated 2026-07-30 after executing phases 0-10 and the eleven-port external closure pass for the web/Spring pilot. Secure startup, browser upload/reload, ClamAV rejection, source-bound Saksrom, endpoint RBAC, physical deletion, encrypted backup/restore, production containers, authoritative provider-policy and full policy-mutation audit are verified with synthetic data. Production OIDC now fails closed without HTTPS issuer, MFA evidence and an explicit role allowlist. First-user release and real client data remain NO-GO because target-volume encryption/raw inspection, trusted signing, managed-workstation/native-picker signoff, live IdP/HTTPS, signed pilot agreement/DPA and human approvals remain external or unresolved. Any remaining `BLOCKED` or `PARTIAL` P0 row means NO-GO.
 
 Latest batch evidence:
 
-- `npm test` passes 181 web tests and 13 pilot-script tests.
-- Spring/Maven passes 162 tests with 0 failures and 3 intentional environment-dependent skips.
-- `scripts/pilot/test-source-bound-runtime.ts` passes against PostgreSQL, ClamAV and the active backend, including versioned replacement, exclusion of invalidated source units and document/case deletion.
+- `npm test` passes 181 web tests and 17 pilot-script tests.
+- Spring/Maven passes 175 tests with 0 failures and 3 intentional environment-dependent skips.
+- `scripts/pilot/test-source-bound-runtime.ts` passes against PostgreSQL, ClamAV and the active backend, including versioned replacement, exclusion of invalidated source units, document/case deletion, authoritative provider-policy mutation and verified case/global audit chains.
 - `scripts/pilot/test-backup-restore-drill.ps1` passes with AES-256-GCM backup and isolated database/storage restore.
 - Runtime log scanning passes across 1,724 files with 0 marker findings.
 - Both npm dependency audits report 0 vulnerabilities; the production Compose file validates, web/API images build, and CycloneDX SBOM generation succeeds locally.
-- Manual native-picker smoke, managed-machine smoke, target storage-encryption attestation, live IdP/HTTPS deployment, signing and approvals remain unresolved.
+- Fail-closed target scripts now cover BitLocker attestation, offline marker scan, live OIDC/MFA/roles, HTTPS/certificate/firewall and cosign verification.
+- Manual native-picker/managed-machine smoke, target storage attestation, live IdP/HTTPS execution, signing and approvals remain unresolved.
 
 Evidence artifacts:
 
@@ -101,6 +102,10 @@ Evidence artifacts:
 - `artifacts/first-user/encryption_verification.json`
 - `artifacts/first-user/audit_coverage_result.json`
 - `artifacts/first-user/export_smoke_result.json`
+- `artifacts/first-user/provider_policy_result.json`
+- `artifacts/first-user/production_identity_result.json`
+- `artifacts/first-user/live_https_edge_result.json`
+- `artifacts/first-user/pilot_agreement_dpa_approval.json`
 - `artifacts/first-user/document_replacement_eval.json`
 - `artifacts/first-user/backup_restore_result.json`
 - `artifacts/release/release_manifest.json`

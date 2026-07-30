@@ -2,13 +2,48 @@
 
 ## 0. Bundle Metadata
 - generated_at: 2026-07-03T08:12:30+02:00
-- last_updated: 2026-07-29 (full prosjektstatus, fersk lokal regresjon, Git/WIP-status og faktisk GitHub release-security-resultat; global release- og klientdatastatus fortsatt NO-GO)
+- last_updated: 2026-07-30 23:08 CEST (candidate 8b009976ef431fb5ed5d8b00f1d7e63104d8fda0; provider-policy/audit authority, production OIDC/MFA/role hardening, external closure tooling and full local regression; real-client-data status remains NO-GO)
 - repo_root: F:\prosjekter_MAIN\EVIDA
 - web_root: F:\prosjekter_MAIN\EVIDA\apps\web
-- branch: travel-checkpoint-evida-web-court-engine
+- branch: codex/web-real-client-readiness
 - source_instruction: EVIDA_Codex_Implementeringsplan_Web.md / AURORA legal command center instructions
 - generated_by: Codex
 - scope: Ny isolert EVIDA webapp. Desktop/Tauri-appen er ikke endret.
+
+## 0A. First-user closure update — 2026-07-30
+
+Decision: **NO-GO for real client documents. Synthetic/redacted pilot only.**
+
+Completed in this closure pass:
+
+- `ProviderPolicyService` is the sole backend authority for external AI use. Effective permission requires both the global kill switch and tenant approval.
+- Tenant provider-policy mutation requires `ADMIN_TENANT`, a structured change ticket and emits `PROVIDER_POLICY_CHANGED`.
+- Audit recording now serializes concurrent writers with a portable transactional tenant-row lock. Isolated synthetic runtime verifies both case and tenant-global hash chains.
+- Production startup requires HTTPS OIDC issuer, enforced MFA evidence (`amr`/`acr`) and an explicit EVIDA role allowlist. Unknown roles and missing MFA fail closed.
+- Target tools now write machine-readable evidence for BitLocker encryption, offline raw-marker inspection, live OIDC/MFA/roles, HTTPS/certificate/firewall, cosign release verification, managed workstation smoke and commit-bound approvals.
+- Real-data preflight now includes provider policy, production identity, live HTTPS edge, trusted signing and signed pilot agreement/DPA as explicit gates.
+
+Fresh local verification:
+
+- Spring: 175 tests passed, 0 failures/errors, 3 intentional environment-dependent skips.
+- Web: 35 files / 181 tests passed.
+- Pilot contracts: 5 files / 17 tests passed.
+- TypeScript lint, production web build (432 modules), production Compose validation and API Docker image build passed.
+- PostgreSQL/ClamAV runtime passed source binding, prompt-injection containment, unsupported-claim refusal, replacement/source invalidation, deletion, export, provider-policy mutation and full audit coverage.
+- Sensitive-log scan passed: 1,724 files, 0 findings.
+- `real_client_data_gate_latest.json` remains `blocked` and `real_client_data_allowed=false`.
+
+Remaining external gates:
+
+- Native Windows picker and managed-workstation smoke.
+- BitLocker attestation for document/Postgres target roots and offline raw-marker inspection.
+- Live OIDC tenant/MFA/roles and live HTTPS/domain/certificate/firewall proof.
+- Trusted signatures for digest-pinned web/API images and release provenance.
+- Signed pilot agreement/DPA.
+- Engineering, Product, Security/Privacy, IT and data-owner approvals tied to the exact candidate.
+- Phase 9 with real documents remains prohibited until every applicable P0 gate is `PASS`.
+
+Primary evidence: `artifacts/first-user/status_bundle.first_user.final.json`, `artifacts/first-user/real_client_data_gate_latest.json`, `artifacts/first-user/provider_policy_result.json`, `artifacts/first-user/audit_coverage_result.json`, and `docs/release/EVIDA_EXTERNAL_CLOSURE_PACK.md`.
 
 ## 1. Executive Summary
 EVIDA Web er opprettet som en separat React/Vite/TypeScript webprototype under `apps/web`.

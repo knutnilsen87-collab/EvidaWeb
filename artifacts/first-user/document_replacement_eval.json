@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-07-30T17:56:19.093Z",
+  "generated_at": "2026-07-30T21:03:36.441Z",
   "status": "pass",
   "verdict": "pass",
   "synthetic_only": true,
-  "old_document_id": "b5b951e7-982d-4bb5-bdf2-69d138248201",
-  "replacement_document_id": "ee3730e3-ca71-47ea-8623-2e5b66f48fb4",
+  "old_document_id": "613510ea-b392-4dd9-9dea-6c788f0e77b1",
+  "replacement_document_id": "277fea11-eb2f-40dd-9225-1b0ec948394b",
   "replacement_version": 2,
-  "supersedes_document_id": "b5b951e7-982d-4bb5-bdf2-69d138248201",
+  "supersedes_document_id": "613510ea-b392-4dd9-9dea-6c788f0e77b1",
   "old_source_query_result_count": 0,
   "replacement_ingestion_status": "COMPLETED"
 }

@@ -1,6 +1,6 @@
 {
   "artifact": "invariant_evaluation.first_user",
-  "generated_at": "2026-07-30T18:13:27Z",
+  "generated_at": "2026-07-30T21:08:00Z",
   "release_candidate_id": "evida-web-spring-first-user-rc-2026-07-30",
   "verdict": "blocked",
   "critical_invariants": [
@@ -74,11 +74,13 @@
     },
     {
       "id": "INV-AUDIT-001",
-      "status": "incomplete",
+      "status": "pass",
       "evidence": [
-        "artifacts/first-user/audit_coverage_result.json"
+        "artifacts/first-user/audit_coverage_result.json",
+        "artifacts/first-user/provider_policy_result.json",
+        "AuditServiceTest"
       ],
-      "reason": "Upload, AI answer, export and deletion events plus hash-chain verification pass; authoritative provider/policy change audit remains missing."
+      "reason": "Isolated PostgreSQL runtime verifies upload, AI answer, export, deletion and authoritative provider-policy mutation events on valid case/global hash chains; a database tenant-row lock serializes concurrent audit writers across application instances."
     },
     {
       "id": "INV-AUDIT-002",
@@ -175,7 +177,6 @@
   "broken_invariants": [],
   "untested_or_incomplete_invariants": [
     "INV-DATA-002",
-    "INV-AUDIT-001",
     "INV-WIN-001",
     "INV-DATA-003",
     "INV-RELEASE-001",

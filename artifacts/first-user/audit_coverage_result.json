@@ -1,10 +1,11 @@
 {
-  "generated_at": "2026-07-30T17:56:19.093Z",
-  "status": "blocked",
-  "verdict": "blocked",
+  "generated_at": "2026-07-30T21:03:36.441Z",
+  "status": "pass",
+  "verdict": "pass",
   "synthetic_only": true,
-  "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
+  "case_id": "ec696ef3-ff46-4ed0-b1c3-a7a532590d0c",
   "chain_valid": true,
+  "provider_policy_chain_valid": true,
   "event_count": 29,
   "observed_event_types": [
     "AUDIT_VERIFICATION_RUN",
@@ -17,6 +18,7 @@
     "DOCUMENT_REPLACED",
     "DOCUMENT_UPLOADED",
     "EXPORT_CREATED",
+    "PROVIDER_POLICY_CHANGED",
     "SAKSROM_ANSWER_CREATED",
     "SAKSROM_QUESTION_ASKED",
     "SAKSROM_SUMMARY_CREATED",
@@ -24,6 +26,7 @@
     "SOURCE_OBJECTS_INVALIDATED"
   ],
   "missing_required_runtime_events": [],
-  "provider_or_policy_change_audited": false,
-  "blocker": "No authoritative provider/policy mutation endpoint and audit event exists."
+  "provider_or_policy_change_audited": true,
+  "policy_authority": "backend-provider-policy",
+  "blocker": null
 }

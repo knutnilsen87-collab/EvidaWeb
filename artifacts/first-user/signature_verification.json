@@ -1,27 +1,15 @@
 {
-  "generated_at": "2026-07-24T15:21:42.4158992Z",
-  "status": "blocked",
-  "verdict": "blocked",
-  "current_release_surface": "apps/web plus saksrom-api",
-  "current_release_has_signed_windows_deliverable": false,
-  "legacy_artifacts": [
-    {
-      "path": "evida-core/desktop-tauri/src-tauri/target/release/bundle/msi/Evida_0.1.0_x64_en-US.msi",
-      "status": "NotSigned",
-      "status_message": "The file F:\\prosjekter_MAIN\\EVIDA\\evida-core\\desktop-tauri\\src-tauri\\target\\release\\bundle\\msi\\Evida_0.1.0_x64_en-US.msi is not digitally signed. You cannot run this script on the current system. For more information about running scripts and setting execution policy, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170",
-      "signer": null,
-      "sha256": "a1b940193a08a2e95606af6fa443fdfa9b04809c6db5a0790b60a3ff49a3e05b",
-      "deprecated_desktop_tauri": true
-    },
-    {
-      "path": "evida-core/desktop-tauri/src-tauri/target/release/bundle/nsis/Evida_0.1.0_x64-setup.exe",
-      "status": "NotSigned",
-      "status_message": "The file F:\\prosjekter_MAIN\\EVIDA\\evida-core\\desktop-tauri\\src-tauri\\target\\release\\bundle\\nsis\\Evida_0.1.0_x64-setup.exe is not digitally signed. You cannot run this script on the current system. For more information about running scripts and setting execution policy, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170",
-      "signer": null,
-      "sha256": "26d299095696fe4d7ed169bf1340c024863c07e96044b4916a052085127c10a4",
-      "deprecated_desktop_tauri": true
-    }
-  ],
-  "blocker": "No trusted code-signing certificate and no signed Windows deliverable exists for the current web/Spring pilot surface. Legacy Tauri artifacts are outside the current product directive and cannot satisfy this gate.",
-  "required_action": "Build the approved Windows deployment package in the managed release environment, sign with the organization certificate, and verify it on the target machine."
+    "generated_at":  "2026-07-30T21:00:57.3455158Z",
+    "gate":  "TRUSTED-RELEASE-SIGNING",
+    "status":  "blocked",
+    "verdict":  "blocked",
+    "release_surface":  "web and Spring Boot OCI images",
+    "release_commit":  "",
+    "certificate_identity":  "",
+    "certificate_oidc_issuer":  "",
+    "cosign_available":  false,
+    "images":  [
+
+               ],
+    "blocker":  "Provide digest-pinned release images, the trusted signing identity/issuer, the exact release commit, and verify every signature with cosign."
 }
