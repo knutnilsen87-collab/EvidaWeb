@@ -489,7 +489,9 @@ public class DocumentQuarantineService {
             return "document";
         }
 
-        String sanitized = Path.of(originalFilename).getFileName().toString()
+        String normalizedFilename = originalFilename.replace('\\', '/');
+        String basename = normalizedFilename.substring(normalizedFilename.lastIndexOf('/') + 1);
+        String sanitized = basename
                 .replaceAll("[\\\\/:*?\"<>|]", "_")
                 .replaceAll("\\s+", "_")
                 .replaceAll("[^A-Za-z0-9._-]", "_")

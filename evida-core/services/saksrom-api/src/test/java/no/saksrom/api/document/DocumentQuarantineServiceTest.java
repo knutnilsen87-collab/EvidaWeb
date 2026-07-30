@@ -88,6 +88,21 @@ class DocumentQuarantineServiceTest {
     }
 
     @Test
+    void uploadFilenameSanitizationIsIndependentOfHostPathSeparator() {
+        var repository = mock(DocumentRepository.class);
+        when(repository.save(any(Document.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findByTenantIdAndCaseIdIsNullAndSha256AndStatusNotInOrderByCreatedAtDesc(eq(TENANT_ID), anyString(), anyList()))
+                .thenReturn(List.of());
+        var service = new DocumentQuarantineService(new LargeDocumentIngestionService(), repository, quarantineRoot.toString());
+        var file = new MockMultipartFile("file", "../../unsafe name.txt", "text/plain", "safe".getBytes(StandardCharsets.UTF_8));
+        var user = new AuthenticatedUser(TENANT_ID, USER_ID, "jurist@firma.no", Set.of("USER"));
+
+        var response = service.saveToQuarantine(file, TENANT_ID, user, null);
+
+        assertEquals("unsafe_name.txt", response.filename());
+    }
+
+    @Test
     void duplicateUploadSameTenantAndSameCaseReturnsExistingMetadata() throws Exception {
         var repository = mock(DocumentRepository.class);
         String expectedSha = sha256("duplicate");
