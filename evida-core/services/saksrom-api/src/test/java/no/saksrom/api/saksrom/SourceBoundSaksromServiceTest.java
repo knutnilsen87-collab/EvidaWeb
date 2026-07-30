@@ -37,7 +37,7 @@ class SourceBoundSaksromServiceTest {
     void askWithoutSourceUnitsReturnsNoSourceBasis() {
         var repository = mock(DocumentSourceUnitRepository.class);
         var service = new SourceBoundSaksromService(repository);
-        var request = new SourceBoundSaksromService.SaksromQuestionRequest(null, "Hva er varslingsplikten?", List.of(), "sporre");
+        var request = new SourceBoundSaksromService.SaksromQuestionRequest(null, "Hva er varslingsplikten?", List.of(), "sporre", true, "READY_PAGE_UNITS_ONLY");
 
         var answer = service.answer(TENANT_ID, request);
 
@@ -45,6 +45,103 @@ class SourceBoundSaksromServiceTest {
         assertTrue(answer.sources().isEmpty());
         assertTrue(answer.warnings().contains("NO_SOURCE_BASIS"));
         assertTrue(answer.answer().contains("ikke nok kildegrunnlag"));
+    }
+
+    @Test
+    void askWithReadyUnitsButNoRetrievalMatchReturnsNoRelevantSourceMatch() {
+        var repository = mock(DocumentSourceUnitRepository.class);
+        var coverageService = mock(SourceCoverageService.class);
+        var service = new SourceBoundSaksromService(repository, coverageService);
+        var coverage = new SourceCoverageService.SourceCoverageResponse(
+                1,
+                0,
+                1,
+                0,
+                78,
+                77,
+                5,
+                72,
+                0,
+                1,
+                0,
+                99,
+                "",
+                "75",
+                List.of()
+        );
+        when(coverageService.coverage(TENANT_ID, CASE_ID)).thenReturn(coverage);
+        when(repository.searchKeyword(eq(TENANT_ID), eq(CASE_ID), eq("finnes"), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.countReadyTextByTenantIdAndCaseId(TENANT_ID, CASE_ID)).thenReturn(77L);
+        var request = new SourceBoundSaksromService.SaksromQuestionRequest(
+                CASE_ID.toString(),
+                "finnes ikke",
+                List.of(),
+                "sporre",
+                true,
+                "READY_PAGE_UNITS_ONLY"
+        );
+
+        var answer = service.answer(TENANT_ID, request);
+
+        assertTrue(answer.sourceBound());
+        assertTrue(answer.sources().isEmpty());
+        assertFalse(answer.warnings().contains("NO_SOURCE_BASIS"));
+        assertTrue(answer.warnings().contains("NO_RELEVANT_SOURCE_MATCH"));
+        assertTrue(answer.warnings().contains("PARTIAL_SOURCE_COVERAGE"));
+        assertTrue(answer.warnings().contains("BELOW_THRESHOLD_PAGES=75"));
+        assertTrue(answer.answer().contains("Jeg finner ikke støtte"));
+    }
+
+    @Test
+    void askWithNaturalRettsbokQuestionFindsReadyOcrPageUnit() {
+        var repository = mock(DocumentSourceUnitRepository.class);
+        var coverageService = mock(SourceCoverageService.class);
+        var service = new SourceBoundSaksromService(repository, coverageService);
+        var unit = unit("doc_00000000_p0001_b0001", "UTSKRIFT AV RETTSBOK Oslo byrett forklarte vedlikeholdsansvar.", 1);
+        when(coverageService.coverage(TENANT_ID, CASE_ID)).thenReturn(new SourceCoverageService.SourceCoverageResponse(
+                1,
+                0,
+                1,
+                0,
+                78,
+                77,
+                5,
+                72,
+                0,
+                1,
+                0,
+                99,
+                "",
+                "75",
+                List.of()
+        ));
+        when(repository.searchKeyword(eq(TENANT_ID), eq(CASE_ID), anyString(), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(repository.searchKeyword(eq(TENANT_ID), eq(CASE_ID), eq("rettsbok"), any(Pageable.class)))
+                .thenReturn(List.of(unit));
+        when(repository.searchKeyword(eq(TENANT_ID), eq(CASE_ID), eq("utskrift"), any(Pageable.class)))
+                .thenReturn(List.of(unit));
+        when(repository.findByTenantIdAndSourceUnitIdInOrderByPageNumberAscSourceUnitIdAsc(
+                TENANT_ID,
+                List.of("doc_00000000_p0001_b0001")
+        )).thenReturn(List.of(unit));
+        var request = new SourceBoundSaksromService.SaksromQuestionRequest(
+                CASE_ID.toString(),
+                "Hva står det i den håndskrevne teksten på utskriften av rettsboken?",
+                List.of(),
+                "sporre",
+                true,
+                "READY_PAGE_UNITS_ONLY"
+        );
+
+        var answer = service.answer(TENANT_ID, request);
+
+        assertTrue(answer.sourceBound());
+        assertFalse(answer.warnings().contains("NO_SOURCE_BASIS"));
+        assertFalse(answer.warnings().contains("NO_RELEVANT_SOURCE_MATCH"));
+        assertEquals(1, answer.sources().size());
+        assertEquals(1, answer.sources().get(0).pageNumber());
     }
 
     @Test
@@ -60,7 +157,9 @@ class SourceBoundSaksromServiceTest {
                 CASE_ID.toString(),
                 "Hva er varslingsplikten?",
                 List.of("doc_00000000_p0001_b0001", "nonexistent"),
-                "sporre"
+                "sporre",
+                true,
+                "READY_PAGE_UNITS_ONLY"
         );
 
         var answer = service.answer(TENANT_ID, request);
@@ -76,7 +175,7 @@ class SourceBoundSaksromServiceTest {
         var repository = mock(DocumentSourceUnitRepository.class);
         var coverageService = mock(SourceCoverageService.class);
         var service = new SourceBoundSaksromService(repository, coverageService);
-        var unit = unit("doc_00000000_p0006_b0001", "Skriftlig varsling maa dokumenteres.", 6);
+        var unit = unit("doc_00000000_p0006_b0001", "Skriftlig varsling må dokumenteres.", 6);
         var documentCoverage = new SourceCoverageService.DocumentCoverage(
                 DOCUMENT_ID,
                 "masterdoc.pdf",
@@ -123,7 +222,9 @@ class SourceBoundSaksromServiceTest {
                 CASE_ID.toString(),
                 "Hva sier side 1 om rettsbok?",
                 List.of("doc_00000000_p0006_b0001"),
-                "sporre"
+                "sporre",
+                true,
+                "READY_PAGE_UNITS_ONLY"
         );
 
         var answer = service.answer(TENANT_ID, request);
@@ -233,7 +334,9 @@ class SourceBoundSaksromServiceTest {
                 CASE_ID.toString(),
                 "Hva er varslingsplikten?",
                 List.of("doc_00000000_p0001_b0001"),
-                "sporre"
+                "sporre",
+                true,
+                "READY_PAGE_UNITS_ONLY"
         );
 
         var answer = service.answer(OTHER_TENANT_ID, request);
@@ -266,7 +369,9 @@ class SourceBoundSaksromServiceTest {
                 caseB.toString(),
                 "Hva er varslingsplikten?",
                 List.of("doc_00000000_p0001_b0001"),
-                "sporre"
+                "sporre",
+                true,
+                "READY_PAGE_UNITS_ONLY"
         );
 
         var answer = service.answer(TENANT_ID, request);

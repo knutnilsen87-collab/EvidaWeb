@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T15:36:58.239Z",
+  "generated_at": "2026-07-30T17:57:03.724Z",
   "gate": "EVIDA-REAL-CLIENT-DATA-GATE",
   "status": "blocked",
   "exit_code": 2,
@@ -179,19 +179,19 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\backup_restore_result.json: pass",
       "evidence": {
-        "generated_at": "2026-07-24T15:02:06.7470474Z",
+        "generated_at": "2026-07-30T17:43:26.1189428Z",
         "status": "pass",
         "verdict": "pass",
         "gate": "DATA-BACKUP-RESTORE-001",
         "encryption": "AES-256-GCM",
-        "backup_sha256": "d0cd834ea22b2acfdd1b8f8175c60fdf100254127b029fbee7654775685749c4",
+        "backup_sha256": "4c38f85166a9837791c33b3b570d247338d7f7136dfcdb1f38c97ad290636241",
         "database_dump_restored": true,
         "document_storage_restored": true,
         "manifest_integrity_verified": true,
         "client_data_marker_restore_verified": true,
         "live_database_overwritten": false,
-        "drill_database": "evida_restore_drill_bf1f6e2c135f",
-        "marker": "EVIDA_BACKUP_RESTORE_MARKER_bf1f6e2c135f444aa872fe7d27414d07",
+        "drill_database": "evida_restore_drill_8f5412959b40",
+        "marker": "EVIDA_BACKUP_RESTORE_MARKER_8f5412959b4049e98448f20d2d58dd2b",
         "rollback_path": "Drill used an isolated temporary database and restore directory; live EVIDA data was not replaced."
       }
     },
@@ -262,26 +262,24 @@
       "requiresInstall": false,
       "requiresManualApproval": false,
       "status": "pass",
-      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\deletion_retention_result.json: available",
+      "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\deletion_retention_result.json: pass",
       "evidence": {
-        "generated_at": "2026-07-14T18:16:31.9040489Z",
-        "gate": "DATA-DELETE-RESET",
-        "status": "available",
-        "destructive_action_required": "-ConfirmReset",
-        "check_only": true,
-        "include_runtime_logs": false,
-        "targets": [
-          "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\quarantine",
-          "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\uploads",
-          "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\temp"
+        "generated_at": "2026-07-30T17:56:19.093Z",
+        "status": "pass",
+        "verdict": "pass",
+        "gate": "DATA-DELETE-RETENTION-001",
+        "synthetic_only": true,
+        "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
+        "deleted_document_ids": [
+          "ee3730e3-ca71-47ea-8623-2e5b66f48fb4",
+          "ee96d624-d672-46dc-9a88-6b2f4b4df594",
+          "73c27612-5a08-454f-99a8-4c68f73e4190"
         ],
-        "existing_targets": [
-          "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\data\\quarantine"
-        ],
-        "actions": [
-          "dry_run_only"
-        ],
-        "database_reset": "not_performed; use explicit DB backup/restore runbook before client data"
+        "documents_hidden_after_delete": true,
+        "source_units_removed_after_delete": true,
+        "case_hidden_after_delete": true,
+        "audit_preserved": true,
+        "retention_policy": "docs/operations/DATA_RETENTION_AND_DELETION.md"
       }
     },
     {
@@ -293,7 +291,7 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\runtime_sensitive_log_scan.json: pass",
       "evidence": {
-        "generated_at": "2026-07-24T15:32:16.8063305Z",
+        "generated_at": "2026-07-30T17:55:44.4022793Z",
         "gate": "DATA-LOG-001",
         "status": "pass",
         "roots": [
@@ -302,7 +300,7 @@
           "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\logs",
           "F:\\prosjekter_MAIN\\EVIDA\\apps\\web\\logs"
         ],
-        "scanned_files": 1723,
+        "scanned_files": 1724,
         "findings": []
       }
     },
@@ -315,11 +313,11 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\ai_multi_doc_eval.json: pass",
       "evidence": {
-        "generated_at": "2026-07-24T15:31:22.549Z",
+        "generated_at": "2026-07-30T17:56:19.093Z",
         "status": "pass",
         "verdict": "pass",
         "synthetic_only": true,
-        "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+        "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
         "documents_used": 3,
         "conflicting_facts": [
           "Leveransen er oppgitt som grønn.",
@@ -339,7 +337,7 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\prompt_injection_eval.json: pass",
       "evidence": {
-        "generated_at": "2026-07-24T15:31:22.549Z",
+        "generated_at": "2026-07-30T17:56:19.093Z",
         "status": "pass",
         "verdict": "pass",
         "synthetic_only": true,
@@ -359,7 +357,7 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\unsupported_claim_eval.json: pass",
       "evidence": {
-        "generated_at": "2026-07-24T15:31:22.549Z",
+        "generated_at": "2026-07-30T17:56:19.093Z",
         "status": "pass",
         "verdict": "pass",
         "synthetic_only": true,
@@ -379,16 +377,17 @@
       "status": "blocked",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\audit_coverage_result.json: blocked",
       "evidence": {
-        "generated_at": "2026-07-24T15:31:22.549Z",
+        "generated_at": "2026-07-30T17:56:19.093Z",
         "status": "blocked",
         "verdict": "blocked",
         "synthetic_only": true,
-        "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+        "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
         "chain_valid": true,
-        "event_count": 28,
+        "event_count": 29,
         "observed_event_types": [
           "AUDIT_VERIFICATION_RUN",
           "CASE_CREATED",
+          "CASE_DELETED",
           "DOCUMENT_APPROVED_PENDING_INGESTION",
           "DOCUMENT_DELETED",
           "DOCUMENT_INGEST_STARTED",
@@ -416,11 +415,11 @@
       "status": "pass",
       "detail": "F:\\prosjekter_MAIN\\EVIDA\\artifacts\\first-user\\export_smoke_result.json: pass",
       "evidence": {
-        "generated_at": "2026-07-24T15:31:22.549Z",
+        "generated_at": "2026-07-30T17:56:19.093Z",
         "status": "pass",
         "verdict": "pass",
         "synthetic_only": true,
-        "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+        "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
         "http_status": 200,
         "ai_draft_warning_present": true,
         "source_section_present": true,
@@ -603,10 +602,10 @@
         "fixture": "test-fixtures\\uploads\\safe-test-document.txt",
         "primary_case_id": "f3120338-1c3d-4609-883a-93309f658093",
         "isolation_case_id": "2f0a4c3c-ba3a-4114-b0cf-faeff9a0bf8a",
-        "document_id": "34c32dc0-57b1-4728-af3a-d3614085c81a",
+        "document_id": "5abcc3c8-8945-4884-bf96-92e13b968ec7",
         "in_correct_case": true,
         "absent_from_other_case": true,
-        "ingestion_job_id": "21d09204-0ec9-4411-856d-83ab128486c6",
+        "ingestion_job_id": "9b17c6a9-0891-4b39-96f4-206a6b9dedb1",
         "ingestion_status": "COMPLETED",
         "pipeline_bypassed": false
       }
@@ -718,10 +717,10 @@
     "fixture": "test-fixtures\\uploads\\safe-test-document.txt",
     "primary_case_id": "f3120338-1c3d-4609-883a-93309f658093",
     "isolation_case_id": "2f0a4c3c-ba3a-4114-b0cf-faeff9a0bf8a",
-    "document_id": "34c32dc0-57b1-4728-af3a-d3614085c81a",
+    "document_id": "5abcc3c8-8945-4884-bf96-92e13b968ec7",
     "in_correct_case": true,
     "absent_from_other_case": true,
-    "ingestion_job_id": "21d09204-0ec9-4411-856d-83ab128486c6",
+    "ingestion_job_id": "9b17c6a9-0891-4b39-96f4-206a6b9dedb1",
     "ingestion_status": "COMPLETED",
     "pipeline_bypassed": false
   },

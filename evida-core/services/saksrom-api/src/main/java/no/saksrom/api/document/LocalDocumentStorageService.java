@@ -47,15 +47,8 @@ public class LocalDocumentStorageService implements DocumentStorageService {
         Path tempFile = null;
 
         try {
-            Files.createDirectories(tempDirectory);
-            tempFile = Files.createTempFile(tempDirectory, "upload-", ".tmp");
-
-            StreamedBlob streamed = streamToTempFile(file, tempFile, maxFileSizeBytes);
-            if (streamed.size() == 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UPLOAD_REJECTED_EMPTY_FILE");
-            }
-
-            MalwareScanResult scan = malwareScanner.scan(tempFile);
+            validateDeclaredSize(file, maxFileSizeBytes);
+            MalwareScanResult scan = scanBeforeStorage(file);
             if (!scan.clean()) {
                 throw switch (scan.status()) {
                     case INFECTED -> new UploadSecurityException("MALWARE_DETECTED", HttpStatus.BAD_REQUEST);
@@ -64,6 +57,11 @@ public class LocalDocumentStorageService implements DocumentStorageService {
                     case CLEAN -> new IllegalStateException("Unexpected clean malware scan rejection");
                 };
             }
+
+            Files.createDirectories(tempDirectory);
+            tempFile = Files.createTempFile(tempDirectory, "upload-", ".tmp");
+
+            StreamedBlob streamed = streamToTempFile(file, tempFile, maxFileSizeBytes);
 
             String prefix = streamed.sha256().substring(0, 2);
             Path finalDirectory = resolveUnderRoot(tenantSegment, prefix);
@@ -100,11 +98,37 @@ public class LocalDocumentStorageService implements DocumentStorageService {
         }
     }
 
+    private void validateDeclaredSize(MultipartFile file, long maxFileSizeBytes) {
+        if (file.getSize() == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UPLOAD_REJECTED_EMPTY_FILE");
+        }
+        if (file.getSize() > maxFileSizeBytes) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UPLOAD_REJECTED_FILE_TOO_LARGE");
+        }
+    }
+
+    private MalwareScanResult scanBeforeStorage(MultipartFile file) throws IOException {
+        try (InputStream input = file.getInputStream()) {
+            return malwareScanner.scan(input);
+        }
+    }
+
     @Override
     public boolean blobExists(UUID tenantId, String sha256) {
         String normalizedSha = normalizeSha256(sha256);
         Path candidate = resolveUnderRoot(safeTenantSegment(tenantId), normalizedSha.substring(0, 2), normalizedSha);
         return Files.isRegularFile(candidate);
+    }
+
+    @Override
+    public void deleteBlob(UUID tenantId, String sha256) {
+        String normalizedSha = normalizeSha256(sha256);
+        Path candidate = resolveUnderRoot(safeTenantSegment(tenantId), normalizedSha.substring(0, 2), normalizedSha);
+        try {
+            Files.deleteIfExists(candidate);
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not delete quarantined document blob", e);
+        }
     }
 
     @Override

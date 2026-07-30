@@ -4,8 +4,12 @@ import no.saksrom.api.audit.AuditService;
 import no.saksrom.api.security.AuthenticatedUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 public class CaseFileService {
@@ -36,10 +40,32 @@ public class CaseFileService {
 
     @Transactional(readOnly = true)
     public List<CaseFileController.CaseFileDto> listCases(AuthenticatedUser user) {
-        return repository.findByTenantIdOrderByCreatedAtDesc(user.tenantId())
+        return repository.findByTenantIdAndStatusNotOrderByCreatedAtDesc(user.tenantId(), "DELETED")
                 .stream()
                 .map(this::toDto)
                 .toList();
+    }
+
+    @Transactional
+    public void deleteCase(UUID caseId, AuthenticatedUser user) {
+        CaseFile caseFile = repository.findByIdAndTenantId(caseId, user.tenantId())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Saken finnes ikke."));
+
+        if ("DELETED".equals(caseFile.getStatus())) {
+            return;
+        }
+
+        caseFile.markDeleted();
+        repository.save(caseFile);
+        auditService.record(
+                user.tenantId(),
+                caseFile.getId(),
+                user.userId(),
+                "CASE_DELETED",
+                "CASE",
+                caseFile.getId(),
+                "{\"status\":\"DELETED\",\"deletionMode\":\"SOFT_DELETE\"}"
+        );
     }
 
     private CaseFileController.CaseFileDto toDto(CaseFile caseFile) {

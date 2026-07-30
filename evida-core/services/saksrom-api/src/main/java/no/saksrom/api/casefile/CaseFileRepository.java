@@ -5,5 +5,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
-    List<CaseFile> findByTenantIdOrderByCreatedAtDesc(UUID tenantId);
+    List<CaseFile> findByTenantIdAndStatusNotOrderByCreatedAtDesc(UUID tenantId, String status);
+    java.util.Optional<CaseFile> findByIdAndTenantId(UUID id, UUID tenantId);
 }

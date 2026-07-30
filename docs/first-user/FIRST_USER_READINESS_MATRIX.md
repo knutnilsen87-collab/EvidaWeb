@@ -43,10 +43,10 @@ Production-ready-only policy is active for client data: `PARTIAL`, `SKIPPED`, `U
 | FU-033 | Audit | Export audit event | P1 | audit test | inspect | Platform | PASS |
 | FU-034 | Export | Export source-based report | P1 | e2e/export test | smoke | Product | PASS |
 | FU-035 | Export | Export includes timestamp/source basis | P1 | export assertion | inspect | Product | PASS |
-| FU-036 | Data | Local data persists after restart | P0 | persistence test | smoke | Desktop | PARTIAL |
+| FU-036 | Data | Local data persists after restart | P0 | persistence test | smoke | Desktop | BLOCKED |
 | FU-037 | Data | Backup/restore tested | P1/P0 real data | restore test | manual restore | Platform | PASS |
 | FU-038 | Security | No secrets in repo | P0 | gitleaks | N/A | Security | PASS |
-| FU-039 | Security | Dependency scan has no release-blocking issues | P0 | dependency scan | review | Security | BLOCKED |
+| FU-039 | Security | Dependency scan has no release-blocking issues | P0 | dependency scan | review | Security | PASS |
 | FU-040 | Security | Prod-unsafe config blocked or pilot-labeled | P0 | config/startup test | inspect | Platform | PASS |
 | FU-041 | UX | User-visible errors are safe and useful | P1 | UI/e2e | smoke | Product/UI | BLOCKED |
 | FU-042 | UX | Loading/progress states for upload | P1 | `npm test` import UX assertions + `npm run build` | manual smoke still needed | Product/UI | PARTIAL |
@@ -75,16 +75,17 @@ Production-ready-only policy is active for client data: `PARTIAL`, `SKIPPED`, `U
 
 ## Current Evidence Snapshot
 
-Updated 2026-07-24 with the web/Spring first-user runtime and release validation batch. Upload through ClamAV, multi-document source-bound behavior, unsupported-claim refusal, export, document replacement, source invalidation, audit-chain verification, encrypted backup/restore and runtime log scanning are now verified with synthetic data. First-user release and real client data remain NO-GO because storage encryption, full provider-policy audit coverage, signed Windows delivery, managed-workstation smoke, native picker smoke and required human approvals are still blocked. Any remaining `BLOCKED` or `PARTIAL` P0 row means NO-GO.
+Updated 2026-07-30 after executing the technical work in phases 0-10 of the web real-client-readiness roadmap. Secure startup, browser upload/reload, ClamAV rejection, source-bound Saksrom, endpoint RBAC, physical document deletion, encrypted backup/restore, production containers, HTTPS/OIDC deployment configuration and local release-security checks are verified with synthetic data. First-user release and real client data remain NO-GO because target-volume encryption attestation, provider/policy mutation audit ownership, signed delivery, managed-workstation/native-picker signoff, live IdP/HTTPS deployment and required human/legal approvals are external or unresolved release gates. Any remaining `BLOCKED` or `PARTIAL` P0 row means NO-GO.
 
 Latest batch evidence:
 
-- `npm test` passes 181 web tests and 11 pilot-script tests.
-- Spring/Maven passes 154 tests with 0 failures and 2 intentional OCR skips.
-- `scripts/pilot/test-source-bound-runtime.ts` passes against PostgreSQL, ClamAV and the active backend, including versioned replacement and exclusion of invalidated source units.
+- `npm test` passes 181 web tests and 13 pilot-script tests.
+- Spring/Maven passes 162 tests with 0 failures and 3 intentional environment-dependent skips.
+- `scripts/pilot/test-source-bound-runtime.ts` passes against PostgreSQL, ClamAV and the active backend, including versioned replacement, exclusion of invalidated source units and document/case deletion.
 - `scripts/pilot/test-backup-restore-drill.ps1` passes with AES-256-GCM backup and isolated database/storage restore.
-- Runtime log scanning passes across 1,723 files with 0 marker findings.
-- Manual native-picker smoke, managed-machine smoke, storage-encryption verification and approvals remain unresolved.
+- Runtime log scanning passes across 1,724 files with 0 marker findings.
+- Both npm dependency audits report 0 vulnerabilities; the production Compose file validates, web/API images build, and CycloneDX SBOM generation succeeds locally.
+- Manual native-picker smoke, managed-machine smoke, target storage-encryption attestation, live IdP/HTTPS deployment, signing and approvals remain unresolved.
 
 Evidence artifacts:
 

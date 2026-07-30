@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-24T15:31:22.549Z",
+  "generated_at": "2026-07-30T17:56:19.093Z",
   "status": "pass",
   "verdict": "pass",
   "synthetic_only": true,
-  "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+  "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
   "retrieved_source_count": 3,
   "distinct_document_count": 3,
   "tenant_and_case_scoped": true

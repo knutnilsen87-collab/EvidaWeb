@@ -2,8 +2,9 @@ param(
     [int]$BackendPort = 18080,
     [int]$WebPort = 5173,
     [string]$BuildId = "",
-    [switch]$EnableMalwareScan,
-    [switch]$SkipDatabaseStart
+    [switch]$SkipDatabaseStart,
+    [switch]$AllowMalwareBypassForSyntheticDev,
+    [switch]$NoBrowser
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,6 +12,8 @@ $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $backendDir = Join-Path $repoRoot "evida-core\services\saksrom-api"
 $webDir = Join-Path $repoRoot "apps\web"
 $runtimeDir = Join-Path $repoRoot ".codex-runtime\pilot"
+$startupArtifactDir = Join-Path $repoRoot "artifacts\pilot-start"
+$startupArtifact = Join-Path $startupArtifactDir "pilot_start_latest.json"
 $backendLog = Join-Path $runtimeDir "backend.out.log"
 $backendErr = Join-Path $runtimeDir "backend.err.log"
 $webLog = Join-Path $runtimeDir "web.out.log"
@@ -20,8 +23,10 @@ $webUrl = "http://127.0.0.1:$WebPort"
 $databasePort = 5432
 $dockerComposeFile = Join-Path $backendDir "docker-compose.yml"
 $dockerDesktop = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+$malwareScanRequired = -not $AllowMalwareBypassForSyntheticDev
 
 New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
+New-Item -ItemType Directory -Force -Path $startupArtifactDir | Out-Null
 
 if ([string]::IsNullOrWhiteSpace($BuildId)) {
     try {
@@ -39,12 +44,15 @@ $env:EVIDA_OCR_LANGUAGES = "nor+eng"
 $env:EVIDA_TESSERACT_PATH = "C:\Program Files\Tesseract-OCR\tesseract.exe"
 $env:EVIDA_TESSDATA_PATH = Join-Path $backendDir "data\tessdata"
 $env:EVIDA_LOCAL_DEV_MODE = "true"
-if ($EnableMalwareScan) {
+if ($malwareScanRequired) {
     $env:EVIDA_MALWARE_SCAN_ENABLED = "true"
     $env:EVIDA_MALWARE_SCANNER_CONFIGURED = "true"
     $env:EVIDA_MALWARE_SCAN_HOST = "127.0.0.1"
     $env:EVIDA_MALWARE_SCAN_PORT = "3310"
     $env:EVIDA_MALWARE_SCAN_TIMEOUT_MILLIS = "5000"
+} else {
+    $env:EVIDA_MALWARE_SCAN_ENABLED = "false"
+    $env:EVIDA_MALWARE_SCANNER_CONFIGURED = "false"
 }
 
 function Test-HttpOk([string]$Uri, [int]$TimeoutSec = 3) {
@@ -155,7 +163,7 @@ Write-Host "Repo:    $repoRoot"
 Write-Host "Backend: $backendUrl"
 Write-Host "Web:     $webUrl"
 Write-Host "Build:   $BuildId"
-$malwareMode = if ($EnableMalwareScan) { "ClamAV required" } else { "dev bypass" }
+$malwareMode = if ($malwareScanRequired) { "ClamAV required (fail closed)" } else { "SYNTHETIC DEV BYPASS - REAL DATA FORBIDDEN" }
 Write-Host "Malware: $malwareMode"
 
 foreach ($requiredPath in @($backendDir, $webDir, $env:EVIDA_TESSERACT_PATH, $env:EVIDA_TESSDATA_PATH)) {
@@ -164,8 +172,23 @@ foreach ($requiredPath in @($backendDir, $webDir, $env:EVIDA_TESSERACT_PATH, $en
     }
 }
 
-if ($EnableMalwareScan) {
+if ($malwareScanRequired) {
+    if (-not (Test-TcpPort $env:EVIDA_MALWARE_SCAN_HOST ([int]$env:EVIDA_MALWARE_SCAN_PORT))) {
+        if (-not (Test-DockerReady)) {
+            if (-not (Test-Path -LiteralPath $dockerDesktop)) {
+                throw "ClamAV is unavailable and Docker Desktop is missing. Real-data-capable startup is blocked."
+            }
+            Write-Host "Starting Docker Desktop for ClamAV..." -ForegroundColor Yellow
+            Start-Process -FilePath $dockerDesktop -WindowStyle Hidden | Out-Null
+            if (-not (Wait-DockerReady 120)) {
+                throw "Docker is not ready, so the required ClamAV service cannot start."
+            }
+        }
+        & (Join-Path $PSScriptRoot "start-evida-clamav.ps1")
+    }
     & (Join-Path $PSScriptRoot "test-evida-clamav-runtime.ps1") -HostName $env:EVIDA_MALWARE_SCAN_HOST -Port ([int]$env:EVIDA_MALWARE_SCAN_PORT)
+} else {
+    Write-Warning "Malware scanning is disabled by an explicit synthetic-dev override. Do not upload client data."
 }
 
 Ensure-Postgres
@@ -220,4 +243,23 @@ if (-not (Test-HttpOk "$webUrl/" 2)) {
 }
 
 & (Join-Path $PSScriptRoot "test-evida-pilot-health.ps1") -BackendPort $BackendPort -WebPort $WebPort
-Start-Process $webUrl
+$startupResult = [ordered]@{
+    generated_at = (Get-Date).ToUniversalTime().ToString("o")
+    status = "pass"
+    build_id = $BuildId
+    backend_url = $backendUrl
+    frontend_url = $webUrl
+    malware_scan = if ($malwareScanRequired) { "required_and_verified" } else { "synthetic_dev_bypass" }
+    postgres_reachable = (Test-TcpPort "127.0.0.1" $databasePort)
+    clamav_reachable = (Test-TcpPort "127.0.0.1" 3310)
+    backend_healthy = (Test-HttpOk "$backendUrl/actuator/health" 3)
+    frontend_healthy = (Test-HttpOk "$webUrl/" 3)
+    ocr_executable_present = (Test-Path -LiteralPath $env:EVIDA_TESSERACT_PATH)
+    log_directory = ".codex-runtime/pilot"
+    contains_client_content = $false
+}
+$startupResult | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 -LiteralPath $startupArtifact
+Write-Host "Startup evidence: $startupArtifact" -ForegroundColor Green
+if (-not $NoBrowser) {
+    Start-Process $webUrl
+}

@@ -24,6 +24,7 @@ public class AuthorizationService {
                     Permission.SAKSROM_ASK,
                     Permission.CASE_CREATE,
                     Permission.CASE_READ,
+                    Permission.CASE_DELETE,
                     Permission.EXPORT_CREATE
             ),
             "CASE_WORKER", EnumSet.of(
@@ -34,6 +35,8 @@ public class AuthorizationService {
                     Permission.SAKSROM_ASK,
                     Permission.CASE_READ
             ),
+            "AUDITOR", EnumSet.of(Permission.AUDIT_VERIFY),
+            "SECURITY_ADMIN", EnumSet.of(Permission.AUDIT_VERIFY, Permission.ADMIN_TENANT),
             "VIEWER", EnumSet.of(
                     Permission.DOCUMENT_LIST,
                     Permission.DOCUMENT_READ,

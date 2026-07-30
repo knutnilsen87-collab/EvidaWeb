@@ -1,14 +1,15 @@
 {
-  "generated_at": "2026-07-24T15:31:22.549Z",
+  "generated_at": "2026-07-30T17:56:19.093Z",
   "status": "blocked",
   "verdict": "blocked",
   "synthetic_only": true,
-  "case_id": "fb84b7a2-7e56-49e7-ad91-2fefb099b358",
+  "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
   "chain_valid": true,
-  "event_count": 28,
+  "event_count": 29,
   "observed_event_types": [
     "AUDIT_VERIFICATION_RUN",
     "CASE_CREATED",
+    "CASE_DELETED",
     "DOCUMENT_APPROVED_PENDING_INGESTION",
     "DOCUMENT_DELETED",
     "DOCUMENT_INGEST_STARTED",

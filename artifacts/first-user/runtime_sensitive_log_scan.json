@@ -1,5 +1,5 @@
-{
-  "generated_at": "2026-07-24T15:32:16.8063305Z",
+﻿{
+  "generated_at": "2026-07-30T17:55:44.4022793Z",
   "gate": "DATA-LOG-001",
   "status": "pass",
   "roots": [
@@ -8,6 +8,6 @@
     "F:\\prosjekter_MAIN\\EVIDA\\evida-core\\services\\saksrom-api\\logs",
     "F:\\prosjekter_MAIN\\EVIDA\\apps\\web\\logs"
   ],
-  "scanned_files": 1723,
+  "scanned_files": 1724,
   "findings": []
 }

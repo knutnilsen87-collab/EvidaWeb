@@ -90,6 +90,21 @@ public interface DocumentSourceUnitRepository extends JpaRepository<DocumentSour
     );
 
     @Query("""
+            select count(u) from DocumentSourceUnit u
+            where u.tenantId = :tenantId
+              and (
+                    (:caseId is null and u.caseId is null)
+                    or u.caseId = :caseId
+                  )
+              and u.textContent is not null
+              and length(trim(u.textContent)) > 0
+            """)
+    long countReadyTextByTenantIdAndCaseId(
+            @Param("tenantId") UUID tenantId,
+            @Param("caseId") UUID caseId
+    );
+
+    @Query("""
             select u from DocumentSourceUnit u
             where u.tenantId = :tenantId
               and (:caseId is null or u.caseId = :caseId)

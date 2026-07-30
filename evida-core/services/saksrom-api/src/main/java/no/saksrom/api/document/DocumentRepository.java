@@ -59,4 +59,6 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             String sha256,
             List<String> statuses
     );
+
+    long countByTenantIdAndStoragePathAndStatusNot(UUID tenantId, String storagePath, String status);
 }

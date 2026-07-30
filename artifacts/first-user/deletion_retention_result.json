@@ -1,14 +1,18 @@
 {
-    "generated_at":  "2026-05-19T12:29:11.9270554Z",
-    "status":  "blocked",
-    "verdict":  "blocked",
-    "name":  "deletion_retention",
-    "blocker":  "Client-data deletion, retention, and audit proof has not been executed end-to-end.",
-    "required_evidence":  [
-                              "delete imported case",
-                              "verify source/text/index removal",
-                              "verify audit trail",
-                              "verify retention policy"
-                          ],
-    "real_client_data_allowed":  false
+  "generated_at": "2026-07-30T17:56:19.093Z",
+  "status": "pass",
+  "verdict": "pass",
+  "gate": "DATA-DELETE-RETENTION-001",
+  "synthetic_only": true,
+  "case_id": "dbb1ab99-7b9d-45fa-a341-60f6a643335a",
+  "deleted_document_ids": [
+    "ee3730e3-ca71-47ea-8623-2e5b66f48fb4",
+    "ee96d624-d672-46dc-9a88-6b2f4b4df594",
+    "73c27612-5a08-454f-99a8-4c68f73e4190"
+  ],
+  "documents_hidden_after_delete": true,
+  "source_units_removed_after_delete": true,
+  "case_hidden_after_delete": true,
+  "audit_preserved": true,
+  "retention_policy": "docs/operations/DATA_RETENTION_AND_DELETION.md"
 }

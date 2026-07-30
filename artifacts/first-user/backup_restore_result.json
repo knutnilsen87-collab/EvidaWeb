@@ -1,16 +1,16 @@
-{
-  "generated_at": "2026-07-24T15:02:06.7470474Z",
+﻿{
+  "generated_at": "2026-07-30T17:43:26.1189428Z",
   "status": "pass",
   "verdict": "pass",
   "gate": "DATA-BACKUP-RESTORE-001",
   "encryption": "AES-256-GCM",
-  "backup_sha256": "d0cd834ea22b2acfdd1b8f8175c60fdf100254127b029fbee7654775685749c4",
+  "backup_sha256": "4c38f85166a9837791c33b3b570d247338d7f7136dfcdb1f38c97ad290636241",
   "database_dump_restored": true,
   "document_storage_restored": true,
   "manifest_integrity_verified": true,
   "client_data_marker_restore_verified": true,
   "live_database_overwritten": false,
-  "drill_database": "evida_restore_drill_bf1f6e2c135f",
-  "marker": "EVIDA_BACKUP_RESTORE_MARKER_bf1f6e2c135f444aa872fe7d27414d07",
+  "drill_database": "evida_restore_drill_8f5412959b40",
+  "marker": "EVIDA_BACKUP_RESTORE_MARKER_8f5412959b4049e98448f20d2d58dd2b",
   "rollback_path": "Drill used an isolated temporary database and restore directory; live EVIDA data was not replaced."
 }

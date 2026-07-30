@@ -22,12 +22,12 @@ jobs:
           - language: javascript-typescript
             build-mode: none
     steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
+      - uses: actions/checkout@v6
+      - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         if: matrix.language == 'java-kotlin'
         with:
           distribution: temurin
@@ -36,20 +36,20 @@ jobs:
       - name: Build Java
         if: matrix.language == 'java-kotlin'
         working-directory: evida-core/services/saksrom-api
-        run: ./mvnw -DskipTests package
-      - uses: github/codeql-action/analyze@v3
+        run: bash ./mvnw -DskipTests package
+      - uses: github/codeql-action/analyze@v4
 
   sbom:
     name: Build CycloneDX SBOMs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -62,8 +62,8 @@ jobs:
         run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom-web.cdx.json
       - name: Generate backend SBOM
         working-directory: evida-core/services/saksrom-api
-        run: ./mvnw org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom -DoutputName=sbom-backend
-      - uses: actions/upload-artifact@v4
+        run: bash ./mvnw org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom -DoutputName=sbom-backend
+      - uses: actions/upload-artifact@v7
         with:
           name: release-sboms
           path: |

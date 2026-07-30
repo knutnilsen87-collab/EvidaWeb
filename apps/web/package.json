@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "lint": "tsc --noEmit",
     "build": "tsc && vite build",
-    "test": "vitest run --environment jsdom",
+    "test": "vitest run --environment jsdom --pool=threads --maxWorkers=1",
     "test:watch": "vitest --environment jsdom"
   },
   "dependencies": {

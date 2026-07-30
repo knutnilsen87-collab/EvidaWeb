@@ -9,7 +9,7 @@
     "pilot:test-clamav-runtime": "tsx scripts/pilot/test-clamav-runtime.ts",
     "pilot:test-upload-malware-gate": "tsx scripts/pilot/test-upload-malware-gate.ts",
     "pilot:test-source-bound-runtime": "tsx scripts/pilot/test-source-bound-runtime.ts",
-    "test:pilot": "vitest run scripts/pilot",
+    "test:pilot": "vitest run scripts/pilot --pool=threads --maxWorkers=1",
     "test": "npm run test:pilot && npm --prefix apps/web run test --",
     "build": "npm --prefix apps/web run build"
   },

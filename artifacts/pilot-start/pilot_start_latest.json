@@ -1,0 +1,15 @@
+﻿{
+  "generated_at": "2026-07-30T17:56:12.5749277Z",
+  "status": "pass",
+  "build_id": "3417082",
+  "backend_url": "http://127.0.0.1:18080",
+  "frontend_url": "http://127.0.0.1:5173",
+  "malware_scan": "required_and_verified",
+  "postgres_reachable": true,
+  "clamav_reachable": true,
+  "backend_healthy": true,
+  "frontend_healthy": true,
+  "ocr_executable_present": true,
+  "log_directory": ".codex-runtime/pilot",
+  "contains_client_content": false
+}

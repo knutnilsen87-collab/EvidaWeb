@@ -66,6 +66,20 @@ class LocalDocumentStorageServiceTest {
     }
 
     @Test
+    void deletesOnlyTheTenantScopedContentAddressedBlob() {
+        var storage = storage();
+        var tenantFile = new MockMultipartFile("file", "case.txt", "text/plain", "tenant secret".getBytes(StandardCharsets.UTF_8));
+        var otherTenantFile = new MockMultipartFile("file", "case.txt", "text/plain", "tenant secret".getBytes(StandardCharsets.UTF_8));
+        var tenantStored = storage.storeQuarantineBlob(TENANT_ID, tenantFile, 1024);
+        storage.storeQuarantineBlob(OTHER_TENANT_ID, otherTenantFile, 1024);
+
+        storage.deleteBlob(TENANT_ID, tenantStored.sha256());
+
+        assertFalse(storage.blobExists(TENANT_ID, tenantStored.sha256()));
+        assertTrue(storage.blobExists(OTHER_TENANT_ID, tenantStored.sha256()));
+    }
+
+    @Test
     void rejectsEmptyFileDuringStreaming() {
         var storage = storage();
         var file = new MockMultipartFile("file", "case.pdf", "application/pdf", new byte[0]);

@@ -33,6 +33,9 @@ public class SecurityModeValidator {
         if (isProductionProfile() && !properties.security().malwareScannerConfigured()) {
             throw new IllegalStateException("production profile requires configured malware scanner");
         }
+        if (isProductionProfile() && !environment.getProperty("evida.storage.encryption-attested", Boolean.class, false)) {
+            throw new IllegalStateException("production profile requires an attested encrypted storage volume");
+        }
     }
 
     private boolean isProductionProfile() {

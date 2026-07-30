@@ -2,10 +2,10 @@
 
 ## 0. Bundle Metadata
 - generated_at: 2026-07-03T08:12:30+02:00
-- last_updated: 2026-07-14 (Morten Gate 1 Upload Security og Gate 2 Format Contract closure-status lagt til; global pilotstatus fortsatt NO)
+- last_updated: 2026-07-29 (full prosjektstatus, fersk lokal regresjon, Git/WIP-status og faktisk GitHub release-security-resultat; global release- og klientdatastatus fortsatt NO-GO)
 - repo_root: F:\prosjekter_MAIN\EVIDA
 - web_root: F:\prosjekter_MAIN\EVIDA\apps\web
-- branch: calm-surface-readiness-document-control
+- branch: travel-checkpoint-evida-web-court-engine
 - source_instruction: EVIDA_Codex_Implementeringsplan_Web.md / AURORA legal command center instructions
 - generated_by: Codex
 - scope: Ny isolert EVIDA webapp. Desktop/Tauri-appen er ikke endret.
@@ -2620,3 +2620,590 @@ $env:EVIDA_TESSERACT_PATH="C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 ### Limit
 - Runtime browser screenshot smoke was not rerun in this pass. Backend summary quality and OCR/PageUnit semantics were not changed or re-certified.
+
+## Runtime Capability Status - Stable Saksrom Live Summary
+
+### Metadata
+- generated_at: 2026-07-15T16:20:00+02:00
+- scope: frontend-only Saksrom live summary refresh and scroll stability
+- files_changed: `apps/web/src/App.tsx`, `apps/web/src/components/layout/AppShell.css`, `apps/web/src/components/SaksromView.tsx`, `apps/web/src/components/SaksromView.css`, `apps/web/src/components/SaksromLiveOpeningSummary.tsx`, `apps/web/src/components/SaksromLiveOpeningSummary.test.tsx`, `apps/web/src/components/SaksromView.test.tsx`
+- backend_ingestion_ocr_pageunit_ai_semantics_changed: no
+- repo_health_verdict: improved
+
+### Root Cause And Fix
+- root_cause: document/source-coverage polling supplied a fresh coverage object every four seconds, while the desktop Saksrom reader grew inside the outer workspace scroll area. The combination restarted opening-summary content and moved the user's outer scroll position.
+- summary_request_once_per_case: yes; automatic opening summaries are deduplicated by `caseId` and tenant.
+- coverage_polling_preserved: yes; Saksrom still receives current source-coverage data.
+- settled_case_polling_stopped: yes; only documents actively being ingested or processed trigger the four-second refresh loop.
+- desktop_chat_scroll_surface_stable: yes; the Saksrom chat now owns its scroll area instead of expanding the outer workspace.
+- progressive_reveal_restart_on_coverage_refresh: no.
+- retry_after_summary_failure: yes.
+
+### Verification
+- frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 29 files, 143 tests).
+- frontend_build: PASS (`npm run build`; `tsc && vite build`).
+- regression_test: PASS (`SaksromLiveOpeningSummary` rerendered with a new coverage object for the same case; summary endpoint remained at one request and the rendered summary stayed visible; settled Saksrom documents do not start the interval poller).
+
+### Limit
+- Manual browser scroll smoke was not rerun in this focused pass. The regression is covered at the component state/request boundary; no backend behavior changed.
+
+## Runtime Security Status - Malware Runtime Gate (Gate 1)
+
+### Metadata
+- generated_at: 2026-07-19T12:18:51.601Z
+- scope: ClamAV/clamd runtime, EICAR runtime-test, fail-closed upload behavior, reporting and gate-artifacts
+- ui_changed: no
+- saksrom_changed: no
+- zip_support_changed: no
+- ocr_source_ready_semantics_changed: no
+- auth_rbac_changed: no
+- legal_ai_logic_changed: no
+
+### Runtime Decision
+- docker_daemon_reachable: yes
+- docker_server_version: 29.4.0
+- clamav_host: 127.0.0.1
+- clamav_port: 3310
+- clamd_reachable: no
+- eicar_rejected: no; runtime rejection cannot be proven before clamd is reachable
+- scanner_unavailable_fails_closed: yes
+- upload_continued_to_parsing_ocr_source_indexing: no
+- malwareRuntimeGreen: false
+- realClientDataAllowed: false
+- real_client_data_allowed: false
+- production_legal_work_allowed: false
+- gate_status: BLOCKED_OPERATOR_ACTION_REQUIRED
+
+### Operator Action Required
+- component: ClamAV / clamd
+- status: MANGLER ELLER KJORER IKKE
+- action: Start Docker Desktop and an approved ClamAV container, or approve a local ClamAV installation exposing clamd on 127.0.0.1:3310.
+- requires_download_or_install: yes
+- requires_manual_approval: yes
+- real_client_data_must_remain_blocked: yes
+
+### Implementation And Evidence
+- eicar_fixture_script: `scripts/pilot/create-eicar-fixture.ts`
+- clamav_runtime_test: `scripts/pilot/test-clamav-runtime.ts`
+- upload_malware_gate_test: `scripts/pilot/test-upload-malware-gate.ts`
+- shared_gate_logic: `scripts/pilot/malware-gate-lib.ts`
+- malware_gate_artifact: `artifacts/first-user/malware_runtime_gate_latest.json`
+- aggregate_real_data_gate: `artifacts/first-user/real_client_data_gate_latest.json`
+- fixture_location: `artifacts/first-user/tmp/eicar-test.txt`
+- fixture_committed: no
+- fixture_cleaned_after_runtime_test: yes
+- package_scripts_present: `pilot:create-eicar-fixture`, `pilot:test-clamav-runtime`, `pilot:test-upload-malware-gate`
+
+### Verification
+- pilot_tests: PASS (`npm run test:pilot`; 2 test files, 8 tests)
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build)
+- clamav_runtime_test: BLOCKED AS EXPECTED; emitted `HANDLING KREVES AV KNUT` because clamd did not answer on 127.0.0.1:3310
+- scanner_unavailable_contract: PASS; unavailable scanner blocks upload instead of silently bypassing scanning
+- eicar_upload_runtime_test: NOT_RUN; safely skipped while clamd is unavailable to prevent possible bypass storage
+
+### Closure
+- malware_runtime_gate_closed: no
+- automated_gate_code_complete: yes
+- fail_closed_contract_green: yes
+- runtime_eicar_proof_green: no
+- blocked_by: clamd unavailable on 127.0.0.1:3310
+- next_commands_after_clamd_start: `npm run pilot:test-clamav-runtime` followed by `npm run pilot:test-upload-malware-gate`
+
+## Runtime UX Status - Saksrom Readability Step A
+
+### Metadata
+- generated_at: 2026-07-23T16:27:00+02:00
+- scope: frontend-only source-bound answer readability and compact Saksrom readiness status
+- files_changed: `apps/web/src/components/SaksromChat.tsx`, `apps/web/src/components/SaksromChat.css`, `apps/web/src/components/SaksromChat.test.tsx`, `apps/web/src/components/SourceBoundAnswerCard.tsx`, `apps/web/src/components/SourceBoundAnswerCard.css`, `apps/web/src/components/SaksromStatusLine.tsx`, `apps/web/src/components/SaksromStatusLine.css`, `apps/web/status_bundle.txt`
+- backend_domain_logic_changed: no
+- completeness_modal_changed: no
+- sse_changed: no
+- retrieval_guard_changed: no
+- repo_health_verdict: improved
+
+### UX Decision
+- system_status_moved_out_of_answer_stream: yes
+- compact_status_above_chat_input: yes
+- empty_ready_assistant_card_removed: yes
+- source_bound_answer_card: yes
+- explicit_heading_and_metadata: yes
+- numbered_and_bulleted_line_support: yes
+- paragraph_fallback_preserves_plain_text: yes
+- source_page_chips_preserved: yes
+- source_limitations_preserved: yes
+- invented_document_metadata: no
+
+### Verification
+- npm_install: PASS (`npm install`; 0 vulnerabilities; no package manifest or lockfile changes).
+- targeted_tests: PASS (`npm test -- SaksromChat.test.tsx SaksromView.test.tsx`; 2 files, 20 tests).
+- frontend_tests: PASS (`npm test`; 35 files, 173 tests).
+- frontend_build: PASS (`npm run build`; `tsc && vite build`).
+- browser_status_placement: PASS (status inside `.chat-input-zone`, outside `.chat-history`, no initial source-bound answer card).
+- browser_answer_card: PASS (real local source-bound response rendered with card heading, metadata, 68ch max width, readable line height and a separate real citation chip).
+
+### Limits
+- The current `SaksromAnswer` API provides plain answer text plus structured sources, not structured findings or document display metadata.
+- Step A only adds a safe presentation fallback for explicit headings, numbered lines, bullet lines and paragraphs. It does not infer findings, document names or citations.
+- Existing completeness-modal behavior was encountered during browser smoke but was not changed.
+- Release and real-client-data decisions remain unchanged.
+
+## Runtime UX Status - Saksrom Readability Step A Extension
+
+### Metadata
+- generated_at: 2026-07-23T16:39:45+02:00
+- scope: frontend-only claim-level citation presentation and coverage-aware Saksrom status
+- files_changed: `apps/web/src/lib/api.ts`, `apps/web/src/components/SaksromChat.tsx`, `apps/web/src/components/SaksromChat.css`, `apps/web/src/components/SaksromChat.test.tsx`, `apps/web/src/components/SaksromView.tsx`, `apps/web/src/components/SaksromView.test.tsx`, `apps/web/src/components/SourceBoundAnswerCard.tsx`, `apps/web/src/components/SourceBoundAnswerCard.css`, `apps/web/src/components/SaksromStatusLine.tsx`, `apps/web/src/components/SaksromStatusLine.css`, `apps/web/status_bundle.txt`
+- backend_domain_logic_changed: no
+- completeness_modal_changed: no
+- ok_persistence_changed: no
+- sse_changed: no
+- retrieval_guard_changed: no
+- repo_health_verdict: improved
+
+### Provenance Decision
+- optional_structured_answer_findings: yes; reuses the existing `SaksromSummaryFinding` shape
+- claim_level_source_pills: only from `findings[].sources`
+- fallback_mode: global `Kilder brukt` chips only
+- global_source_summary: deduplicated from real global and finding-level source metadata
+- invented_claim_citations: no
+- citation_navigation_owner: existing `CitationChip` and `citationStore.jumpToSource`
+
+### Coverage Status Decision
+- full_ready: calm ready tone with exact ready/total page coverage
+- partial_ready: calm preliminary tone with ready/total page coverage
+- processing: neutral tone and never uses ready copy
+- missing_ocr_disclosure: preserved from `SourceCoverage.missingOcrPages`
+- below_threshold_disclosure: preserved from `SourceCoverage.belowThresholdPages`
+- placement: `.chat-input-zone`, outside `.chat-history`
+- duplicate_status_formatting_removed_from_saksrom_view: yes
+
+### Verification
+- targeted_tests: PASS (`npm test -- SaksromChat.test.tsx SaksromView.test.tsx`; 2 files, 23 tests).
+- frontend_tests: PASS (`npm test`; 35 files, 176 tests).
+- frontend_build: PASS (`npm run build`; `tsc && vite build`).
+- initial_targeted_run: FAIL due three obsolete old-copy assertions; updated to the new required coverage copy and rerun PASS.
+- initial_build_run: FAIL due two test-only `closest()` type casts; corrected and rerun PASS.
+
+### Limits
+- Claim-level pills require real `findings[].sources` metadata in the answer payload. Plain answer text is never heuristically mapped to citations.
+- Backend readiness semantics and endpoints are unchanged.
+- Completeness confirmation, acknowledgement persistence, SSE and retrieval guard remain out of scope.
+- Release and real-client-data decisions remain unchanged.
+
+## Runtime Security Status - Malware Runtime Gate 1 Closure Attempt
+
+### Metadata
+- generated_at: 2026-07-23T17:35:00+02:00
+- scope: local ClamAV runtime and existing pilot malware gates only
+- clamav host: `127.0.0.1`
+- clamav port: `3310`
+- eicar fixture handling: generated at runtime from split string parts, stored under `artifacts/first-user/tmp`, removed in `finally`, and not committed
+- pass/fail artifact output: `artifacts/first-user/malware_runtime_gate_latest.json` and `artifacts/first-user/real_client_data_gate_latest.json`
+
+### Gate Result
+- clamd reachable: yes
+- EICAR runtime rejected: yes
+- scanner unavailable fail-closed preserved: yes
+- upload malware gate: BLOCKED
+- malwareRuntimeGreen: false
+- real client data allowed: false
+- production legal work allowed: false
+- gate status: BLOCKED_HOST_ANTIVIRUS_PREEMPTION
+
+### Evidence
+- direct clamd runtime response: `stream: Eicar-Test-Signature FOUND`
+- upload endpoint response: HTTP 503, `MALWARE_SCAN_FAILED`
+- document created: no
+- source coverage changed: no
+- rejection audit events observed: yes
+- host security evidence: Microsoft Defender detected and quarantined `Virus:DOS/EICAR_Test_File` in the Java upload temporary file before clamd received the upload stream
+- temporary EICAR fixture remaining: no
+- temporary test backends remaining on ports 18081-18086: no
+- approved ClamAV container: existing `clamav/clamav:stable` container `evida-clamav`, healthy and exposing port 3310
+- download or installation performed: no
+
+### Implementation
+- fixed Spring binding for the existing malware scanner security configuration so explicit enabled/configured ClamAV properties select the real scanner instead of the development bypass
+- added focused configuration-binding regression coverage
+- upload security, fail-closed behavior, OCR/source readiness, legal AI, auth/RBAC and Saksrom UI semantics were not weakened or changed
+- artifacts updated: `artifacts/first-user/malware_runtime_gate_latest.json`, `artifacts/first-user/real_client_data_gate_latest.json`, `apps/web/status_bundle.txt`
+
+### Verification
+- `npm run pilot:test-clamav-runtime`: PASS; clamd reachable and direct EICAR detected
+- `npm run pilot:test-upload-malware-gate`: BLOCKED; upload safely stopped with `MALWARE_SCAN_FAILED`, but required `MALWARE_DETECTED` proof was preempted by Microsoft Defender
+- `npm run test:pilot`: PASS; 2 files, 8 tests
+- `npm run build`: PASS; TypeScript and Vite production build
+- `.\mvnw.cmd -q '-Dtest=EvidaPropertiesBindingTest,LocalDocumentStorageServiceTest' test`: PASS
+- `.\mvnw.cmd test`: PASS; 149 tests, 0 failures, 0 errors, 2 skipped
+
+### Closure
+- repo-health verdict: improved
+- remaining blocker: the host antivirus quarantines the generated EICAR upload before the Java process can stream it to clamd, so end-to-end ClamAV EICAR upload rejection is not yet proven
+- rollback path: remove the focused `@ConstructorBinding` annotation and its regression test; this is not recommended because it would restore ignored malware scanner configuration
+- recommended next action: run the same upload gate with the corrected backend in an approved isolated Linux/CI test environment where host antivirus does not preempt the runtime-only fixture, then require HTTP 400 `MALWARE_DETECTED` before setting `malwareRuntimeGreen: true`
+
+## Runtime UX Status - Morten Demo Saksrom Polish
+
+### Metadata
+- generated_at: 2026-07-24T04:15:53+02:00
+- scope: frontend-only Saksrom opening summary, citation preview, completeness acknowledgement and active-case context
+- backend_semantics_changed: no
+- ocr_source_ready_pageunit_changed: no
+- realClientDataAllowed: false
+- zip_support_changed: no
+- global_brand_or_background_changed: no
+- repo_health_verdict: improved
+
+### First Case Understanding
+- title: `Første saksforståelse`
+- sections: `Hva saken gjelder`, `Viktige kontraktspunkter`, `Mulige tvistetemaer`, `Kildegrunnlag`
+- source_data_owner: existing Saksrom summary and finding payload
+- conservative_fallback: unmatched findings remain under case overview; empty themed sections disclose that no matching backend finding was identified
+- invented_legal_analysis: no
+- presentation_only_highlights: company-form tokens, monetary amounts and paragraph/punkt references; source text is unchanged
+
+### Source Tags
+- claim_level_tags: rendered only from `finding.sources`
+- global_source_summary: rendered only from `summary.sources`
+- navigation_owner: existing `citationStore.jumpToSource` (`CitationManager`)
+- popover: document filename when mapped from existing documents, page, backend quote when present, and `Åpne kilde`
+- invented_citations: no
+- missing_document_name_fallback: real backend document id
+- missing_quote_behavior: quote area omitted
+
+### Status And Completeness
+- large_ready_system_bubble: absent
+- coverage_status_location: directly above Saksrom input, outside conversation history
+- full_partial_processing_tones: preserved
+- completeness_modal: compact single-column micro-modal with calm fade/scale
+- complete_result_chip: `Kompletthetskontroll bestått` remains by the input after OK
+- preliminary_result_chip: explicitly says `Foreløpig kompletthetskontroll bekreftet`
+- overlap_claim: not shown because current frontend payload does not provide verified overlap data
+- acknowledgement_storage: local component state keyed by case/document/coverage fingerprint
+
+### Active Case Context
+- desktop_sidebar_auto_collapsed: no
+- active_case_card: visible when a case is active
+- values: case name, ready pages and calculated source coverage
+- pilot_labels: `Pilot` and `Testdata only`
+
+### Verification
+- focused_tests_initial: FAIL due obsolete pre-polish copy assertions; assertions updated to the required structured UX
+- focused_tests_final: PASS
+- frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 35 files, 179 tests)
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build, 432 modules)
+- backend_tests: not run; backend was not changed
+
+### Limits
+- The backend summary model has no explicit semantic section or overlap-verification field. Frontend grouping is conservative presentation logic and never creates findings.
+- Document names are available in citation popovers only when the current document list contains the cited document id.
+- Quote previews appear only when the backend source reference includes `quote`.
+- Manual browser screenshot smoke was not performed in this pass.
+- Approved for controlled first-user evaluation with synthetic/redacted test data only. Not approved for real client data or production legal work unless separately approved.
+
+## Git Publication Status - Morten Demo Saksrom Polish
+
+### Metadata
+- generated_at: 2026-07-24T04:18:00+02:00
+- requested_action: commit and push current Saksrom demo polish
+- branch: `travel-checkpoint-evida-web-court-engine`
+- upstream: `origin/travel-checkpoint-evida-web-court-engine`
+- remote: `https://github.com/knutnilsen87-collab/EvidaWeb.git`
+
+### Result
+- gh_cli_available: no
+- gh_auth_verified: no
+- files_staged: no
+- commit_created: no
+- push_performed: no
+- status: BLOCKED_OPERATOR_ACTION_REQUIRED
+- blocker: GitHub CLI (`gh`) is not installed or not available on PATH; the repository also contains extensive unrelated modified and untracked files, so broad staging is prohibited
+- verified_publish_scope: Saksrom opening summary, citation popover, coverage/completeness UI, active-case sidebar context, focused tests and this status bundle
+- tests_before_publish: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 35 files, 179 tests)
+- build_before_publish: PASS (`npm run build`; 432 modules)
+- realClientDataAllowed: false
+- repo_health_verdict: preserved
+
+### Required Operator Action
+- Install GitHub CLI from an approved source and run `gh auth login`.
+- Re-run the publish task after `gh auth status` succeeds.
+- Continue to stage only the verified Saksrom scope; do not use `git add -A` in the current mixed worktree.
+
+## Runtime UX Status - Changa Command Center Refinement
+
+### Metadata
+- generated_at: 2026-07-24T08:40:15+02:00
+- scope: frontend-only typography, desktop navigation focus mode, Saksrom status precision and completeness transition
+- backend_semantics_changed: no
+- ocr_source_ready_pageunit_changed: no
+- realClientDataAllowed: false
+- productionLegalWorkAllowed: false
+- repo_health_verdict: improved
+
+### Typography And Visual System
+- global_font: `Changa` for headings, body copy, controls and metadata through the existing font tokens
+- body_line_height: existing generous legal-reading line height preserved
+- background_gradients: preserved
+- liquid_glass_effects: preserved
+- semantic_highlights: existing muted blue entity and muted green amount treatment preserved
+- font_delivery: follows the existing Google Fonts import pattern; system sans-serif fallback remains available if the remote font cannot load
+
+### Desktop Sidebar And Case Context
+- desktop_sidebar_default: open and stable in Saksrom
+- focus_mode: manual `⛶ Fokus` control collapses the sidebar to an icon-only 76 px rail and restores it on demand
+- active_case_card: pinned near the top and populated from live active-case name, ready pages and source coverage
+- hardcoded_demo_case_metrics: no
+- duplicate_saksrom_input: removed; the global sticky chat bar is not rendered while the dedicated Saksrom input is active
+
+### Saksrom Readability And Provenance
+- structured_summary_sections: `Hva saken gjelder`, `Viktige kontraktspunkter`, `Mulige tvistetemaer`, `Kildegrunnlag`
+- source_pills: only rendered from real claim-level or global source metadata
+- source_navigation_owner: existing `citationStore.jumpToSource` (`CitationManager`)
+- source_popover: source/document identity, available backend excerpt and `Åpne kilde`
+- invented_findings_or_citations: no
+- large_ready_system_bubble: absent
+- full_status_copy: compact slash format, for example `Kildegrunnlaget er klart · 779/779 sider`
+- partial_status_copy: remains explicitly preliminary with ready/total pages
+- processing_status_copy: does not claim readiness
+- partial_coverage_rounding: partial coverage cannot display as 100%; for example 77/78 displays 98.7%
+
+### Completeness Control
+- initial_state: compact glass micro-modal
+- acknowledgement: explicit OK action
+- transition: calm scale/fade into a persistent chip by the Saksrom input
+- verified_full_copy: `Kompletthetskontroll bestått`
+- preliminary_copy: `Foreløpig kompletthetskontroll bekreftet`
+- overlap_claim: not shown because current frontend data does not contain verified overlap status
+
+### Verification
+- focused_tests: PASS (`npm run test -- --run ...`; 6 files, 40 tests)
+- frontend_tests: PASS (`npm run test -- --pool=threads --maxWorkers=1`; 35 files, 180 tests)
+- frontend_build: PASS (`npm run build`; TypeScript and Vite production build, 432 modules)
+- diff_check: PASS for the scoped frontend refinement
+- backend_tests: not run; backend was not changed
+- manual_browser_smoke: PASS against `http://127.0.0.1:5173/` with `Sak6_stor_saksmappe`
+- desktop_1280_layout: PASS after aligning the control-panel breakpoint with the 1180 px AppShell breakpoint; measured columns `240px 720px 320px`
+- focus_mode_runtime: PASS; sidebar measured `240px -> 76px -> 240px`
+- completeness_runtime: PASS; modal OK opened Saksrom and produced the persistent `Kompletthetskontroll bestått` chip
+- saksrom_status_runtime: PASS; compact `Kildegrunnlaget er klart · 779/779 sider` rendered outside conversation history
+- post_smoke_targeted_tests: PASS (`AppShell.mobile`, `ControlPanel`, `SaksromChat`; 3 files, 28 tests)
+- post_smoke_frontend_build: PASS (`npm run build`; TypeScript and Vite production build, 432 modules)
+
+### Remaining Limits
+- Changa depends on the existing remote Google Fonts delivery path; the app falls back to the configured system sans-serif stack when unavailable.
+- No `Ingen overlapp` assertion is displayed until a verified backend field exists.
+- The extensive pre-existing mixed worktree remains unstaged and was not broadened by this verification pass.
+- Controlled evaluation remains limited to synthetic or redacted test data; real client data and production legal work remain blocked by the separate readiness gates.
+
+## Full Project Readiness Status - 2026-07-29
+
+### Metadata
+- generated_at: 2026-07-29T16:30:00+02:00
+- status_source_date: readiness and client-data artifacts generated 2026-07-24; Git, GitHub Actions and local regression refreshed 2026-07-29
+- release_candidate_id: `evida-web-spring-first-user-rc-2026-07-24`
+- implementation_commit: `0af742b43ac48d93b2bf7a7949f9c978d3e49c14`
+- evidence_head: `341708264b497b5da5399177ab166735bbe14404`
+- branch: `travel-checkpoint-evida-web-court-engine`
+- upstream_sync: yes; local and remote branch both point to `3417082`
+- repo_health_verdict: preserved
+
+### Executive Decision
+- lifecycle_status: BLOCKED
+- first_user_allowed: false
+- real_client_data_allowed: false
+- production_ready: false
+- production_legal_work_allowed: false
+- internal_synthetic_or_redacted_testing_allowed: yes
+- decision: NO-GO for first user, real client documents and production legal work
+- residual_risk: high until every P0 and P0 client-data gate is PASS
+- false_green_policy: any P0 `PARTIAL`, `BLOCKED`, `SKIPPED`, `UNKNOWN` or untested item remains release-blocking
+- required_residual_risk_language_for_future_controlled_approval: Approved for controlled first-user evaluation with synthetic/redacted test data only. Not approved for real client data or production legal work unless separately approved.
+
+### Readiness Counts
+- first_user_readiness_matrix_total: 64
+- first_user_readiness_matrix_pass: 44
+- first_user_readiness_matrix_partial: 2
+- first_user_readiness_matrix_blocked: 18
+- pass_share: 68.8%; informational only and not a release threshold
+- real_client_data_gate_total: 34
+- real_client_data_gate_pass: 23
+- real_client_data_gate_blocked: 4
+- real_client_data_gate_manual_required: 7
+- critical_invariants_pass: 15
+- critical_invariants_incomplete: 6
+- critical_invariants_broken: 0
+
+### Verified Product Strengths
+- quarantine_and_clamav_runtime: PASS with synthetic documents
+- document_ingestion_and_source_objects: PASS
+- failed_document_ai_exclusion: PASS
+- ocr_retry_enhancement_and_confidence_gating: PASS automated
+- multi_document_source_bound_ai: PASS synthetic runtime
+- conflicting_fact_separation_with_citations: PASS
+- unsupported_claim_refusal: PASS
+- prompt_injection_containment: PASS on active local deterministic route
+- versioned_document_replacement: PASS
+- superseded_source_invalidation_and_retrieval_exclusion: PASS
+- source_based_export_with_case_id_timestamp_sources_and_draft_warning: PASS
+- audit_hash_chain_and_tamper_detection: PASS
+- encrypted_backup_and_isolated_restore: PASS using AES-256-GCM
+- runtime_sensitive_log_scan: PASS; 1,723 files scanned with zero findings
+
+### Current Local Verification - 2026-07-29
+- backend_command: `evida-core/services/saksrom-api/mvnw.cmd test`
+- backend_result: PASS; 154 tests, 0 failures, 0 errors, 2 environment-dependent OCR skips
+- frontend_build_command: `npm --prefix apps/web run build`
+- frontend_build_result: PASS; TypeScript and Vite production build, 432 modules
+- frontend_vitest_result: INCONCLUSIVE; Vitest started but hung without a terminal test result and was stopped
+- pilot_vitest_result: INCONCLUSIVE; Vitest started but hung without a terminal test result and was stopped
+- aggregate_local_regression_status: BLOCKED/INCONCLUSIVE because the current worktree did not produce terminal Vitest evidence
+- clean_commit_evidence_2026_07_24: PASS; 181 web tests, 11 pilot tests and 143 Spring tests passed with 3 environment-dependent OCR skips
+- interpretation: the verified clean commit remains the reproducible baseline; the current mixed worktree is not a release candidate
+
+### GitHub Release Security
+- workflow: `Release security`
+- workflow_run: `https://github.com/knutnilsen87-collab/EvidaWeb/actions/runs/30107734142`
+- trigger: push of `3417082` on 2026-07-24
+- conclusion: FAILURE
+- backend_sbom_job: FAIL; `Generate backend SBOM` completed with exit code 126
+- java_codeql_job: FAIL/INCOMPLETE; checkout action download received HTTP 429 Too Many Requests
+- javascript_codeql_terminal_evidence: not sufficient to make the aggregate release gate green
+- signed_current_windows_deliverable: no
+- release_security_status: BLOCKED
+- required_action: fix the SBOM execution path, update workflow actions where required, rerun CodeQL/SBOM and bind a green result to the exact release commit
+
+### Open Technical P0 Gates
+- client_data_storage_encryption: BLOCKED; Spring document bytes and extracted source text do not have verified application-layer encryption
+- bitlocker_or_equivalent_target_protection: BLOCKED; not verified with elevated access on the managed target machine
+- raw_storage_marker_inspection: BLOCKED until storage encryption is implemented or verified
+- provider_policy_change_audit: BLOCKED; no authoritative provider/policy mutation endpoint and audit event exists
+- signed_windows_delivery: BLOCKED; no trusted signed deliverable exists for the current web/Spring pilot surface
+- release_security_ci: BLOCKED; latest workflow failed
+- clean_profile_start_and_restart_persistence: BLOCKED/manual evidence missing
+- managed_windows_braathe_jussys_smoke: BLOCKED/manual evidence missing
+- native_windows_file_picker_smoke: MANUAL_REQUIRED
+- small_text_ocr_preview_manual_smoke: BLOCKED/manual evidence missing
+
+### Open Approvals
+- engineering_approval: missing
+- product_approval: missing
+- security_privacy_approval: missing
+- braathe_it_approval: missing
+- client_data_owner_approval: missing
+- approval_binding_rule: every approval must reference the same final commit and status bundle version
+
+### Repository And Ownership Health
+- remote_default_branch: `travel-checkpoint-evida-web-court-engine`
+- remote_branch_count: 1
+- local_main_upstream: gone; `origin/main` no longer exists
+- tracked_modified_files: 15
+- tracked_diff_size: approximately 1,049 additions and 94 deletions
+- untracked_files: 617
+- untracked_artifact_files: 527 under `artifacts`
+- staged_files: 0
+- release_interpretation: none of the current local WIP is part of the verified candidate until curated, committed and revalidated
+- ownership_risk: branch naming, deleted remote main and large mixed worktree reduce release clarity
+
+### Required Closure Order
+1. Freeze and curate the mixed worktree; separate generated evidence from intended product changes.
+2. Establish an intentional permanent default/release branch and preserve the verified candidate.
+3. Fix the release-security workflow and obtain green CodeQL, SBOM, SCA and secret-scan evidence.
+4. Verify BitLocker on the managed target or implement application-layer encryption with managed keys; rerun raw-marker inspection.
+5. Add authoritative provider/policy mutation audit without introducing duplicate provider-routing ownership.
+6. Build and sign the approved Windows delivery package and verify publisher/provenance.
+7. Run managed-machine smoke for native picker, clean-profile start, workspace creation, restart/persistence, OCR preview and deletion/retention.
+8. Rerun the complete terminal regression suite on a clean commit.
+9. Obtain Engineering, Product, Security/Privacy, Braathe/IT and data-owner approvals tied to that commit.
+10. Update `status_bundle.first_user.final.json`, invariant evaluation, readiness matrix and release manifest before changing any release decision.
+
+### Evidence References
+- `docs/first-user/FIRST_USER_READINESS_MATRIX.md`
+- `artifacts/first-user/status_bundle.first_user.final.json`
+- `artifacts/first-user/real_client_data_gate_latest.json`
+- `artifacts/first-user/invariant_evaluation.first_user.json`
+- `artifacts/first-user/client_data_desktop_dod_result.json`
+- `artifacts/first-user/evidence.first_user.current.json`
+- `artifacts/first-user/encryption_verification.json`
+- `artifacts/first-user/audit_coverage_result.json`
+- `artifacts/first-user/signature_verification.json`
+- `artifacts/first-user/windows_managed_workstation_smoke.json`
+- `artifacts/release/release_manifest.json`
+
+### Rollback
+- documentation_only_change: yes
+- rollback_path: remove this 2026-07-29 status section and restore the prior `last_updated` and `branch` metadata lines
+- product_runtime_changed: no
+- readiness_decision_changed: no; NO-GO and fail-closed behavior are preserved
+
+## Phase 0-10 Execution Status - 2026-07-30
+
+### Decision
+- branch: `codex/web-real-client-readiness`
+- execution_scope: web/Spring technical readiness with synthetic or redacted fixtures
+- technical_pilot_path: PASS
+- first_user_allowed: false
+- real_client_data_allowed: false
+- production_legal_work_allowed: false
+- decision: NO-GO until all applicable P0 gates and approvals are PASS
+- repo_health_verdict: improved
+
+### Phase Status
+- phase_0_scope_repo: PASS; web scope and release branch established, stale index lock removed
+- phase_1_startup: PASS; secure fail-closed one-click startup and health evidence
+- phase_2_browser_upload: PASS automated; MANUAL_REQUIRED for native Windows picker signoff
+- phase_3_malware: PASS; EICAR controlled 4xx before storage/parsing/indexing, scanner outage fails closed
+- phase_4_saksrom: PASS; summary, SSE, chat, citations, source click, refusal and reload verified
+- phase_5_auth_rbac: PASS code/tests; BLOCKED for actual IdP/MFA/invited-user deployment
+- phase_6_storage_backup_delete: PASS backup/restore and physical deletion; BLOCKED target-volume encryption attestation
+- phase_7_privacy_legal: PASS sign-ready drafts; BLOCKED signatures and organisational approvals
+- phase_8_https_staging: PASS validated deployment package/images; BLOCKED actual domain/certs/IdP/encrypted host
+- phase_9_controlled_real_data: BLOCKED by the real-client-data gate; no real data used
+- phase_10_production: PARTIAL; CI/tests/audits/SBOM/container path prepared, signing/monitoring/customer ops/support/billing/SLA remain
+
+### Current Verification
+- web_tests: PASS; 35 files, 181 tests
+- pilot_tests: PASS; 4 files, 13 tests
+- backend_tests: PASS; 162 tests, 0 failures, 0 errors, 3 environment-dependent skips
+- frontend_lint: PASS
+- frontend_build: PASS; 432 modules
+- startup_health: PASS
+- malware_upload_runtime: PASS
+- source_bound_runtime: PASS
+- deletion_retention_runtime: PASS
+- backup_restore: PASS; AES-256-GCM, isolated restore, live database untouched
+- sensitive_log_scan: PASS; 1,724 files, 0 marker findings
+- npm_dependency_audits: PASS; 0 vulnerabilities in root and web
+- production_compose_validation: PASS
+- production_web_api_images: PASS
+- cyclonedx_sbom_generation: PASS for web and backend
+- real_client_data_gate: BLOCKED as required
+
+### External And Organisational Gates
+- native_file_picker_human_signoff: missing
+- managed_workstation_smoke: missing
+- encrypted_target_volume_attestation: missing
+- raw_storage_marker_inspection_after_encryption: missing
+- authoritative_provider_policy_change_audit: unresolved ownership
+- production_oidc_mfa_and_role_claims: not provisioned
+- live_https_domain_certificates_and_firewall: not provisioned
+- trusted_release_signing: missing
+- pilot_agreement_and_dpa_signatures: missing
+- engineering_product_security_privacy_it_data_owner_approvals: missing
+- phase_9_real_document_execution: prohibited until the gate is PASS
+
+### Artifacts
+- detailed_report: `docs/release/EVIDA_PHASE_0_10_EXECUTION_REPORT_2026-07-30.md`
+- readiness_matrix: `docs/first-user/FIRST_USER_READINESS_MATRIX.md`
+- startup: `artifacts/pilot-start/pilot_start_latest.json`
+- malware: `artifacts/first-user/malware_runtime_gate_latest.json`
+- source_ai: `artifacts/first-user/ai_multi_doc_eval.json`
+- deletion: `artifacts/first-user/deletion_retention_result.json`
+- backup_restore: `artifacts/first-user/backup_restore_result.json`
+- log_scan: `artifacts/first-user/runtime_sensitive_log_scan.json`
+- gate: `artifacts/first-user/real_client_data_gate_latest.json`
+
+### Rollback
+- redeploy the previous image/commit
+- restore the previous deployment configuration
+- use encrypted backup only through the documented explicit restore procedure
+- this branch introduces no required database migration

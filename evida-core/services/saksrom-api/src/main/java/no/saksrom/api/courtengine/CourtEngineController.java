@@ -2,8 +2,13 @@ package no.saksrom.api.courtengine;
 
 import no.saksrom.api.document.DocumentController;
 import no.saksrom.api.document.DocumentQuarantineService;
+import no.saksrom.api.document.UploadSecurityException;
+import no.saksrom.api.document.UploadSecurityService;
 import no.saksrom.api.security.AuthenticatedUser;
 import no.saksrom.api.security.CurrentUserService;
+import no.saksrom.api.security.AuthorizationService;
+import no.saksrom.api.security.Permission;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,36 +24,30 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
 public class CourtEngineController {
-    private static final long MAX_FILE_SIZE_BYTES = 100L * 1024L * 1024L;
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "txt", "doc", "docx", "png", "jpg", "jpeg");
-    private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
-            "application/pdf",
-            "text/plain",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "image/png",
-            "image/jpeg"
-    );
-
     private final CurrentUserService currentUserService;
     private final DocumentQuarantineService quarantineService;
     private final CourtEngineService courtEngineService;
+    private final UploadSecurityService uploadSecurityService;
+    private final AuthorizationService authorizationService;
 
+    @Autowired
     public CourtEngineController(
             CurrentUserService currentUserService,
             DocumentQuarantineService quarantineService,
-            CourtEngineService courtEngineService
+            CourtEngineService courtEngineService,
+            UploadSecurityService uploadSecurityService,
+            AuthorizationService authorizationService
     ) {
         this.currentUserService = currentUserService;
         this.quarantineService = quarantineService;
         this.courtEngineService = courtEngineService;
+        this.uploadSecurityService = uploadSecurityService;
+        this.authorizationService = authorizationService;
     }
 
     @PostMapping("/files/upload")
@@ -59,15 +58,17 @@ public class CourtEngineController {
             @RequestParam(value = "file", required = false) MultipartFile singleFile
     ) throws Exception {
         AuthenticatedUser user = currentUserService.currentUser();
+        authorizationService.requirePermission(user, Permission.DOCUMENT_UPLOAD);
         UUID tenantId = requireMatchingTenant(tenantHeader, user);
         UUID documentCaseId = parseUuidOrNull(caseId);
         List<MultipartFile> uploads = normalizeFiles(files, singleFile);
         List<String> fileIds = new ArrayList<>();
 
         for (MultipartFile file : uploads) {
-            String validationFailure = validateUpload(file);
-            if (validationFailure != null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, validationFailure);
+            try {
+                uploadSecurityService.validate(file);
+            } catch (UploadSecurityException e) {
+                throw new ResponseStatusException(e.httpStatus(), e.code(), e);
             }
             DocumentController.DocumentUploadResponse response = quarantineService.saveToQuarantine(
                     file,
@@ -86,7 +87,9 @@ public class CourtEngineController {
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader,
             @RequestBody AnalysisStartRequest request
     ) {
-        UUID tenantId = requireMatchingTenant(tenantHeader, currentUserService.currentUser());
+        AuthenticatedUser user = currentUserService.currentUser();
+        authorizationService.requirePermission(user, Permission.SAKSROM_ASK);
+        UUID tenantId = requireMatchingTenant(tenantHeader, user);
         return courtEngineService.startAnalysis(tenantId, request.caseId(), request.fileIds());
     }
 
@@ -95,7 +98,9 @@ public class CourtEngineController {
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader,
             @PathVariable String caseId
     ) {
-        UUID tenantId = requireMatchingTenant(tenantHeader, currentUserService.currentUser());
+        AuthenticatedUser user = currentUserService.currentUser();
+        authorizationService.requirePermission(user, Permission.SOURCE_READ);
+        UUID tenantId = requireMatchingTenant(tenantHeader, user);
         return ResponseEntity.ok(courtEngineService.getSummary(tenantId, caseId));
     }
 
@@ -119,31 +124,6 @@ public class CourtEngineController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ingen filer mottatt.");
         }
         return uploads;
-    }
-
-    private String validateUpload(MultipartFile file) {
-        if (file.isEmpty()) {
-            return "UPLOAD_REJECTED_EMPTY_FILE";
-        }
-        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            return "UPLOAD_REJECTED_FILE_TOO_LARGE";
-        }
-        String extension = extension(file.getOriginalFilename());
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            return "UPLOAD_REJECTED_EXTENSION";
-        }
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
-            return "UPLOAD_REJECTED_MIME_TYPE";
-        }
-        return null;
-    }
-
-    private String extension(String filename) {
-        if (filename == null || !filename.contains(".")) {
-            return "";
-        }
-        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
     }
 
     private UUID parseUuid(String value, String errorCode) {

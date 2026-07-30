@@ -419,7 +419,7 @@ class DocumentControllerTest {
         var ingestionJobService = mock(IngestionJobService.class);
         var currentUserService = mock(CurrentUserService.class);
         when(currentUserService.currentUser()).thenReturn(
-                new AuthenticatedUser(TENANT_ID, USER_ID, "jurist@firma.no", Set.of("USER"))
+                new AuthenticatedUser(TENANT_ID, USER_ID, "jurist@firma.no", Set.of("LAWYER"))
         );
         var documentRepository = mock(DocumentRepository.class);
 
@@ -458,7 +458,7 @@ class DocumentControllerTest {
         var ingestionJobService = mock(IngestionJobService.class);
         var currentUserService = mock(CurrentUserService.class);
         when(currentUserService.currentUser()).thenReturn(
-                new AuthenticatedUser(TENANT_ID, USER_ID, "jurist@firma.no", Set.of("USER"))
+                new AuthenticatedUser(TENANT_ID, USER_ID, "jurist@firma.no", Set.of("LAWYER"))
         );
         var documentRepository = mock(DocumentRepository.class);
 
@@ -512,7 +512,7 @@ class DocumentControllerTest {
     private DocumentController controller(boolean rawUploadAllowed, DocumentRepository documentRepository, AuditService auditService) {
         var currentUserService = mock(CurrentUserService.class);
         when(currentUserService.currentUser()).thenReturn(
-                new AuthenticatedUser(TENANT_ID, USER_ID, "jurist@firma.no", Set.of("USER"))
+                new AuthenticatedUser(TENANT_ID, USER_ID, "jurist@firma.no", Set.of("LAWYER"))
         );
 
         return new DocumentController(

@@ -366,6 +366,18 @@ public class DocumentQuarantineService {
         document.markDeleted();
         audit("DOCUMENT_DELETED", document, null, "{}");
         documentRepository.save(document);
+        documentRepository.flush();
+        if (sourceUnitRepository != null) {
+            sourceUnitRepository.deleteByTenantIdAndDocumentId(tenantId, documentId);
+        }
+        long remainingBlobReferences = documentRepository.countByTenantIdAndStoragePathAndStatusNot(
+                tenantId,
+                document.getStoragePath(),
+                Document.STATUS_DELETED
+        );
+        if (remainingBlobReferences == 0) {
+            storageService.deleteBlob(tenantId, document.getSha256());
+        }
     }
 
     private void audit(String eventType, Document document, UUID actorUserId, String payloadJson) {

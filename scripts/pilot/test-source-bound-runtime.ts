@@ -151,10 +151,28 @@ async function main(): Promise<void> {
     && oldSourceSearch.length === 0;
   const replacementIngested = await uploadReplacementIngestion(replacement.id);
 
+  const deletedDocumentIds = [replacementIngested, documents[1], documents[2]].map((document) => String(document.id));
   for (const document of [replacementIngested, documents[1], documents[2]]) {
     const deletion = await fetch(`${backendUrl}/api/documents/${document.id}`, { method: "DELETE", headers });
     if (!deletion.ok) throw new Error(`Sletting feilet for ${document.id} (${deletion.status})`);
   }
+  const documentsAfterDeletion = await responseJson(await fetch(
+    `${backendUrl}/api/documents?caseId=${encodeURIComponent(caseId)}`,
+    { headers }
+  ), "Kontroller dokumentliste etter sletting") as Json[];
+  const sourcesAfterDeletion = await responseJson(await fetch(
+    `${backendUrl}/api/source-units/search?caseId=${encodeURIComponent(caseId)}&q=${encodeURIComponent("leveransen")}`,
+    { headers }
+  ), "Kontroller kildegrunnlag etter sletting") as Json[];
+  const caseDeletion = await fetch(`${backendUrl}/api/v1/cases/${caseId}`, { method: "DELETE", headers });
+  if (!caseDeletion.ok) throw new Error(`Sletting av syntetisk sak feilet (${caseDeletion.status})`);
+  const casesAfterDeletion = await responseJson(
+    await fetch(`${backendUrl}/api/v1/cases`, { headers }),
+    "Kontroller saksliste etter sletting"
+  ) as Json[];
+  const deletionPass = deletedDocumentIds.every((id) => !documentsAfterDeletion.some((document) => String(document.id) === id))
+    && sourcesAfterDeletion.length === 0
+    && !casesAfterDeletion.some((caseFile) => String(caseFile.id) === caseId);
 
   const auditVerification = await postJson("/api/v1/audit/verify", { tenantId, caseId });
   const eventTypes = await auditEventTypes(caseId);
@@ -240,6 +258,20 @@ async function main(): Promise<void> {
       source_section_present: /Fullstendig kildegrunnlag/i.test(exportBody),
       all_runtime_documents_referenced: documents.every((document) => exportBody.includes(String(document.id)))
     }),
+    writeArtifact("deletion_retention_result.json", {
+      generated_at: generatedAt,
+      status: deletionPass ? "pass" : "blocked",
+      verdict: deletionPass ? "pass" : "blocked",
+      gate: "DATA-DELETE-RETENTION-001",
+      synthetic_only: true,
+      case_id: caseId,
+      deleted_document_ids: deletedDocumentIds,
+      documents_hidden_after_delete: deletedDocumentIds.every((id) => !documentsAfterDeletion.some((document) => String(document.id) === id)),
+      source_units_removed_after_delete: sourcesAfterDeletion.length === 0,
+      case_hidden_after_delete: !casesAfterDeletion.some((caseFile) => String(caseFile.id) === caseId),
+      audit_preserved: auditVerification.valid,
+      retention_policy: "docs/operations/DATA_RETENTION_AND_DELETION.md"
+    }),
     writeArtifact("audit_coverage_result.json", {
       generated_at: generatedAt,
       status: missingAuditEvents.length === 0 && policyChangeAudited && auditVerification.valid ? "pass" : "blocked",
@@ -255,7 +287,7 @@ async function main(): Promise<void> {
     })
   ]);
 
-  if (!multiDocPass || !injectionPass || !unsupportedPass || !exportPass || !replacementVersionPass || !auditVerification.valid) {
+  if (!multiDocPass || !injectionPass || !unsupportedPass || !exportPass || !replacementVersionPass || !deletionPass || !auditVerification.valid) {
     throw new Error("Én eller flere kildebundne runtime-kontroller feilet.");
   }
   console.log(`Source-bound runtime PASS for synthetic case ${caseId}; audit coverage remains ${policyChangeAudited ? "pass" : "blocked"} for provider/policy changes.`);

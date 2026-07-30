@@ -42,6 +42,9 @@ management:
         enabled: true
 
 evida:
+  storage:
+    quarantine-root: ${EVIDA_STORAGE_QUARANTINE_ROOT:./data/quarantine}
+    encryption-attested: ${EVIDA_STORAGE_ENCRYPTION_ATTESTED:false}
   security:
     local-dev-mode: ${EVIDA_LOCAL_DEV_MODE:true}
     allowed-origins: ${EVIDA_ALLOWED_ORIGINS:}

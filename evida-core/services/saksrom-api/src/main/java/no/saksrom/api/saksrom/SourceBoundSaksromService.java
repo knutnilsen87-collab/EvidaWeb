@@ -9,13 +9,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class SourceBoundSaksromService {
     private static final int SEARCH_LIMIT = 20;
     private static final int SUMMARY_SOURCE_LIMIT = 8;
+    private static final Set<String> STOP_WORDS = Set.of(
+            "hva", "står", "sier", "det", "den", "dette", "som", "med", "for",
+            "om", "på", "paa", "ikke", "eller", "til", "fra", "kan", "skal", "vil"
+    );
 
     private final DocumentSourceUnitRepository sourceUnitRepository;
     private final SourceCoverageService sourceCoverageService;
@@ -36,17 +45,28 @@ public class SourceBoundSaksromService {
             return List.of();
         }
 
-        return sourceUnitRepository.searchKeyword(tenantId, caseId, query.trim(), PageRequest.of(0, SEARCH_LIMIT))
-                .stream()
-                .map(SourceSearchResult::from)
-                .toList();
+        Map<String, SourceSearchResult> results = new LinkedHashMap<>();
+        for (String term : searchTerms(query)) {
+            sourceUnitRepository.searchKeyword(tenantId, caseId, term, PageRequest.of(0, SEARCH_LIMIT))
+                    .stream()
+                    .map(SourceSearchResult::from)
+                    .forEach(result -> results.putIfAbsent(result.sourceUnitId(), result));
+            if (results.size() >= SEARCH_LIMIT) {
+                break;
+            }
+        }
+        return results.values().stream().limit(SEARCH_LIMIT).toList();
     }
 
     @Transactional(readOnly = true)
     public SaksromAnswerResponse answer(UUID tenantId, SaksromQuestionRequest request) {
+        UUID reqCaseId = parseUuidOrNull(request.caseId());
+        SourceCoverageService.SourceCoverageResponse coverage = reqCaseId == null || sourceCoverageService == null
+                ? null
+                : sourceCoverageService.coverage(tenantId, reqCaseId);
         List<DocumentSourceUnit> selectedUnits = selectedUnits(tenantId, request);
         if (selectedUnits.isEmpty()) {
-            return noSourceBasis();
+            return hasReadySourceBasis(tenantId, reqCaseId) ? noRelevantSourceMatch(coverage) : noSourceBasis();
         }
 
         List<SourceReference> sources = selectedUnits.stream()
@@ -59,14 +79,10 @@ public class SourceBoundSaksromService {
                 .findFirst()
                 .map(text -> text.length() > 240 ? text.substring(0, 240) + "..." : text)
                 .orElse("Kilden er registrert, men mangler lesbart tekstutdrag.");
-        UUID reqCaseId = parseUuidOrNull(request.caseId());
-        SourceCoverageService.SourceCoverageResponse coverage = reqCaseId == null || sourceCoverageService == null
-                ? null
-                : sourceCoverageService.coverage(tenantId, reqCaseId);
         List<String> warnings = coverageWarnings(coverage);
 
         return new SaksromAnswerResponse(
-                coveragePrefix(coverage, request.question()) + "Kildebundet vurdering basert pa valgt kildegrunnlag: " + sourceSummary,
+                coveragePrefix(coverage, request.question()) + "Kildebundet vurdering basert på valgt kildegrunnlag: " + sourceSummary,
                 sources,
                 true,
                 warnings
@@ -75,7 +91,7 @@ public class SourceBoundSaksromService {
 
     @Transactional(readOnly = true)
     public SaksromSummaryResponse summarize(UUID tenantId, SaksromSummaryRequest request) {
-        UUID caseId = parseRequiredUuid(request.caseId(), "caseId er pakrevd.");
+        UUID caseId = parseRequiredUuid(request.caseId(), "caseId er påkrevd.");
         SourceCoverageService.SourceCoverageResponse coverage = sourceCoverageService == null
                 ? null
                 : sourceCoverageService.coverage(tenantId, caseId);
@@ -89,7 +105,7 @@ public class SourceBoundSaksromService {
             return new SaksromSummaryResponse(
                     caseId.toString(),
                     "Ingen kildeklar oppsummering",
-                    "Saksrommet har ikke ferdige kildeenheter aa oppsummere ennaa.",
+                    "Saksrommet har ikke ferdige kildeenheter å oppsummere ennå.",
                     List.of(),
                     List.of(),
                     false,
@@ -104,7 +120,7 @@ public class SourceBoundSaksromService {
                 .toList();
         List<String> warnings = coverageWarnings(coverage);
         boolean partial = coverage != null && coverage.totalPages() > 0 && coverage.readyPages() < coverage.totalPages();
-        String title = partial ? "Forelopig kildebundet saksoppsummering" : "Kildebundet saksoppsummering";
+        String title = partial ? "Foreløpig kildebundet saksoppsummering" : "Kildebundet saksoppsummering";
         String summary = buildSummaryText(coverage, units);
         List<SummaryFinding> findings = units.stream()
                 .limit(5)
@@ -158,11 +174,26 @@ public class SourceBoundSaksromService {
 
     private SaksromAnswerResponse noSourceBasis() {
         return new SaksromAnswerResponse(
-                "Jeg har ikke nok kildegrunnlag til aa svare kildebundet. Last opp og klargjor kilder forst, eller velg relevante kilder.",
+                "Jeg har ikke nok kildegrunnlag til å svare kildebundet. Last opp og klargjør kilder først, eller velg relevante kilder.",
                 List.of(),
                 false,
                 List.of("NO_SOURCE_BASIS")
         );
+    }
+
+    private SaksromAnswerResponse noRelevantSourceMatch(SourceCoverageService.SourceCoverageResponse coverage) {
+        List<String> warnings = new ArrayList<>(coverageWarnings(coverage));
+        warnings.add("NO_RELEVANT_SOURCE_MATCH");
+        return new SaksromAnswerResponse(
+                coveragePrefix(coverage, null) + "Jeg finner ikke støtte for dette i det tilgjengelige kildegrunnlaget.",
+                List.of(),
+                true,
+                warnings
+        );
+    }
+
+    private boolean hasReadySourceBasis(UUID tenantId, UUID caseId) {
+        return sourceUnitRepository.countReadyTextByTenantIdAndCaseId(tenantId, caseId) > 0;
     }
 
     private List<String> coverageWarnings(SourceCoverageService.SourceCoverageResponse coverage) {
@@ -183,15 +214,15 @@ public class SourceBoundSaksromService {
     private String buildSummaryText(SourceCoverageService.SourceCoverageResponse coverage, List<DocumentSourceUnit> units) {
         StringBuilder text = new StringBuilder();
         if (coverage != null && coverage.totalPages() > 0 && coverage.readyPages() < coverage.totalPages()) {
-            text.append("Forelopig kildegrunnlag: oppsummeringen bygger kun paa ")
+            text.append("Foreløpig kildegrunnlag: oppsummeringen bygger kun på ")
                     .append(coverage.readyPages())
                     .append(" av ")
                     .append(coverage.totalPages())
                     .append(" sider med ferdige kildeenheter. ");
         } else {
-            text.append("Oppsummeringen bygger paa ferdige kildeenheter i saken. ");
+            text.append("Oppsummeringen bygger på ferdige kildeenheter i saken. ");
         }
-        text.append("De forste tilgjengelige kildeenhetene viser: ");
+        text.append("De første tilgjengelige kildeenhetene viser: ");
         text.append(units.stream()
                 .limit(3)
                 .map(unit -> "side " + unit.getPageNumber() + ": " + quote(unit.getTextContent()))
@@ -214,7 +245,7 @@ public class SourceBoundSaksromService {
         if (coverage == null || coverage.totalPages() <= 0 || coverage.readyPages() >= coverage.totalPages()) {
             return "";
         }
-        StringBuilder prefix = new StringBuilder("Forelopig kildegrunnlag: Svaret bygger pa ")
+        StringBuilder prefix = new StringBuilder("Foreløpig kildegrunnlag: Svaret bygger på ")
                 .append(coverage.readyPages())
                 .append(" av ")
                 .append(coverage.totalPages())
@@ -236,9 +267,46 @@ public class SourceBoundSaksromService {
             prefix.append(". ");
         }
         if (questionTargetsMissingPages(question, coverage)) {
-            prefix.append("Dette kan ikke vurderes fullt ut fordi sporsmalet kan gjelde sider som mangler lesbart kildegrunnlag. ");
+            prefix.append("Dette kan ikke vurderes fullt ut fordi spørsmålet kan gjelde sider som mangler lesbart kildegrunnlag. ");
         }
         return prefix.toString();
+    }
+
+    private List<String> searchTerms(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        LinkedHashSet<String> terms = new LinkedHashSet<>();
+        for (String token : query.toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}]+")) {
+            if (token.contains("rettsbok")) {
+                terms.add("rettsbok");
+            }
+            if (token.contains("utskrift")) {
+                terms.add("utskrift");
+            }
+            if (token.contains("håndskrev") || token.contains("handskrev")) {
+                terms.add("håndskrev");
+                terms.add("handskrev");
+            }
+            addSearchTerm(terms, token);
+        }
+        return terms.stream().limit(8).toList();
+    }
+
+    private void addSearchTerm(Set<String> terms, String token) {
+        if (token == null || token.length() < 4 || STOP_WORDS.contains(token)) {
+            return;
+        }
+        terms.add(token);
+        for (String suffix : List.of("ene", "en", "et", "er")) {
+            if (token.length() > suffix.length() + 3 && token.endsWith(suffix)) {
+                String stem = token.substring(0, token.length() - suffix.length());
+                if (stem.length() >= 4 && !STOP_WORDS.contains(stem)) {
+                    terms.add(stem);
+                }
+            }
+        }
     }
 
     private boolean questionTargetsMissingPages(String question, SourceCoverageService.SourceCoverageResponse coverage) {
@@ -297,7 +365,9 @@ public class SourceBoundSaksromService {
             String caseId,
             String question,
             List<String> selectedSourceUnitIds,
-            String mode
+            String mode,
+            Boolean includePartial,
+            String sourceBasis
     ) {}
 
     public record SaksromSummaryRequest(

@@ -3,92 +3,75 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  python-ai-engine:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install
-        working-directory: evida-core/ai-engine
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-      - name: Test
-        working-directory: evida-core/ai-engine
-        run: pytest
-
-  desktop-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: evida-core/desktop-tauri/package-lock.json
-      - name: Install
-        working-directory: evida-core/desktop-tauri
-        run: npm ci
-      - name: Build frontend
-        working-directory: evida-core/desktop-tauri
-        run: npm run build
-
-  rust-desktop:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Cargo check
-        working-directory: evida-core/desktop-tauri/src-tauri
-        run: cargo check --locked
-      - name: Cargo test
-        working-directory: evida-core/desktop-tauri/src-tauri
-        run: cargo test --locked
-
   spring-boot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
       - name: Test
         working-directory: evida-core/services/saksrom-api
-        run: ./mvnw test
+        run: bash ./mvnw test
 
   web-app:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - name: Install
         working-directory: apps/web
         run: npm ci
+      - name: Dependency audit
+        working-directory: apps/web
+        run: npm audit --audit-level=high
       - name: Lint
         working-directory: apps/web
         run: npm run lint
       - name: Test
         working-directory: apps/web
-        run: npm run test -- --run
+        run: npm run test
       - name: Build
         working-directory: apps/web
         run: npm run build
 
+  pilot-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm run test:pilot
+
+  production-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate production compose
+        working-directory: deploy/pilot
+        run: docker compose --env-file .env.production.example config --quiet
+      - name: Build production images
+        working-directory: deploy/pilot
+        run: docker compose --env-file .env.production.example build web api
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
@@ -99,7 +82,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high

@@ -1,0 +1,122 @@
+name: evida-pilot
+
+services:
+  gateway:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+      oauth2-proxy:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${EVIDA_TLS_CERT_DIR:?set EVIDA_TLS_CERT_DIR}:/etc/evida/tls:ro
+    networks: [edge, internal]
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.2
+    restart: unless-stopped
+    command:
+      - --http-address=0.0.0.0:4180
+      - --provider=oidc
+      - --oidc-issuer-url=${EVIDA_OIDC_ISSUER:?set EVIDA_OIDC_ISSUER}
+      - --client-id=${EVIDA_OIDC_CLIENT_ID:?set EVIDA_OIDC_CLIENT_ID}
+      - --client-secret=${EVIDA_OIDC_CLIENT_SECRET:?set EVIDA_OIDC_CLIENT_SECRET}
+      - --cookie-secret=${EVIDA_OAUTH_COOKIE_SECRET:?set EVIDA_OAUTH_COOKIE_SECRET}
+      - --cookie-secure=true
+      - --cookie-samesite=lax
+      - --email-domain=${EVIDA_ALLOWED_EMAIL_DOMAIN:?set EVIDA_ALLOWED_EMAIL_DOMAIN}
+      - --redirect-url=https://${EVIDA_PUBLIC_HOST:?set EVIDA_PUBLIC_HOST}/oauth2/callback
+      - --reverse-proxy=true
+      - --set-xauthrequest=true
+      - --pass-access-token=true
+      - --skip-provider-button=true
+    healthcheck:
+      test: ["CMD", "/bin/oauth2-proxy", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks: [internal]
+
+  web:
+    build:
+      context: ../../apps/web
+      args:
+        VITE_EVIDA_BUILD_ID: ${EVIDA_BUILD_ID:?set EVIDA_BUILD_ID}
+    restart: unless-stopped
+    networks: [internal]
+
+  api:
+    build:
+      context: ../../evida-core/services/saksrom-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/evida
+      DATABASE_USER: evida
+      DATABASE_PASSWORD: ${EVIDA_DATABASE_PASSWORD:?set EVIDA_DATABASE_PASSWORD}
+      EVIDA_LOCAL_DEV_MODE: "false"
+      EVIDA_ALLOWED_ORIGINS: https://${EVIDA_PUBLIC_HOST:?set EVIDA_PUBLIC_HOST}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${EVIDA_OIDC_ISSUER:?set EVIDA_OIDC_ISSUER}
+      EVIDA_MALWARE_SCANNER_CONFIGURED: "true"
+      EVIDA_MALWARE_SCAN_ENABLED: "true"
+      EVIDA_MALWARE_SCAN_HOST: clamav
+      EVIDA_MALWARE_SCAN_PORT: "3310"
+      EVIDA_STORAGE_QUARANTINE_ROOT: /data/quarantine
+      EVIDA_STORAGE_ENCRYPTION_ATTESTED: ${EVIDA_STORAGE_ENCRYPTION_ATTESTED:?must be true after encrypted-volume verification}
+      EVIDA_AI_PROVIDER_CALLS_ENABLED: "false"
+      EVIDA_OCR_ENABLED: "true"
+      EVIDA_OCR_LANGUAGES: nor+eng
+      EVIDA_TESSERACT_PATH: /usr/bin/tesseract
+      EVIDA_TESSDATA_PATH: /usr/share/tesseract-ocr/5/tessdata
+    volumes:
+      - ${EVIDA_ENCRYPTED_DATA_DIR:?set EVIDA_ENCRYPTED_DATA_DIR}:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    networks: [internal]
+
+  postgres:
+    image: postgres:16.14-alpine3.23
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: evida
+      POSTGRES_USER: evida
+      POSTGRES_PASSWORD: ${EVIDA_DATABASE_PASSWORD:?set EVIDA_DATABASE_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ${EVIDA_ENCRYPTED_POSTGRES_DIR:?set EVIDA_ENCRYPTED_POSTGRES_DIR}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evida -d evida"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "printf 'PING\\0' | nc 127.0.0.1 3310 | grep -q PONG"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 10
+    volumes:
+      - clamav_signatures:/var/lib/clamav
+    networks: [internal]
+
+networks:
+  edge: {}
+  internal:
+    internal: true
+
+volumes:
+  clamav_signatures: {}

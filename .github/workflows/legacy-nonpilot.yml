@@ -1,0 +1,42 @@
+name: Legacy non-pilot checks
+
+on:
+  workflow_dispatch:
+
+jobs:
+  python-ai-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - working-directory: evida-core/ai-engine
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pytest
+
+  desktop-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: evida-core/desktop-tauri/package-lock.json
+      - working-directory: evida-core/desktop-tauri
+        run: npm ci
+      - working-directory: evida-core/desktop-tauri
+        run: npm run build
+
+  rust-desktop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - working-directory: evida-core/desktop-tauri/src-tauri
+        run: cargo check --locked
+      - working-directory: evida-core/desktop-tauri/src-tauri
+        run: cargo test --locked

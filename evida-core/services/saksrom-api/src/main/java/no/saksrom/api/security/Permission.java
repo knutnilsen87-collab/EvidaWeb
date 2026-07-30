@@ -11,6 +11,8 @@ public enum Permission {
     SAKSROM_ASK,
     CASE_CREATE,
     CASE_READ,
+    CASE_DELETE,
     EXPORT_CREATE,
+    AUDIT_VERIFY,
     ADMIN_TENANT
 }

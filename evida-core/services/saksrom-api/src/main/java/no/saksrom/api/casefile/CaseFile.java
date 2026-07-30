@@ -57,4 +57,9 @@ public class CaseFile {
     public String getTitle() { return title; }
     public String getStatus() { return status; }
     public boolean isLocalFirst() { return localFirst; }
+
+    public void markDeleted() {
+        this.status = "DELETED";
+        this.updatedAt = OffsetDateTime.now();
+    }
 }

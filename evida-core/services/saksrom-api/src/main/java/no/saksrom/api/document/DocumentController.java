@@ -4,6 +4,8 @@ import no.saksrom.api.audit.AuditService;
 import no.saksrom.api.config.EvidaProperties;
 import no.saksrom.api.security.AuthenticatedUser;
 import no.saksrom.api.security.CurrentUserService;
+import no.saksrom.api.security.AuthorizationService;
+import no.saksrom.api.security.Permission;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -39,6 +41,7 @@ public class DocumentController {
     private final IngestionJobService ingestionJobService;
     private final UploadSecurityService uploadSecurityService;
     private final AuditService auditService;
+    private final AuthorizationService authorizationService;
 
     @Autowired
     public DocumentController(
@@ -48,7 +51,8 @@ public class DocumentController {
             LargeDocumentIngestionService ingestionService,
             IngestionJobService ingestionJobService,
             UploadSecurityService uploadSecurityService,
-            AuditService auditService
+            AuditService auditService,
+            AuthorizationService authorizationService
     ) {
         this.properties = properties;
         this.currentUserService = currentUserService;
@@ -57,6 +61,28 @@ public class DocumentController {
         this.ingestionJobService = ingestionJobService;
         this.uploadSecurityService = uploadSecurityService;
         this.auditService = auditService;
+        this.authorizationService = authorizationService;
+    }
+
+    public DocumentController(
+            EvidaProperties properties,
+            CurrentUserService currentUserService,
+            DocumentQuarantineService quarantineService,
+            LargeDocumentIngestionService ingestionService,
+            IngestionJobService ingestionJobService,
+            UploadSecurityService uploadSecurityService,
+            AuditService auditService
+    ) {
+        this(
+                properties,
+                currentUserService,
+                quarantineService,
+                ingestionService,
+                ingestionJobService,
+                uploadSecurityService,
+                auditService,
+                new AuthorizationService()
+        );
     }
 
     public DocumentController(
@@ -73,7 +99,8 @@ public class DocumentController {
                 ingestionService,
                 ingestionJobService,
                 new UploadSecurityService(properties),
-                null
+                null,
+                new AuthorizationService()
         );
     }
 
@@ -83,6 +110,7 @@ public class DocumentController {
      */
     @PostMapping("/hash")
     public DocumentHashResponse calculateHash(@RequestParam("file") MultipartFile file) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_UPLOAD);
         if (!properties.documents().rawUploadAllowed()) {
             return new DocumentHashResponse(
                     file.getOriginalFilename(),
@@ -123,6 +151,7 @@ public class DocumentController {
             @RequestHeader(value = "X-Evida-Case-ID", required = false) String caseHeader
     ) {
         AuthenticatedUser user = currentUserService.currentUser();
+        authorizationService.requirePermission(user, Permission.DOCUMENT_UPLOAD);
         UUID requestedTenant = parseUuid(tenantHeader, "TENANT_HEADER_INVALID");
         UUID caseId = caseHeader == null || caseHeader.isBlank() ? null : parseUuid(caseHeader, "CASE_HEADER_INVALID");
 
@@ -182,6 +211,7 @@ public class DocumentController {
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader
     ) {
         AuthenticatedUser user = currentUserService.currentUser();
+        authorizationService.requirePermission(user, Permission.DOCUMENT_UPLOAD);
         UUID requestedTenant = parseUuid(tenantHeader, "TENANT_HEADER_INVALID");
         if (!requestedTenant.equals(user.tenantId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tenant-kontekst stemmer ikke med autentisert bruker.");
@@ -202,6 +232,7 @@ public class DocumentController {
             @RequestParam(value = "caseId", required = false) String caseId
     ) {
         AuthenticatedUser user = currentUserService.currentUser();
+        authorizationService.requirePermission(user, Permission.DOCUMENT_LIST);
         UUID requestedTenant = parseUuid(tenantHeader, "TENANT_HEADER_INVALID");
         UUID requestedCase = caseId == null || caseId.isBlank() ? null : parseUuid(caseId, "CASE_ID_INVALID");
 
@@ -218,6 +249,7 @@ public class DocumentController {
             @RequestParam("sha256") String sha256,
             @RequestParam(value = "caseId", required = false) String caseId
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_LIST);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         if (sha256 == null || !SHA256_PATTERN.matcher(sha256).matches()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SHA256_INVALID");
@@ -231,6 +263,7 @@ public class DocumentController {
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader,
             @RequestBody DocumentDuplicateCheckRequest request
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_LIST);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         List<String> hashes = request == null || request.hashes() == null ? List.of() : request.hashes();
         if (hashes.size() > MAX_DUPLICATE_CHECK_HASHES) {
@@ -256,6 +289,7 @@ public class DocumentController {
             @PathVariable UUID documentId,
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_READ);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         return quarantineService.getDocument(documentId, requestedTenant);
     }
@@ -265,6 +299,7 @@ public class DocumentController {
             @PathVariable UUID documentId,
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_READ);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         DocumentUploadResponse metadata = quarantineService.getDocument(documentId, requestedTenant);
         Path path = quarantineService.downloadPath(documentId, requestedTenant);
@@ -281,6 +316,7 @@ public class DocumentController {
             @PathVariable UUID documentId,
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_APPROVE);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         ingestionJobService.approve(documentId, requestedTenant);
         return quarantineService.getDocument(documentId, requestedTenant);
@@ -292,6 +328,7 @@ public class DocumentController {
             @RequestParam(value = "caseId", required = false) String caseId,
             @RequestBody BatchStartRequest request
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_APPROVE);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         if (request == null || request.documentIds() == null) {
             return List.of();
@@ -320,6 +357,7 @@ public class DocumentController {
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader,
             @RequestBody(required = false) RejectDocumentRequest request
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_REJECT);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         return quarantineService.rejectDocument(documentId, requestedTenant, request == null ? null : request.reason());
     }
@@ -329,6 +367,7 @@ public class DocumentController {
             @PathVariable UUID documentId,
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_REJECT);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         return quarantineService.archiveDocument(documentId, requestedTenant);
     }
@@ -338,6 +377,7 @@ public class DocumentController {
             @PathVariable UUID documentId,
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_DELETE);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         quarantineService.deleteDocument(documentId, requestedTenant);
         return ResponseEntity.noContent().build();
@@ -348,6 +388,7 @@ public class DocumentController {
             @PathVariable UUID documentId,
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.DOCUMENT_APPROVE);
         requireMatchingTenant(tenantHeader);
         throw new ResponseStatusException(HttpStatus.GONE, "Synchronous ingestion is disabled. Use POST /api/documents/{id}/approve and poll /api/ingestion-jobs/{jobId}.");
     }
@@ -357,6 +398,7 @@ public class DocumentController {
             @PathVariable UUID documentId,
             @RequestHeader(CurrentUserService.EVIDA_TENANT_HEADER) String tenantHeader
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.SOURCE_READ);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         return ingestionService.sourceUnits(documentId, requestedTenant).stream()
                 .map(SourceUnitResponse::from)
@@ -370,6 +412,7 @@ public class DocumentController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "2") int radius
     ) {
+        authorizationService.requirePermission(currentUserService.currentUser(), Permission.SOURCE_READ);
         UUID requestedTenant = requireMatchingTenant(tenantHeader);
         return ingestionService.sourceUnitWindow(documentId, requestedTenant, page, radius).stream()
                 .map(SourceUnitResponse::from)

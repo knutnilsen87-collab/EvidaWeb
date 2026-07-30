@@ -10,6 +10,8 @@ public interface DocumentStorageService {
 
     boolean blobExists(UUID tenantId, String sha256);
 
+    void deleteBlob(UUID tenantId, String sha256);
+
     Path resolveQuarantinePath(String storagePath);
 
     record StoredDocument(

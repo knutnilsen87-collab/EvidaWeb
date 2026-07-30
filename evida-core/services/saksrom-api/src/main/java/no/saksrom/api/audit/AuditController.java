@@ -2,6 +2,9 @@ package no.saksrom.api.audit;
 
 import no.saksrom.api.security.AuthenticatedUser;
 import no.saksrom.api.security.CurrentUserService;
+import no.saksrom.api.security.AuthorizationService;
+import no.saksrom.api.security.Permission;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,15 +24,41 @@ public class AuditController {
 
     private final AuditService service;
     private final CurrentUserService currentUserService;
+    private final AuthorizationService authorizationService;
 
-    public AuditController(AuditService service, CurrentUserService currentUserService) {
+    @Autowired
+    public AuditController(
+            AuditService service,
+            CurrentUserService currentUserService,
+            AuthorizationService authorizationService
+    ) {
         this.service = service;
         this.currentUserService = currentUserService;
+        this.authorizationService = authorizationService;
+    }
+
+    AuditController(AuditService service, CurrentUserService currentUserService) {
+        this(service, currentUserService, new AuthorizationService());
     }
 
     @PostMapping("/verify")
     public AuditService.AuditVerification verify(@RequestBody VerifyAuditRequest request) {
-        return service.verify(request.tenantId(), request.caseId());
+        AuthenticatedUser user = currentUserService.currentUser();
+        authorizationService.requirePermission(user, Permission.AUDIT_VERIFY);
+        if (!user.tenantId().equals(request.tenantId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "TENANT_MISMATCH");
+        }
+        AuditService.AuditVerification verification = service.verify(request.tenantId(), request.caseId());
+        service.record(
+                user.tenantId(),
+                request.caseId(),
+                user.userId(),
+                "AUDIT_VERIFICATION_RUN",
+                "AUDIT",
+                null,
+                "{\"valid\":" + verification.valid() + ",\"eventCount\":" + verification.eventCount() + "}"
+        );
+        return verification;
     }
 
     @PostMapping("/client-event")
@@ -38,6 +67,9 @@ public class AuditController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "AUDIT_EVENT_TYPE_NOT_ALLOWED");
         }
         AuthenticatedUser user = currentUserService.currentUser();
+        if ("ADMIN_ACTION".equals(request.eventType())) {
+            authorizationService.requirePermission(user, Permission.ADMIN_TENANT);
+        }
         AuditEvent event = service.record(
                 user.tenantId(),
                 request.caseId(),

@@ -21,6 +21,34 @@ param(
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $backendDir = Join-Path $repoRoot "evida-core\services\saksrom-api"
+$dockerComposeFile = Join-Path $backendDir "docker-compose.yml"
+
+function Test-TcpPort([string]$HostName, [int]$TargetPort) {
+    $client = [System.Net.Sockets.TcpClient]::new()
+    try {
+        $connect = $client.BeginConnect($HostName, $TargetPort, $null, $null)
+        if (-not $connect.AsyncWaitHandle.WaitOne(1000)) {
+            return $false
+        }
+        $client.EndConnect($connect)
+        return $true
+    } catch {
+        return $false
+    } finally {
+        $client.Dispose()
+    }
+}
+
+function Wait-TcpPort([string]$HostName, [int]$TargetPort, [int]$TimeoutSeconds) {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        if (Test-TcpPort $HostName $TargetPort) {
+            return $true
+        }
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $deadline)
+    return $false
+}
 
 Write-Host "== EVIDA saksrom-api dev restart ==" -ForegroundColor Cyan
 Write-Host "Backend dir: $backendDir"
@@ -69,12 +97,44 @@ if ($SkipStart) {
     exit 0
 }
 
-# --- 2. Start current backend (new window so logs stay visible and this script returns) ---
+# --- 2. Ensure the repository-owned local Postgres dependency is available ---
+if (-not (Test-TcpPort "127.0.0.1" 5432)) {
+    Write-Host ""
+    Write-Host "Postgres is not listening on port 5432. Starting the existing Compose service..." -ForegroundColor Yellow
+    if (-not (Test-Path -LiteralPath $dockerComposeFile)) {
+        Write-Host "Missing Compose file: $dockerComposeFile" -ForegroundColor Red
+        exit 1
+    }
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        Write-Host "Docker was not found. Start Docker Desktop, then run this command again." -ForegroundColor Red
+        exit 1
+    }
+
+    Push-Location $backendDir
+    try {
+        & docker compose up -d postgres
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Could not start the evida-postgres Compose service. Start Docker Desktop and try again." -ForegroundColor Red
+            exit 1
+        }
+    } finally {
+        Pop-Location
+    }
+
+    if (-not (Wait-TcpPort "127.0.0.1" 5432 90)) {
+        Write-Host "Postgres did not become available on port 5432 within 90 seconds." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "Postgres is accepting connections on port 5432." -ForegroundColor Green
+}
+
+# --- 3. Start current backend (new window so logs stay visible and this script returns) ---
 Write-Host ""
 Write-Host "Starting current backend from $backendDir ..." -ForegroundColor Cyan
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "mvnw.cmd spring-boot:run `"-Dspring-boot.run.arguments=--server.port=$Port`"" -WorkingDirectory $backendDir
+$mavenCommand = "mvnw.cmd spring-boot:run `"-Dspring-boot.run.arguments=--server.port=$Port`" `"-Dspring-boot.run.jvmArguments=-Devida.security.local-dev-mode=true`" `"-Dspring-boot.run.profiles=local`""
+Start-Process -FilePath "cmd.exe" -ArgumentList "/k", $mavenCommand -WorkingDirectory $backendDir
 
-# --- 3. Wait for health ---
+# --- 4. Wait for health ---
 $healthy = $false
 for ($i = 0; $i -lt 36; $i++) {
     Start-Sleep -Seconds 5
@@ -89,7 +149,7 @@ if (-not $healthy) {
 }
 Write-Host "actuator/health: 200 OK" -ForegroundColor Green
 
-# --- 4. Verify the running binary is current (start-batch must not 404) ---
+# --- 5. Verify the running binary is current (start-batch must not 404) ---
 try {
     $probe = Invoke-WebRequest "http://127.0.0.1:$Port/api/documents/ingestion/start-batch" `
         -Method Post -UseBasicParsing -TimeoutSec 5 `
