@@ -27,6 +27,20 @@ public class SecurityModeValidator {
         if (!properties.security().localDevMode() && isProductionProfile() && !hasJwtTrustConfiguration()) {
             throw new IllegalStateException("production profile requires JWT issuer-uri or jwk-set-uri");
         }
+        if (isProductionProfile() && !hasSecureJwtIssuer()) {
+            throw new IllegalStateException("production profile requires an HTTPS JWT issuer-uri");
+        }
+        if (isProductionProfile() && !environment.getProperty("evida.security.mfa-required", Boolean.class, false)) {
+            throw new IllegalStateException("production profile requires MFA claim enforcement");
+        }
+        if (isProductionProfile() && !hasText(environment.getProperty("evida.security.allowed-roles"))) {
+            throw new IllegalStateException("production profile requires an explicit EVIDA role allowlist");
+        }
+        if (isProductionProfile()
+                && !hasText(environment.getProperty("evida.security.mfa-accepted-amr"))
+                && !hasText(environment.getProperty("evida.security.mfa-accepted-acr"))) {
+            throw new IllegalStateException("production profile requires accepted MFA amr or acr values");
+        }
         if (isProductionProfile() && !hasSafeAllowedOrigins()) {
             throw new IllegalStateException("production profile requires explicit non-wildcard allowed origins");
         }
@@ -46,6 +60,11 @@ public class SecurityModeValidator {
     private boolean hasJwtTrustConfiguration() {
         return hasText(environment.getProperty("spring.security.oauth2.resourceserver.jwt.issuer-uri"))
                 || hasText(environment.getProperty("spring.security.oauth2.resourceserver.jwt.jwk-set-uri"));
+    }
+
+    private boolean hasSecureJwtIssuer() {
+        String issuer = environment.getProperty("spring.security.oauth2.resourceserver.jwt.issuer-uri");
+        return hasText(issuer) && issuer.trim().toLowerCase().startsWith("https://");
     }
 
     private boolean hasSafeAllowedOrigins() {

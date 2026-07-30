@@ -7,7 +7,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
-import { createEicarFixture, removeEicarFixture } from "./create-eicar-fixture.js";
+import { createEicarBytes } from "./create-eicar-fixture.js";
 
 const execFileAsync = promisify(execFile);
 const TENANT_HEADER = "X-Evida-Tenant-ID";
@@ -156,11 +156,9 @@ async function readJson(target: string): Promise<Record<string, unknown> | null>
   }
 }
 
-async function clamdEicarProbe(repoRoot: string, host: string, port: number): Promise<{ cleanlyDetected: boolean; detail: string }> {
-  let fixture = "";
+async function clamdEicarProbe(host: string, port: number): Promise<{ cleanlyDetected: boolean; detail: string }> {
   try {
-    fixture = await createEicarFixture(repoRoot);
-    const bytes = await readFile(fixture);
+    const bytes = createEicarBytes();
     const response = await new Promise<string>((resolve, reject) => {
       const socket = net.createConnection({ host, port });
       const chunks: Buffer[] = [];
@@ -181,8 +179,6 @@ async function clamdEicarProbe(repoRoot: string, host: string, port: number): Pr
     return { cleanlyDetected: response.includes("FOUND"), detail: response.replace(/\0/g, "").trim() };
   } catch (error) {
     return { cleanlyDetected: false, detail: safeError(error) };
-  } finally {
-    if (fixture) await removeEicarFixture(fixture);
   }
 }
 
@@ -308,7 +304,7 @@ export async function runPreflight(options: { repoRoot?: string; env?: Record<st
     gateCheck("ClamAV/clamd", "Dokumentinntak er P0 og må malware-skannes fail-closed.", `Installer/start ClamAV og eksponer clamd på ${clamHost}:${clamPort}.`, async () => ({ status: await tcpProbe(clamHost, clamPort) ? "pass" : "blocked", detail: `${clamHost}:${clamPort}` }), { requiresInstall: true }),
     gateCheck("EICAR runtime test", "Scannerens prosess må bevise at kjent malware-signatur stoppes i runtime.", "Start clamd, oppdater signaturer og kjør `npm run pilot:preflight` på nytt.", async () => {
       if (!(await tcpProbe(clamHost, clamPort))) return { status: "skipped", detail: "ClamAV er ikke tilgjengelig; EICAR ble ikke generert." };
-      const probe = await clamdEicarProbe(repoRoot, clamHost, clamPort);
+      const probe = await clamdEicarProbe(clamHost, clamPort);
       return { status: probe.cleanlyDetected ? "pass" : "blocked", detail: probe.detail };
     }),
     gateCheck("Tesseract executable", "Skannede dokumenter kan ikke bli kildeklare uten verifisert OCR-runtime.", `Installer Tesseract eller korriger EVIDA_TESSERACT_PATH (${tesseract}).`, async () => ({ status: tesseract && await exists(tesseract) ? "pass" : "blocked", detail: tesseract || "EVIDA_TESSERACT_PATH mangler" }), { requiresInstall: true }),
@@ -331,10 +327,14 @@ export async function runPreflight(options: { repoRoot?: string; env?: Record<st
     artifactDefinition("Source-bound multi-document evaluation", path.join(repoRoot, "artifacts", "first-user", "ai_multi_doc_eval.json"), ["pass"], "AI-svar må være kildebundet og håndtere flere dokumenter og motstridende fakta.", "Kjør runtime-evalueringen for flere dokumenter, konflikter og kildehenvisninger."),
     artifactDefinition("Prompt-injection evaluation", path.join(repoRoot, "artifacts", "first-user", "prompt_injection_eval.json"), ["pass"], "Instruksjoner inne i dokumenter må aldri kunne overstyre system- eller kildepolicy.", "Kjør prompt-injection-evalueringen mot aktiv provider-rute."),
     artifactDefinition("Unsupported-claim evaluation", path.join(repoRoot, "artifacts", "first-user", "unsupported_claim_eval.json"), ["pass"], "Svar uten kildebelegg skal avvises eller merkes tydelig.", "Kjør unsupported-claim-evalueringen og verifiser tomme kildehenvisninger."),
+    artifactDefinition("Authoritative provider policy", path.join(repoRoot, "artifacts", "first-user", "provider_policy_result.json"), ["pass"], "Ekstern AI-bruk må ha én tenant-avgrenset backend-myndighet og auditert endringsvei.", "Kjør source-bound runtime-evalueringen og verifiser at provider-policy og auditkjede er PASS."),
     artifactDefinition("Audit coverage", path.join(repoRoot, "artifacts", "first-user", "audit_coverage_result.json"), ["pass"], "Import, AI, eksport, sletting og policyendring må ha etterprøvbar auditkjede.", "Lukk manglende audit-events og verifiser hashkjeden i runtime."),
     artifactDefinition("Export smoke", path.join(repoRoot, "artifacts", "first-user", "export_smoke_result.json"), ["pass"], "Eksport må være kildebasert, merket som utkast og auditert.", "Kjør kildebasert eksport-smoke på releasebygget."),
-    artifactDefinition("Signed Windows deliverable", path.join(repoRoot, "artifacts", "first-user", "signature_verification.json"), ["pass", "approved"], "Distribusjonsartefakten må være signert med organisasjonens betrodde sertifikat.", "Bygg og signer godkjent Windows-pakke i forvaltet release-miljø."),
+    artifactDefinition("Production OIDC/MFA/role claims", path.join(repoRoot, "artifacts", "first-user", "production_identity_result.json"), ["pass"], "Produksjonsidentitet må bevise MFA, godkjent adminrolle og tenantavvisning på live mål.", "Kjør scripts/pilot/test-production-identity.ps1 med et kortlivet MFA-token på live-miljøet."),
+    artifactDefinition("Live HTTPS/domain/certificate/firewall", path.join(repoRoot, "artifacts", "first-user", "live_https_edge_result.json"), ["pass"], "Klienttrafikk må bruke gyldig HTTPS, og interne porter skal ikke være offentlig eksponert.", "Kjør scripts/pilot/test-live-edge.ps1 mot produksjonsdomenet."),
+    artifactDefinition("Trusted release signing", path.join(repoRoot, "artifacts", "first-user", "signature_verification.json"), ["pass", "approved"], "Digest-pinnede web/API-images må være signert med organisasjonens betrodde releaseidentitet.", "Signer release-images og kjør scripts/pilot/test-release-signatures.ps1 i forvaltet release-miljø."),
     artifactDefinition("Managed workstation smoke", path.join(repoRoot, "artifacts", "first-user", "windows_managed_workstation_smoke.json"), ["pass", "approved"], "Målmaskinens policy, installasjon, oppstart og dokumentflyt må verifiseres.", "Kjør smoke på Braathe/Jussys-forvaltet Windows-maskin.", true),
+    artifactDefinition("Signed pilot agreement and DPA", path.join(repoRoot, "artifacts", "first-user", "pilot_agreement_dpa_approval.json"), ["pass", "approved"], "Pilotavtale og databehandleravtale må være signert før ekte klientdata behandles.", "Signer pilotavtale og DPA, bind dokumentreferansene til releasekandidaten og oppdater approval-artefakten.", true),
     artifactDefinition("Engineering approval", path.join(repoRoot, "artifacts", "first-user", "engineering_approval.json"), ["pass", "approved"], "Engineering må eksplisitt godkjenne den eksakte releasekandidaten.", "Innhent signert engineering-godkjenning.", true),
     artifactDefinition("Product approval", path.join(repoRoot, "artifacts", "first-user", "product_approval.json"), ["pass", "approved"], "Produkteier må eksplisitt godkjenne førstebrukeromfanget.", "Innhent signert produktgodkjenning.", true),
     artifactDefinition("Security/privacy approval", path.join(repoRoot, "artifacts", "first-user", "security_privacy_approval.json"), ["pass", "approved"], "Sikkerhet/personvern må godkjenne behandling av ekte klientdata.", "Innhent signert sikkerhets- og personverngodkjenning.", true),

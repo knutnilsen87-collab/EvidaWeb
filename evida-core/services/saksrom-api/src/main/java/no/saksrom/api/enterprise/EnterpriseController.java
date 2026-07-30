@@ -5,7 +5,12 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import no.saksrom.api.config.EvidaProperties;
+import no.saksrom.api.policy.ProviderPolicyService;
+import no.saksrom.api.security.AuthenticatedUser;
+import no.saksrom.api.security.CurrentUserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -14,20 +19,34 @@ import java.util.UUID;
 @RequestMapping("/api/v1/enterprise")
 public class EnterpriseController {
     private final EvidaProperties properties;
+    private final ProviderPolicyService providerPolicyService;
+    private final CurrentUserService currentUserService;
 
-    public EnterpriseController(EvidaProperties properties) {
+    public EnterpriseController(
+            EvidaProperties properties,
+            ProviderPolicyService providerPolicyService,
+            CurrentUserService currentUserService
+    ) {
         this.properties = properties;
+        this.providerPolicyService = providerPolicyService;
+        this.currentUserService = currentUserService;
     }
 
     @GetMapping("/readiness")
     public EnterpriseReadiness readiness(@RequestParam(required = false) UUID tenantId) {
+        AuthenticatedUser user = currentUserService.currentUser();
+        if (tenantId != null && !tenantId.equals(user.tenantId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "TENANT_SCOPE_MISMATCH");
+        }
+        ProviderPolicyService.EffectiveProviderPolicy providerPolicy =
+                providerPolicyService.effective(user.tenantId());
         boolean productionBlocked = properties.security().localDevMode();
         return new EnterpriseReadiness(
-                tenantId,
+                user.tenantId(),
                 true,
                 properties.security().localDevMode(),
                 properties.documents().rawUploadAllowed(),
-                properties.ai().providerCallsEnabled(),
+                providerPolicy.aiProviderCallsEnabled(),
                 productionBlocked,
                 productionBlocked
                         ? "Disable local-dev mode and configure OAuth2/JWT before production."

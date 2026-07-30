@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -8,8 +9,14 @@ const execFileAsync = promisify(execFile);
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const artifactDir = path.join(repoRoot, "artifacts", "first-user");
 const backendUrl = process.env.EVIDA_BACKEND_URL ?? "http://127.0.0.1:18080";
-const tenantId = process.env.EVIDA_DEV_TENANT_ID ?? "00000000-0000-0000-0000-000000000101";
-const headers = { "X-Evida-Tenant-ID": tenantId };
+const tenantId = process.env.EVIDA_DEV_TENANT_ID ?? randomUUID();
+const userId = process.env.EVIDA_DEV_USER_ID ?? randomUUID();
+const headers = {
+  "X-Evida-Tenant-ID": tenantId,
+  "X-Evida-Authenticated-Tenant-ID": tenantId,
+  "X-Evida-User-ID": userId,
+  "X-Evida-Roles": "OWNER,ADMIN,AUDITOR,SECURITY_ADMIN"
+};
 const terminalStatuses = new Set(["COMPLETED", "COMPLETED_WITH_WARNINGS", "FAILED"]);
 
 type Json = Record<string, any>;
@@ -64,12 +71,20 @@ async function postJson(url: string, body: Json): Promise<Json> {
   }), url);
 }
 
+async function putJson(url: string, body: Json): Promise<Json> {
+  return responseJson(await fetch(`${backendUrl}${url}`, {
+    method: "PUT",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  }), url);
+}
+
 async function writeArtifact(name: string, value: Json): Promise<void> {
   await writeFile(path.join(artifactDir, name), `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
 async function auditEventTypes(caseId: string): Promise<string[]> {
-  const sql = `select distinct event_type from audit_events where case_id='${caseId}' order by event_type`;
+  const sql = `select distinct event_type from audit_events where tenant_id='${tenantId}' and (case_id='${caseId}' or case_id is null) order by event_type`;
   const { stdout } = await execFileAsync("docker", [
     "exec", "evida-postgres", "psql", "-U", "evida", "-d", "evida", "-At", "-c", sql
   ], { timeout: 10_000 });
@@ -78,6 +93,7 @@ async function auditEventTypes(caseId: string): Promise<string[]> {
 
 async function main(): Promise<void> {
   await mkdir(artifactDir, { recursive: true });
+  await ensureSyntheticIdentity();
   const generatedAt = new Date().toISOString();
   const caseId = await createCase();
   const documents = [
@@ -104,7 +120,14 @@ async function main(): Promise<void> {
     sourceBasis: "SOURCE_READY_ONLY"
   });
   const policy = await responseJson(await fetch(`${backendUrl}/api/v1/policy/effective`, { headers }), "Les provider-policy");
+  const policyChange = await putJson("/api/v1/policy/ai-provider", {
+    externalProviderApproved: false,
+    changeTicket: `SYNTHETIC-${Date.now()}`
+  });
   const injectionPass = policy.aiProviderCallsEnabled === false
+    && policy.providerPolicy?.authority === "backend-provider-policy"
+    && policyChange.authority === "backend-provider-policy"
+    && policyChange.aiProviderCallsEnabled === false
     && injectionAnswer.sourceBound === true
     && Array.isArray(injectionAnswer.sources)
     && injectionAnswer.sources.length > 0;
@@ -175,10 +198,18 @@ async function main(): Promise<void> {
     && !casesAfterDeletion.some((caseFile) => String(caseFile.id) === caseId);
 
   const auditVerification = await postJson("/api/v1/audit/verify", { tenantId, caseId });
+  const providerPolicyAuditVerification = await postJson("/api/v1/audit/verify", { tenantId, caseId: null });
   const eventTypes = await auditEventTypes(caseId);
-  const requiredEvents = ["DOCUMENT_UPLOADED", "SAKSROM_ANSWER_CREATED", "EXPORT_CREATED", "DOCUMENT_DELETED"];
+  const requiredEvents = [
+    "DOCUMENT_UPLOADED",
+    "SAKSROM_ANSWER_CREATED",
+    "EXPORT_CREATED",
+    "DOCUMENT_DELETED",
+    "PROVIDER_POLICY_CHANGED"
+  ];
   const missingAuditEvents = requiredEvents.filter((eventType) => !eventTypes.includes(eventType));
-  const policyChangeAudited = eventTypes.some((eventType) => eventType.includes("POLICY") || eventType.includes("PROVIDER"));
+  const policyChangeAudited = eventTypes.includes("PROVIDER_POLICY_CHANGED")
+    && providerPolicyAuditVerification.valid;
 
   await Promise.all([
     writeArtifact("document_upload_final_result.json", {
@@ -227,6 +258,21 @@ async function main(): Promise<void> {
       answer_source_bound: injectionAnswer.sourceBound,
       source_count: injectionAnswer.sources?.length ?? 0,
       scope: "Active local deterministic route; rerun if provider routing is enabled."
+    }),
+    writeArtifact("provider_policy_result.json", {
+      generated_at: generatedAt,
+      status: policyChangeAudited && injectionPass ? "pass" : "blocked",
+      verdict: policyChangeAudited && injectionPass ? "pass" : "blocked",
+      synthetic_only: true,
+      authority: policyChange.authority,
+      global_provider_kill_switch_open: policyChange.globalProviderKillSwitchOpen,
+      tenant_provider_approved: policyChange.tenantProviderApproved,
+      ai_provider_calls_enabled: policyChange.aiProviderCallsEnabled,
+      change_ticket: policyChange.changeTicket,
+      policy_version: policyChange.policyVersion,
+      mutation_audited: policyChangeAudited,
+      audit_chain_valid: providerPolicyAuditVerification.valid,
+      note: "Global kill switch and tenant approval must both be true before any external provider call is permitted."
     }),
     writeArtifact("unsupported_claim_eval.json", {
       generated_at: generatedAt,
@@ -279,18 +325,34 @@ async function main(): Promise<void> {
       synthetic_only: true,
       case_id: caseId,
       chain_valid: auditVerification.valid,
+      provider_policy_chain_valid: providerPolicyAuditVerification.valid,
       event_count: auditVerification.eventCount,
       observed_event_types: eventTypes,
       missing_required_runtime_events: missingAuditEvents,
       provider_or_policy_change_audited: policyChangeAudited,
-      blocker: policyChangeAudited ? null : "No authoritative provider/policy mutation endpoint and audit event exists."
+      policy_authority: policyChange.authority,
+      blocker: policyChangeAudited ? null : "Authoritative provider policy mutation was not audited."
     })
   ]);
 
-  if (!multiDocPass || !injectionPass || !unsupportedPass || !exportPass || !replacementVersionPass || !deletionPass || !auditVerification.valid) {
+  if (!multiDocPass || !injectionPass || !unsupportedPass || !exportPass || !replacementVersionPass || !deletionPass || !auditVerification.valid || !providerPolicyAuditVerification.valid || !policyChangeAudited) {
     throw new Error("Én eller flere kildebundne runtime-kontroller feilet.");
   }
   console.log(`Source-bound runtime PASS for synthetic case ${caseId}; audit coverage remains ${policyChangeAudited ? "pass" : "blocked"} for provider/policy changes.`);
+}
+
+async function ensureSyntheticIdentity(): Promise<void> {
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(tenantId) || !uuidPattern.test(userId)) {
+    throw new Error("Synthetic runtime tenant/user IDs must be valid UUIDs.");
+  }
+  const sql = [
+    `insert into tenants (id, name, status) values ('${tenantId}', 'Synthetic runtime tenant', 'ACTIVE') on conflict (id) do nothing`,
+    `insert into users (id, tenant_id, email, display_name, role, status) values ('${userId}', '${tenantId}', 'runtime-${userId}@evida.invalid', 'Synthetic Runtime', 'OWNER', 'ACTIVE') on conflict (id) do nothing`
+  ].join("; ");
+  await execFileAsync("docker", [
+    "exec", "evida-postgres", "psql", "-v", "ON_ERROR_STOP=1", "-U", "evida", "-d", "evida", "-c", sql
+  ], { timeout: 10_000 });
 }
 
 async function uploadReplacementIngestion(documentId: string): Promise<Json> {

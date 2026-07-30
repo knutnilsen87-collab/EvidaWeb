@@ -12,7 +12,9 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,6 +33,7 @@ public class CurrentUserService {
 
     private static final UUID DEV_TENANT_ID = UUID.fromString("00000000-0000-0000-0000-000000000101");
     private static final UUID DEV_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000102");
+    private static final Set<String> DEV_DEFAULT_ROLES = Set.of("OWNER", "ADMIN", "AUDITOR", "SECURITY_ADMIN");
 
     private final EvidaProperties properties;
     private final Environment environment;
@@ -55,18 +58,20 @@ public class CurrentUserService {
             throw new IllegalStateException("Authenticated JWT principal is required");
         }
 
+        validateMfa(jwt);
+        Set<String> roles = authorizedJwtRoles(jwt);
         return new AuthenticatedUser(
                 claimUuid(jwt, "tenant_id"),
                 claimUuid(jwt, "user_id"),
                 email(jwt),
-                jwtRoles(jwt)
+                roles
         );
     }
 
     private AuthenticatedUser localDevUser() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
-            return new AuthenticatedUser(DEV_TENANT_ID, DEV_USER_ID, Set.of("OWNER", "ADMIN", "AUDITOR", "SECURITY_ADMIN"));
+            return new AuthenticatedUser(DEV_TENANT_ID, DEV_USER_ID, DEV_DEFAULT_ROLES);
         }
 
         String tenant = firstHeader(attributes, EVIDA_AUTHENTICATED_TENANT_HEADER);
@@ -77,7 +82,7 @@ public class CurrentUserService {
                 parseUuidOrDefault(tenant, DEV_TENANT_ID),
                 parseUuidOrDefault(user, DEV_USER_ID),
                 email == null || email.isBlank() ? "dev@evida.local" : email,
-                parseRoles(roles)
+                roles == null || roles.isBlank() ? DEV_DEFAULT_ROLES : parseValues(roles)
         );
     }
 
@@ -104,12 +109,62 @@ public class CurrentUserService {
         if (roles instanceof Iterable<?> iterable) {
             Set<String> parsed = new LinkedHashSet<>();
             for (Object role : iterable) {
-                parsed.add(String.valueOf(role));
+                parsed.add(String.valueOf(role).trim().toUpperCase(Locale.ROOT));
             }
             return parsed;
         }
+        if (roles instanceof String roleString) {
+            return parseValues(roleString);
+        }
         String scope = jwt.getClaimAsString("scope");
-        return parseRoles(scope);
+        return parseValues(scope);
+    }
+
+    private Set<String> authorizedJwtRoles(Jwt jwt) {
+        Set<String> presented = jwtRoles(jwt);
+        Set<String> allowed = configuredValues("evida.security.allowed-roles");
+        if (allowed.isEmpty()) {
+            return presented;
+        }
+        Set<String> recognized = presented.stream()
+                .map(role -> role.toUpperCase(Locale.ROOT))
+                .filter(allowed::contains)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (recognized.isEmpty()) {
+            throw new IllegalStateException("JWT must contain at least one configured EVIDA role");
+        }
+        return recognized;
+    }
+
+    private void validateMfa(Jwt jwt) {
+        if (!environment.getProperty("evida.security.mfa-required", Boolean.class, false)) {
+            return;
+        }
+        Set<String> acceptedAmr = configuredValues("evida.security.mfa-accepted-amr");
+        Set<String> acceptedAcr = configuredValues("evida.security.mfa-accepted-acr");
+        Set<String> presentedAmr = claimValues(jwt.getClaims().get("amr"));
+        String acr = jwt.getClaimAsString("acr");
+        boolean amrMatch = presentedAmr.stream().anyMatch(acceptedAmr::contains);
+        boolean acrMatch = acr != null && acceptedAcr.contains(acr.trim().toUpperCase(Locale.ROOT));
+        if (!amrMatch && !acrMatch) {
+            throw new IllegalStateException("JWT does not prove required multi-factor authentication");
+        }
+    }
+
+    private Set<String> configuredValues(String propertyName) {
+        return parseValues(environment.getProperty(propertyName));
+    }
+
+    private Set<String> claimValues(Object claim) {
+        if (claim instanceof Collection<?> values) {
+            return values.stream()
+                    .map(String::valueOf)
+                    .map(String::trim)
+                    .filter(value -> !value.isBlank())
+                    .map(value -> value.toUpperCase(Locale.ROOT))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+        return parseValues(claim == null ? null : String.valueOf(claim));
     }
 
     private String email(Jwt jwt) {
@@ -124,13 +179,14 @@ public class CurrentUserService {
         return UUID.fromString(value);
     }
 
-    private Set<String> parseRoles(String value) {
+    private Set<String> parseValues(String value) {
         if (value == null || value.isBlank()) {
-            return Set.of("OWNER", "ADMIN", "AUDITOR", "SECURITY_ADMIN");
+            return Set.of();
         }
         return Arrays.stream(value.split("[,\\s]+"))
                 .map(String::trim)
                 .filter(role -> !role.isBlank())
+                .map(role -> role.toUpperCase(Locale.ROOT))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 

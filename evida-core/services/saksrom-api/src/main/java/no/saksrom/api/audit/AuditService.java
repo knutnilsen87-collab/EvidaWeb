@@ -26,6 +26,7 @@ public class AuditService {
             UUID entityId,
             String payloadJson
     ) {
+        repository.acquireTenantAuditLock(tenantId);
         String previousHash = repository
                 .findTopByTenantIdAndCaseIdOrderByCreatedAtDesc(tenantId, caseId)
                 .map(AuditEvent::getEventHash)

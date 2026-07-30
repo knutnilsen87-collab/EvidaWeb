@@ -8,11 +8,15 @@ const EICAR_PARTS = [
   "7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 ];
 
+export function createEicarBytes(): Buffer {
+  return Buffer.from(EICAR_PARTS.join(""), "ascii");
+}
+
 export async function createEicarFixture(repoRoot: string): Promise<string> {
   const target = path.join(repoRoot, "artifacts", "first-user", "tmp", "eicar-test.txt");
   await mkdir(path.dirname(target), { recursive: true });
   try {
-    await writeFile(target, EICAR_PARTS.join(""), { encoding: "ascii", flag: "wx" });
+    await writeFile(target, createEicarBytes(), { flag: "wx" });
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code !== "EEXIST") throw error;

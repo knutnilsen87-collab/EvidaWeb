@@ -48,6 +48,10 @@ evida:
   security:
     local-dev-mode: ${EVIDA_LOCAL_DEV_MODE:true}
     allowed-origins: ${EVIDA_ALLOWED_ORIGINS:}
+    mfa-required: ${EVIDA_MFA_REQUIRED:false}
+    mfa-accepted-amr: ${EVIDA_MFA_ACCEPTED_AMR:mfa,otp,hwk}
+    mfa-accepted-acr: ${EVIDA_MFA_ACCEPTED_ACR:}
+    allowed-roles: ${EVIDA_ALLOWED_ROLES:OWNER,ADMIN,TENANT_ADMIN,SYSTEM_ADMIN,LAWYER,CASE_WORKER,VIEWER,AUDITOR,SECURITY_ADMIN}
     malware-scanner-configured: ${EVIDA_MALWARE_SCANNER_CONFIGURED:false}
     malware-scan-enabled: ${EVIDA_MALWARE_SCAN_ENABLED:false}
     malware-scan-host: ${EVIDA_MALWARE_SCAN_HOST:127.0.0.1}
