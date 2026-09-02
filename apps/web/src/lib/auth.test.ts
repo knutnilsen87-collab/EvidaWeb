@@ -12,7 +12,15 @@ const user: User = {
 describe("authService", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     sessionStorage.clear();
+  });
+
+  it("requires an explicit session instead of auto-login by default", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(authService.checkAuth()).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("adds bearer token and tenant header to API calls", () => {

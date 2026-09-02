@@ -34,13 +34,11 @@ function jwt() {
 export const authService = {
   async checkAuth(): Promise<User | null> {
     const token = jwt();
-    if (!token && !import.meta.env.DEV) {
-      return null;
-    }
-
-    if (!token && import.meta.env.DEV) {
+    if (!token && import.meta.env.DEV && import.meta.env.VITE_EVIDA_DEV_AUTO_LOGIN === "true") {
       return mockUser;
     }
+
+    if (!token) return null;
 
     const response = await fetch(`${authBaseUrl()}/api/auth/me`, {
       headers: {

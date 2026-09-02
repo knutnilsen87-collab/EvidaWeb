@@ -1,5 +1,6 @@
 import { getHeaders, toUuid } from "./api";
 import type { SaksromSummaryStreamEvent } from "./api";
+import type { SaksromStreamRequest } from "./streaming/types";
 
 function apiBaseUrl() {
   return import.meta.env.VITE_EVIDA_API_BASE_URL ?? "";
@@ -193,6 +194,33 @@ export async function streamSaksromSummarySse(
     url,
     { headers: getHeaders(tenantId), body: JSON.stringify(mappedPayload), signal },
     (frame) => translateSummaryFrame(frame, onEvent)
+  );
+}
+
+export async function streamSaksromQuestionSse(
+  request: SaksromStreamRequest,
+  onEvent: (event: unknown) => void,
+  signal?: AbortSignal
+): Promise<StreamAiResult> {
+  const payload = {
+    caseId: toUuid(request.caseId) || request.caseId,
+    question: request.query,
+    selectedSourceUnitIds: request.selectedSourceUnitIds ?? [],
+    mode: request.mode === "ARGUMENTERE" ? "argumentere" : request.mode === "SIMULERE" ? "simulere" : "sporre",
+    includePartial: request.includePartial,
+    sourceBasis: request.sourceBasis
+  };
+  return streamAiSse(
+    `${apiBaseUrl()}/api/saksrom/ask/sse`,
+    { headers: getHeaders(request.tenantId), body: JSON.stringify(payload), signal },
+    (frame) => {
+      const data = frame.data;
+      if (frame.event === "stage") onEvent({ type: "stage", stage: data.stage, label: data.label });
+      else if (frame.event === "token") onEvent({ type: "text_delta", content: data.text });
+      else if (frame.event === "citation") onEvent({ type: "citation", citation: data.citation });
+      else if (frame.event === "warning") onEvent({ type: "warning", code: data.code });
+      else if (frame.event === "complete") onEvent({ type: "completed", answer: data.answer });
+    }
   );
 }
 

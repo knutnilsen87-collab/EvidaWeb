@@ -24,6 +24,8 @@ public class AuthorizationService {
                     Permission.SAKSROM_ASK,
                     Permission.CASE_CREATE,
                     Permission.CASE_READ,
+                    Permission.CASE_CANVAS_READ,
+                    Permission.CASE_CANVAS_WRITE,
                     Permission.CASE_DELETE,
                     Permission.EXPORT_CREATE
             ),
@@ -33,7 +35,9 @@ public class AuthorizationService {
                     Permission.DOCUMENT_READ,
                     Permission.SOURCE_READ,
                     Permission.SAKSROM_ASK,
-                    Permission.CASE_READ
+                    Permission.CASE_READ,
+                    Permission.CASE_CANVAS_READ,
+                    Permission.CASE_CANVAS_WRITE
             ),
             "AUDITOR", EnumSet.of(Permission.AUDIT_VERIFY),
             "SECURITY_ADMIN", EnumSet.of(Permission.AUDIT_VERIFY, Permission.ADMIN_TENANT),
@@ -41,7 +45,8 @@ public class AuthorizationService {
                     Permission.DOCUMENT_LIST,
                     Permission.DOCUMENT_READ,
                     Permission.SOURCE_READ,
-                    Permission.CASE_READ
+                    Permission.CASE_READ,
+                    Permission.CASE_CANVAS_READ
             ),
             "OWNER", EnumSet.allOf(Permission.class),
             "ADMIN", EnumSet.allOf(Permission.class),
@@ -51,7 +56,9 @@ public class AuthorizationService {
                     Permission.DOCUMENT_READ,
                     Permission.SOURCE_READ,
                     Permission.SAKSROM_ASK,
-                    Permission.CASE_READ
+                    Permission.CASE_READ,
+                    Permission.CASE_CANVAS_READ,
+                    Permission.CASE_CANVAS_WRITE
             )
     );
 
